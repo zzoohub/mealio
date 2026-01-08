@@ -3,25 +3,21 @@
  * This provides compile-time type safety for translation keys
  */
 
-// Base translation resources structure
+// Base translation resources structure (modules with JSON files)
 export interface TranslationResources {
   navigation: NavigationTranslations;
   camera: CameraTranslations;
-  timeline: TimelineTranslations;
-  discover: DiscoverTranslations;
-  progress: ProgressTranslations;
-  aiCoach: AICoachTranslations;
-  mealDetail: MealDetailTranslations;
+  analytics: AnalyticsTranslations;
   common: CommonTranslations;
   errors: ErrorTranslations;
   settings: SettingsTranslations;
+  diary: DiaryTranslations;
 }
 
 // Navigation translations
 export interface NavigationTranslations {
   camera: string;
-  timeline: string;
-  discover: string;
+  diary: string;
 }
 
 // Camera translations
@@ -32,9 +28,7 @@ export interface CameraTranslations {
   capturingText: string;
   preparing: string;
   flip: string;
-  discover: string;
-  progress: string;
-  aiCoach: string;
+  analytics: string;
   recent: string;
   done: string;
   tapToEdit: string;
@@ -60,73 +54,8 @@ export interface CameraTranslations {
   };
 }
 
-// Timeline translations
-export interface TimelineTranslations {
-  title: string;
-  thisWeek: string;
-  recentMeals: string;
-  quickCapture: string;
-  mealHistory: string;
-  searchPlaceholder: string;
-  selectDateRange: string;
-  noMealsFound: string;
-  noMealsMessage: string;
-  startLogging: string;
-  loadMore: string;
-  cancel: string;
-  apply: string;
-  periods: {
-    day: string;
-    week: string;
-    month: string;
-  };
-  dates: {
-    today: string;
-    yesterday: string;
-  };
-  mealTypes: {
-    breakfast: string;
-    lunch: string;
-    dinner: string;
-    snack: string;
-  };
-  stats: {
-    meals: string;
-    avgCalories: string;
-    goalProgress: string;
-  };
-}
-
-// Discover translations
-export interface DiscoverTranslations {
-  title: string;
-  subtitle: string;
-  categories: {
-    all: string;
-    healthy: string;
-    quick: string;
-    comfort: string;
-    breakfast: string;
-    lunch: string;
-    dinner: string;
-  };
-  social: {
-    follow: string;
-    following: string;
-    timeAgo: {
-      now: string;
-      minute_one: string;
-      minute_other: string;
-      hour_one: string;
-      hour_other: string;
-      day_one: string;
-      day_other: string;
-    };
-  };
-}
-
-// Progress translations
-export interface ProgressTranslations {
+// Analytics translations
+export interface AnalyticsTranslations {
   title: string;
   todaySummary: string;
   caloriesConsumed: string;
@@ -157,63 +86,6 @@ export interface ProgressTranslations {
   diversityTip: string;
 }
 
-// AI Coach translations
-export interface AICoachTranslations {
-  title: string;
-  greeting: string;
-  typeMessage: string;
-  send: string;
-  insights: string;
-  analyzeMy: string;
-  setGoals: string;
-  weeklyReport: string;
-  mealSuggestions: string;
-  proteinGoal: string;
-  proteinGoalDesc: string;
-  hydrationReminder: string;
-  hydrationReminderDesc: string;
-  vegetableVariety: string;
-  vegetableVarietyDesc: string;
-  subtitle: string;
-  mealIdeas: string;
-  goalCheck: string;
-}
-
-// Meal Detail translations
-export interface MealDetailTranslations {
-  title: string;
-  editTitle: string;
-  save: string;
-  saved: string;
-  analyzing: string;
-  loadingMeal: string;
-  analyzingSubtext: string;
-  loadingSubtext: string;
-  analysisFailed: string;
-  tryAgain: string;
-  goBack: string;
-  confidence: string;
-  nutritionFacts: string;
-  calories: string;
-  protein: string;
-  carbs: string;
-  fat: string;
-  fiber: string;
-  ingredients: string;
-  addIngredient: string;
-  tapToEdit: string;
-  aiRecommendations: string;
-  noRecommendations: string;
-  retakePhoto: string;
-  sharePhoto: string;
-  deletePhoto: string;
-  mealSaved: string;
-  failedToSave: string;
-  failedToLoad: string;
-  noMealId: string;
-  mealNotFound: string;
-}
-
 // Common translations
 export interface CommonTranslations {
   loading: string;
@@ -240,7 +112,21 @@ export interface ErrorTranslations {
   storageError: string;
 }
 
-// Settings translations (simplified for example)
+// Diary translations
+export interface DiaryTranslations {
+  mealHistory: string;
+  searchPlaceholder: string;
+  noMealsFound: string;
+  loadMore: string;
+  meals: string;
+  today: string;
+  yesterday: string;
+  thisWeek: string;
+  thisMonth: string;
+  older: string;
+}
+
+// Settings translations
 export interface SettingsTranslations {
   title: string;
   language: {
@@ -325,14 +211,11 @@ export interface SettingsTranslations {
 export type TranslationKey =
   | `navigation.${keyof NavigationTranslations}`
   | `camera.${KeyPath<CameraTranslations>}`
-  | `timeline.${KeyPath<TimelineTranslations>}`
-  | `discover.${KeyPath<DiscoverTranslations>}`
-  | `progress.${KeyPath<ProgressTranslations>}`
-  | `aiCoach.${KeyPath<AICoachTranslations>}`
-  | `mealDetail.${KeyPath<MealDetailTranslations>}`
+  | `analytics.${KeyPath<AnalyticsTranslations>}`
   | `common.${keyof CommonTranslations}`
   | `errors.${keyof ErrorTranslations}`
-  | `settings.${KeyPath<SettingsTranslations>}`;
+  | `settings.${KeyPath<SettingsTranslations>}`
+  | `diary.${keyof DiaryTranslations}`;
 
 // Utility type for nested key paths
 type KeyPath<T> = T extends object
@@ -344,20 +227,11 @@ type KeyPath<T> = T extends object
 // Domain-specific key types for type safety in hooks
 export type NavigationKeys = keyof NavigationTranslations;
 export type CameraKeys = KeyPath<CameraTranslations>;
-export type TimelineKeys = KeyPath<TimelineTranslations>;
-export type DiscoverKeys = KeyPath<DiscoverTranslations>;
-export type ProgressKeys = KeyPath<ProgressTranslations>;
-export type AICoachKeys = KeyPath<AICoachTranslations>;
-export type MealDetailKeys = KeyPath<MealDetailTranslations>;
+export type AnalyticsKeys = KeyPath<AnalyticsTranslations>;
 export type CommonKeys = keyof CommonTranslations;
 export type ErrorKeys = keyof ErrorTranslations;
 export type SettingsKeys = KeyPath<SettingsTranslations>;
-
-// Meal types for type safety
-export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
-export type CategoryType = "all" | "healthy" | "quick" | "comfort" | "breakfast" | "lunch" | "dinner";
-export type PeriodType = "day" | "week" | "month";
-export type StatType = "meals" | "avgCalories" | "goalProgress";
+export type DiaryKeys = keyof DiaryTranslations;
 
 // Formatter function types
 export interface FormattersType {
@@ -368,12 +242,4 @@ export interface FormattersType {
   date: (date: Date, options?: Intl.DateTimeFormatOptions) => string;
   time: (date: Date, options?: Intl.DateTimeFormatOptions) => string;
   timeAgo: (date: Date) => string;
-}
-
-// Meal helpers function types
-export interface MealHelpersType {
-  mealType: (type: MealType) => string;
-  category: (category: CategoryType) => string;
-  period: (period: PeriodType) => string;
-  stat: (stat: StatType) => string;
 }

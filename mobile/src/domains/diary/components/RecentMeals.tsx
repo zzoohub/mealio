@@ -61,14 +61,6 @@ export default function RecentMeals({ onSeeAll }: RecentMealsProps) {
 
   const handleMealPress = (meal: Meal) => {
     // Navigate to meal detail for editing
-    router.push({
-      pathname: "/meal-detail",
-      params: {
-        mealId: meal.id,
-        photoUri: meal.photoUri || "",
-        isNew: "false",
-      },
-    });
   };
 
   const formatRelativeTime = (date: Date): string => {

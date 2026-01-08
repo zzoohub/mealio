@@ -1,5 +1,5 @@
 {
-  "title": "진행 상황",
+  "title": "분석",
   "todaySummary": "오늘의 요약",
   "caloriesConsumed": "섭취 칼로리",
   "remaining": "남은 칼로리",
@@ -18,7 +18,7 @@
   "proteinMasterDesc": "7일 연속 단백질 목표 달성",
   "veggieWarrior": "채소 전사",
   "veggieWarriorDesc": "25가지 다른 채소 기록",
-  "consistencyKing": "귓준함의 왕",
+  "consistencyKing": "꾸준함의 왕",
   "consistencyKingDesc": "30일 연속 식사 기록",
   "eatingPattern": "식사 패턴",
   "seeAll": "모두 보기",

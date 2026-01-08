@@ -41,15 +41,6 @@ export default function RootLayout() {
           }}
         />
 
-        {/* Modal Screens */}
-        <Stack.Screen
-          name="meal-detail"
-          options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-          }}
-        />
-
         <Stack.Screen
           name="profile"
           options={{

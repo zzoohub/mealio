@@ -22,9 +22,7 @@ export type {
   CapturedPhoto,
   CameraSettings,
   Meal,
-} from "./domains/meals/types";
-
-export type { Post } from "./domains/social/types";
+} from "./domains/diary";
 
 export type { AnalyticsEvent } from "./domains/analytics/types";
 
@@ -37,7 +35,7 @@ export { CAMERA_SETTINGS, APP_CONFIG, API_CONFIG, STORAGE_KEYS, QUERY_KEYS, MUTA
 export { formatBytes, formatDate, showAlert, showConfirmAlert } from "./utils";
 
 // Domain-specific utilities
-export { getCurrentMealType, formatCalories, formatWeight } from "./domains/meals/utils";
+export { getCurrentMealType, formatCalories, formatWeight } from "./domains/diary";
 export { validateEmail, validatePassword, validateUsername, getPasswordStrength } from "./domains/auth/utils";
 
 // Design System

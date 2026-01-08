@@ -3,21 +3,13 @@ import { useMemo } from "react";
 import { getCurrentLanguage, getCurrentLanguageConfig, isRTL } from "./config";
 import type {
   FormattersType,
-  MealHelpersType,
-  MealType,
-  CategoryType,
-  PeriodType,
-  StatType,
   NavigationKeys,
   CameraKeys,
-  TimelineKeys,
-  DiscoverKeys,
-  ProgressKeys,
-  AICoachKeys,
-  MealDetailKeys,
+  AnalyticsKeys,
   CommonKeys,
   ErrorKeys,
   SettingsKeys,
+  DiaryKeys,
 } from "./types";
 
 /**
@@ -26,7 +18,6 @@ import type {
 export const useI18n = <T extends string = string>(ns?: string | string[], options?: UseTranslationOptions<any>) => {
   const { t, i18n, ready } = useTranslation(ns, options);
   const { t: commonT } = useTranslation("common");
-  const { t: discoverT } = useTranslation("discover");
 
   const currentLanguage = getCurrentLanguage();
   const languageConfig = getCurrentLanguageConfig();
@@ -40,7 +31,7 @@ export const useI18n = <T extends string = string>(ns?: string | string[], optio
 
   // Memoized formatting functions with improved performance
   const formatters = useMemo(
-    (): FormattersType => ({
+    (): Omit<FormattersType, "timeAgo"> => ({
       calories: (count: number): string => commonT("calories", { count }) as string,
 
       likes: (count: number): string => commonT("likes", { count }) as string,
@@ -73,48 +64,8 @@ export const useI18n = <T extends string = string>(ns?: string | string[], optio
             : { hour: "2-digit", minute: "2-digit", hour12: true };
         return new Intl.DateTimeFormat(currentLanguage, { ...defaultOptions, ...options }).format(date);
       },
-
-      timeAgo: (date: Date): string => {
-        const now = new Date();
-        const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-
-        if (diffInMinutes < 1) {
-          return discoverT("social.timeAgo.now") as string;
-        } else if (diffInMinutes < 60) {
-          return discoverT("social.timeAgo.minute", { count: diffInMinutes }) as string;
-        } else if (diffInMinutes < 1440) {
-          // Less than 24 hours
-          const hours = Math.floor(diffInMinutes / 60);
-          return discoverT("social.timeAgo.hour", { count: hours }) as string;
-        } else {
-          const days = Math.floor(diffInMinutes / 1440);
-          return discoverT("social.timeAgo.day", { count: days }) as string;
-        }
-      },
     }),
-    [commonT, discoverT, currentLanguage, languageConfig.timeFormat],
-  );
-
-  // Meal-specific translation helpers with type safety
-  const mealHelpers = useMemo(
-    (): MealHelpersType => ({
-      mealType: (type: MealType): string => {
-        return translate(`mealTypes.${type}` as T) || type;
-      },
-
-      category: (category: CategoryType): string => {
-        return translate(`categories.${category}` as T) || category;
-      },
-
-      period: (period: PeriodType): string => {
-        return translate(`periods.${period}` as T) || period;
-      },
-
-      stat: (stat: StatType): string => {
-        return translate(`stats.${stat}` as T) || stat;
-      },
-    }),
-    [translate],
+    [commonT, currentLanguage, languageConfig.timeFormat],
   );
 
   return {
@@ -125,7 +76,6 @@ export const useI18n = <T extends string = string>(ns?: string | string[], optio
     languageConfig,
     isRTL: isRightToLeft,
     format: formatters,
-    meal: mealHelpers,
   };
 };
 
@@ -140,8 +90,7 @@ export const useNavigationI18n = () => {
   return useMemo(
     () => ({
       camera: t("camera"),
-      timeline: t("timeline"),
-      discover: t("discover"),
+      diary: t("diary"),
     }),
     [t],
   );
@@ -156,13 +105,10 @@ export const useCameraI18n = () => {
       title: t("title"),
       subtitle: t("subtitle"),
       quickHint: t("quickHint"),
-      hintText: t("hintText"),
       capturingText: t("capturingText"),
       preparing: t("preparing"),
       flip: t("flip"),
-      discover: t("discover"),
-      progress: t("progress"),
-      aiCoach: t("aiCoach"),
+      analytics: t("analytics"),
       recent: t("recent"),
       done: t("done"),
       tapToEdit: t("tapToEdit"),
@@ -188,57 +134,6 @@ export const useCameraI18n = () => {
       },
     }),
     [t],
-  );
-};
-
-// Timeline hook with formatters
-export const useTimelineI18n = () => {
-  const { t, format, meal } = useI18n<TimelineKeys>("timeline");
-
-  return useMemo(
-    () => ({
-      title: t("title"),
-      thisWeek: t("thisWeek"),
-      recentMeals: t("recentMeals"),
-      quickCapture: t("quickCapture"),
-      mealHistory: t("mealHistory"),
-      searchPlaceholder: t("searchPlaceholder"),
-      selectDateRange: t("selectDateRange"),
-      noMealsFound: t("noMealsFound"),
-      noMealsMessage: t("noMealsMessage"),
-      startLogging: t("startLogging"),
-      loadMore: t("loadMore"),
-      cancel: t("cancel"),
-      apply: t("apply"),
-      today: t("dates.today"),
-      yesterday: t("dates.yesterday"),
-      mealType: meal.mealType,
-      period: meal.period,
-      stat: meal.stat,
-      formatCalories: format.calories,
-      formatTime: format.time,
-      formatDate: format.date,
-    }),
-    [t, format.calories, format.time, format.date, meal.mealType, meal.period, meal.stat],
-  );
-};
-
-// Discover hook
-export const useDiscoverI18n = () => {
-  const { t, format, meal } = useI18n<DiscoverKeys>("discover");
-
-  return useMemo(
-    () => ({
-      title: t("title"),
-      subtitle: t("subtitle"),
-      follow: t("social.follow"),
-      following: t("social.following"),
-      category: meal.category,
-      formatCalories: format.calories,
-      formatTimeAgo: format.timeAgo,
-      formatLikes: format.likes,
-    }),
-    [t, format.calories, format.timeAgo, format.likes, meal.category],
   );
 };
 
@@ -283,51 +178,9 @@ export const useErrorI18n = () => {
   );
 };
 
-// Meal detail hook
-export const useMealDetailI18n = () => {
-  const { t } = useI18n<MealDetailKeys>("mealDetail");
-
-  return useMemo(
-    () => ({
-      title: t("title"),
-      editTitle: t("editTitle"),
-      save: t("save"),
-      saved: t("saved"),
-      analyzing: t("analyzing"),
-      loadingMeal: t("loadingMeal"),
-      analyzingSubtext: t("analyzingSubtext"),
-      loadingSubtext: t("loadingSubtext"),
-      analysisFailed: t("analysisFailed"),
-      tryAgain: t("tryAgain"),
-      goBack: t("goBack"),
-      confidence: t("confidence"),
-      nutritionFacts: t("nutritionFacts"),
-      calories: t("calories"),
-      protein: t("protein"),
-      carbs: t("carbs"),
-      fat: t("fat"),
-      fiber: t("fiber"),
-      ingredients: t("ingredients"),
-      addIngredient: t("addIngredient"),
-      tapToEdit: t("tapToEdit"),
-      aiRecommendations: t("aiRecommendations"),
-      noRecommendations: t("noRecommendations"),
-      retakePhoto: t("retakePhoto"),
-      sharePhoto: t("sharePhoto"),
-      deletePhoto: t("deletePhoto"),
-      mealSaved: t("mealSaved"),
-      failedToSave: t("failedToSave"),
-      failedToLoad: t("failedToLoad"),
-      noMealId: t("noMealId"),
-      mealNotFound: t("mealNotFound"),
-    }),
-    [t],
-  );
-};
-
-// Progress hook
-export const useProgressI18n = () => {
-  const { t, format } = useI18n<ProgressKeys>("progress");
+// Analytics hook
+export const useAnalyticsI18n = () => {
+  const { t, format } = useI18n<AnalyticsKeys>("analytics");
 
   return useMemo(
     () => ({
@@ -363,35 +216,6 @@ export const useProgressI18n = () => {
       formatNumber: format.number,
     }),
     [t, format.calories, format.number],
-  );
-};
-
-// AI Coach hook
-export const useAICoachI18n = () => {
-  const { t } = useI18n<AICoachKeys>("aiCoach");
-
-  return useMemo(
-    () => ({
-      title: t("title"),
-      greeting: t("greeting"),
-      typeMessage: t("typeMessage"),
-      send: t("send"),
-      insights: t("insights"),
-      analyzeMy: t("analyzeMy"),
-      setGoals: t("setGoals"),
-      weeklyReport: t("weeklyReport"),
-      mealSuggestions: t("mealSuggestions"),
-      proteinGoal: t("proteinGoal"),
-      proteinGoalDesc: t("proteinGoalDesc"),
-      hydrationReminder: t("hydrationReminder"),
-      hydrationReminderDesc: t("hydrationReminderDesc"),
-      vegetableVariety: t("vegetableVariety"),
-      vegetableVarietyDesc: t("vegetableVarietyDesc"),
-      subtitle: t("subtitle"),
-      mealIdeas: t("mealIdeas"),
-      goalCheck: t("goalCheck"),
-    }),
-    [t],
   );
 };
 
@@ -478,6 +302,28 @@ export const useSettingsI18n = () => {
           simpleDesc: t("display.nutrition.simpleDesc"),
         },
       },
+    }),
+    [t],
+  );
+};
+
+// Diary hook
+export const useDiaryI18n = () => {
+  const { t } = useI18n<DiaryKeys>("diary");
+
+  return useMemo(
+    () => ({
+      mealHistory: t("mealHistory"),
+      searchPlaceholder: t("searchPlaceholder"),
+      noMealsFound: t("noMealsFound"),
+      loadMore: t("loadMore"),
+      meals: t("meals"),
+      today: t("today"),
+      yesterday: t("yesterday"),
+      thisWeek: t("thisWeek"),
+      thisMonth: t("thisMonth"),
+      older: t("older"),
+      stat: (key: string) => t(key as DiaryKeys),
     }),
     [t],
   );

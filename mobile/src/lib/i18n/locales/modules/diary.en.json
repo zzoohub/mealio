@@ -1,0 +1,12 @@
+{
+  "mealHistory": "Meal History",
+  "searchPlaceholder": "Search meals...",
+  "noMealsFound": "No meals found",
+  "loadMore": "Loading more...",
+  "meals": "meals",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "thisWeek": "This Week",
+  "thisMonth": "This Month",
+  "older": "Older"
+}

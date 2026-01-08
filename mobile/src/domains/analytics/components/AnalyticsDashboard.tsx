@@ -3,16 +3,15 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-nati
 import { Calendar } from "react-native-calendars";
 import { Ionicons } from "@expo/vector-icons";
 import { CircularProgress } from "@/components/CircularProgress";
-import { NutritionChart } from "@/domains/nutrition";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { StatsSuspenseWrapper } from "./StatsSuspenseWrapper";
-import RecentMeals from "@/domains/meals/components/RecentMeals";
+import { RecentMeals } from "@/domains/diary";
 import { useRouter } from "expo-router";
-import { useProgressI18n } from "@/lib/i18n";
+import { useAnalyticsI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
-import { useAnalyticsStore as useTimeContext, TimePeriod } from "@/domains/analytics";
+import { useAnalyticsStore, TimePeriod } from "../stores/analyticsStore";
 
-interface ProgressDashboardProps {
+interface AnalyticsDashboardProps {
   onNavigate: (section: string) => void;
   isActive: boolean;
 }
@@ -45,11 +44,11 @@ const mockStats: DailyStats = {
   fiber: { current: 22, target: 25 },
 };
 
-export default function ProgressDashboard({ onNavigate }: ProgressDashboardProps) {
+export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardProps) {
   const { theme } = useTheme();
-  const { globalPeriod, setGlobalPeriod, getPeriodLabel } = useTimeContext();
+  const { globalPeriod, setGlobalPeriod, getPeriodLabel } = useAnalyticsStore();
   const router = useRouter();
-  const progress = useProgressI18n();
+  const analytics = useAnalyticsI18n();
 
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [markedDates, setMarkedDates] = useState<{ [key: string]: any }>({});
@@ -209,8 +208,8 @@ export default function ProgressDashboard({ onNavigate }: ProgressDashboardProps
   const mockAchievements: Achievement[] = [
     {
       id: "1",
-      title: progress.proteinMaster,
-      description: progress.proteinMasterDesc,
+      title: analytics.proteinMaster,
+      description: analytics.proteinMasterDesc,
       emoji: "💪",
       progress: 5,
       target: 7,
@@ -218,8 +217,8 @@ export default function ProgressDashboard({ onNavigate }: ProgressDashboardProps
     },
     {
       id: "2",
-      title: progress.veggieWarrior,
-      description: progress.veggieWarriorDesc,
+      title: analytics.veggieWarrior,
+      description: analytics.veggieWarriorDesc,
       emoji: "🥗",
       progress: 18,
       target: 25,
@@ -227,8 +226,8 @@ export default function ProgressDashboard({ onNavigate }: ProgressDashboardProps
     },
     {
       id: "3",
-      title: progress.consistencyKing,
-      description: progress.consistencyKingDesc,
+      title: analytics.consistencyKing,
+      description: analytics.consistencyKingDesc,
       emoji: "🔥",
       progress: 14,
       target: 30,
@@ -300,7 +299,7 @@ export default function ProgressDashboard({ onNavigate }: ProgressDashboardProps
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
 
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{progress.title}</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{analytics.title}</Text>
 
         <TouchableOpacity onPress={() => onNavigate("settings")}>
           <Ionicons name="settings-outline" size={24} color={theme.colors.text} />
@@ -325,7 +324,7 @@ export default function ProgressDashboard({ onNavigate }: ProgressDashboardProps
                     globalPeriod.type === period && { color: "white" },
                   ]}
                 >
-                  {progress[period]}
+                  {analytics[period]}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -357,11 +356,11 @@ export default function ProgressDashboard({ onNavigate }: ProgressDashboardProps
 
         {/* Nutrition Rings */}
         <View style={styles.nutritionSection}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{progress.macronutrients}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{analytics.macronutrients}</Text>
           <View style={styles.nutritionRings}>
-            {renderProgressRing(progress.protein, mockStats.protein.current, mockStats.protein.target, "#FF6B35", "g")}
-            {renderProgressRing(progress.carbs, mockStats.carbs.current, mockStats.carbs.target, "#4ECDC4", "g")}
-            {renderProgressRing(progress.fat, mockStats.fat.current, mockStats.fat.target, "#45B7D1", "g")}
+            {renderProgressRing(analytics.protein, mockStats.protein.current, mockStats.protein.target, "#FF6B35", "g")}
+            {renderProgressRing(analytics.carbs, mockStats.carbs.current, mockStats.carbs.target, "#4ECDC4", "g")}
+            {renderProgressRing(analytics.fat, mockStats.fat.current, mockStats.fat.target, "#45B7D1", "g")}
           </View>
         </View>
 
@@ -369,15 +368,11 @@ export default function ProgressDashboard({ onNavigate }: ProgressDashboardProps
         <View style={styles.patternSection}>
           <View style={styles.sectionHeader}>
             <Text style={{ ...styles.sectionTitle, marginBottom: 4, color: theme.colors.text }}>
-              {progress.eatingPattern}
+              {analytics.eatingPattern}
             </Text>
             {/* <TouchableOpacity>
-              <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>{progress.seeAll}</Text>
+              <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>{analytics.seeAll}</Text>
             </TouchableOpacity> */}
-          </View>
-
-          <View style={[styles.heatmapContainer, { backgroundColor: theme.colors.surface }]}>
-            <NutritionChart type="heatmap" />
           </View>
         </View>
 
@@ -386,9 +381,9 @@ export default function ProgressDashboard({ onNavigate }: ProgressDashboardProps
           <View style={[styles.characterCard, { backgroundColor: theme.colors.surface }]}>
             <Text style={styles.characterEmoji}>🌟</Text>
             <View style={styles.characterInfo}>
-              <Text style={[styles.characterTitle, { color: theme.colors.text }]}>{progress.balancedExplorer}</Text>
+              <Text style={[styles.characterTitle, { color: theme.colors.text }]}>{analytics.balancedExplorer}</Text>
               <Text style={[styles.characterDescription, { color: theme.colors.textSecondary }]}>
-                {progress.balancedExplorerDesc}
+                {analytics.balancedExplorerDesc}
               </Text>
             </View>
             <View style={[styles.characterLevel, { backgroundColor: theme.colors.primary }]}>
@@ -398,10 +393,10 @@ export default function ProgressDashboard({ onNavigate }: ProgressDashboardProps
 
           <View style={[styles.diversityScore, { backgroundColor: theme.colors.surface }]}>
             <Text style={[styles.diversityLabel, { color: theme.colors.textSecondary }]}>
-              {progress.mealDiversityScore}
+              {analytics.mealDiversityScore}
             </Text>
             <Text style={[styles.diversityValue, { color: theme.colors.text }]}>82/100</Text>
-            <Text style={[styles.diversityTip, { color: theme.colors.secondary }]}>{progress.diversityTip}</Text>
+            <Text style={[styles.diversityTip, { color: theme.colors.secondary }]}>{analytics.diversityTip}</Text>
           </View>
         </View>
 
@@ -409,10 +404,10 @@ export default function ProgressDashboard({ onNavigate }: ProgressDashboardProps
         <View style={styles.achievementsSection}>
           <View style={styles.sectionHeader}>
             <Text style={{ ...styles.sectionTitle, marginBottom: 4, color: theme.colors.text }}>
-              {progress.achievements}
+              {analytics.achievements}
             </Text>
             {/* <TouchableOpacity>
-              <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>{progress.viewAll}</Text>
+              <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>{analytics.viewAll}</Text>
             </TouchableOpacity> */}
           </View>
 

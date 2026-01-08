@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useMemo } from "react";
-import { Meal } from "../../meals/types";
-import { TimePeriod, PeriodStats } from "../../analytics";
+import { Meal } from "@/domains/diary";
+import { TimePeriod, PeriodStats } from "../stores/analyticsStore";
 
 interface CacheEntry {
   stats: PeriodStats;

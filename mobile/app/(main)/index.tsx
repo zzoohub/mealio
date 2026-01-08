@@ -14,11 +14,11 @@ import {
 } from "@/lib/performance";
 
 // Lazy load non-critical components for better performance
-const ProgressDashboard = createLazyComponent(() => import("@/domains/progress/components/ProgressDashboard"));
+const AnalyticsDashboard = createLazyComponent(() => import("@/domains/analytics/components/AnalyticsDashboard"));
 const SettingsOrbital = createLazyComponent(() => import("@/domains/settings/components/SettingsOrbital"));
 
 // Preload functions for each lazy component
-const preloadProgress = () => import("@/domains/progress/components/ProgressDashboard");
+const preloadAnalytics = () => import("@/domains/analytics/components/AnalyticsDashboard");
 const preloadSettings = () => import("@/domains/settings/components/SettingsOrbital");
 
 // MVP Phase 2: Social features (lazy loaded but currently disabled)
@@ -29,15 +29,15 @@ enum OrbitalSection {
   Camera = "camera",
   // Social = 'social',  // Phase 2
   // Discover = 'discover',  // Phase 2
-  Progress = "progress",
+  Analytics = "analytics",
   Settings = "settings",
 }
 
 // Map sections to prefetch targets
 const SECTION_PREFETCH_MAP: Record<OrbitalSection, string[]> = {
-  [OrbitalSection.Camera]: ["meal-history", "progress"],
-  [OrbitalSection.Progress]: ["settings"],
-  [OrbitalSection.Settings]: ["camera", "progress"],
+  [OrbitalSection.Camera]: ["meal-history", "analytics"],
+  [OrbitalSection.Analytics]: ["settings"],
+  [OrbitalSection.Settings]: ["camera", "analytics"],
 };
 
 export default function OrbitalNavigation() {
@@ -55,11 +55,11 @@ export default function OrbitalNavigation() {
     await new Promise(resolve => setTimeout(resolve, 500));
 
     // Preload all sections in parallel
-    const preloadPromises = [preloadProgress(), preloadSettings()];
+    const preloadPromises = [preloadAnalytics(), preloadSettings()];
 
     Promise.all(preloadPromises)
       .then(() => {
-        setPreloadedSections(new Set([OrbitalSection.Progress, OrbitalSection.AICoach, OrbitalSection.Settings]));
+        setPreloadedSections(new Set([OrbitalSection.Analytics, OrbitalSection.Settings]));
         if (__DEV__) {
           console.log("All sections preloaded successfully");
         }
@@ -98,7 +98,7 @@ export default function OrbitalNavigation() {
         {
           key: ["meals", "recent", "summary"],
           fetcher: async () => {
-            const { mealStorageUtils } = await import("@/domains/meals/hooks/useMealStorage");
+            const { mealStorageUtils } = await import("@/domains/diary");
             return mealStorageUtils.getRecentMeals(5);
           },
           staleTime: 1000 * 60 * 5, // 5 minutes
@@ -148,8 +148,8 @@ export default function OrbitalNavigation() {
     switch (activeSection) {
       case OrbitalSection.Camera:
         return <CameraCenter {...commonProps} />;
-      case OrbitalSection.Progress:
-        return <ProgressDashboard {...commonProps} />;
+      case OrbitalSection.Analytics:
+        return <AnalyticsDashboard {...commonProps} />;
       case OrbitalSection.Settings:
         return <SettingsOrbital {...commonProps} />;
       default:

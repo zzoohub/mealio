@@ -1,4 +1,4 @@
-import { MealType } from "@/types";
+import { MealType } from "../types";
 
 // Meal-specific utilities
 

@@ -66,7 +66,7 @@ export default function Camera({ onNavigate }: CameraProps) {
       });
 
       if (photo?.uri) {
-        setCapturedPhotos((prev) => [...prev, photo.uri]);
+        setCapturedPhotos(prev => [...prev, photo.uri]);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (error) {
@@ -92,15 +92,15 @@ export default function Camera({ onNavigate }: CameraProps) {
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      const newUris = result.assets.map((asset) => asset.uri);
-      setCapturedPhotos((prev) => [...prev, ...newUris]);
+      const newUris = result.assets.map(asset => asset.uri);
+      setCapturedPhotos(prev => [...prev, ...newUris]);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   };
 
   const removePhoto = (index: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setCapturedPhotos((prev) => prev.filter((_, i) => i !== index));
+    setCapturedPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDone = useCallback(() => {
@@ -116,12 +116,7 @@ export default function Camera({ onNavigate }: CameraProps) {
       position: "top",
       showArrow: true,
       duration: 4000,
-      onPress: () => {
-        router.push({
-          pathname: "/meal-detail",
-          params: { photoUris: JSON.stringify(photosToSave), isNew: "true" },
-        });
-      },
+      onPress: () => {},
     });
   }, [capturedPhotos, toast, t, router]);
 
@@ -193,9 +188,9 @@ export default function Camera({ onNavigate }: CameraProps) {
         {/* Bottom Controls - Changes based on photo state */}
         {capturedPhotos.length === 0 ? (
           <View style={styles.bottomControls}>
-            <TouchableOpacity style={styles.bottomButton} onPress={() => onNavigate("progress")}>
+            <TouchableOpacity style={styles.bottomButton} onPress={() => onNavigate("analytics")}>
               <Ionicons name="bar-chart-outline" size={24} color="white" />
-              <Text style={styles.bottomButtonText}>{t.progress}</Text>
+              <Text style={styles.bottomButtonText}>{t.analytics}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.bottomButton} onPress={pickFromGallery}>
@@ -223,10 +218,7 @@ export default function Camera({ onNavigate }: CameraProps) {
                 {capturedPhotos.map((uri, index) => (
                   <View key={uri} style={styles.thumbnailWrapper}>
                     <Image source={{ uri }} style={styles.thumbnail} />
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => removePhoto(index)}
-                    >
+                    <TouchableOpacity style={styles.removeButton} onPress={() => removePhoto(index)}>
                       <Ionicons name="close-circle" size={20} color="white" />
                     </TouchableOpacity>
                     <View style={styles.thumbnailIndex}>
@@ -242,7 +234,6 @@ export default function Camera({ onNavigate }: CameraProps) {
             </View>
           </>
         )}
-
       </CameraView>
     </View>
   );

@@ -1,23 +1,19 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-  getItem, 
-  setItem, 
-  removeItemWithCleanup, 
+import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  getItem,
+  setItem,
+  removeItemWithCleanup,
   setItemDebounced,
   addToBatch,
   removeFromBatch,
   flushBatch,
   clearDebounceTimer,
   clearAllDebounceTimers,
-  getStorageInfo
-} from './storage';
-import { StorageOptions, STORAGE_CONSTANTS } from './types';
+  getStorageInfo,
+} from "./storage";
+import { StorageOptions, STORAGE_CONSTANTS } from "./types";
 
-export function useStorage<T>(
-  key: string, 
-  defaultValue?: T, 
-  options?: StorageOptions
-) {
+export function useStorage<T>(key: string, defaultValue?: T, options?: StorageOptions) {
   const [value, setValue] = useState<T | null>(defaultValue ?? null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -52,17 +48,20 @@ export function useStorage<T>(
     };
   }, [key, defaultValue]);
 
-  const updateValue = useCallback(async (newValue: T) => {
-    try {
-      setError(null);
-      setValue(newValue);
-      await setItem(key, newValue, options);
-    } catch (err) {
-      setError(err as Error);
-      setValue(value);
-      throw err;
-    }
-  }, [key, value, options]);
+  const updateValue = useCallback(
+    async (newValue: T) => {
+      try {
+        setError(null);
+        setValue(newValue);
+        await setItem(key, newValue, options);
+      } catch (err) {
+        setError(err as Error);
+        setValue(value);
+        throw err;
+      }
+    },
+    [key, value, options],
+  );
 
   const removeValue = useCallback(async () => {
     try {
@@ -98,7 +97,7 @@ export function useAsyncStorage<T>(key: string, defaultValue?: T) {
       setData(result);
       return result;
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
       setError(errorMsg);
       setData(defaultValue ?? null);
       return null;
@@ -107,18 +106,21 @@ export function useAsyncStorage<T>(key: string, defaultValue?: T) {
     }
   }, [key, defaultValue]);
 
-  const save = useCallback(async (value: T, options?: StorageOptions) => {
-    try {
-      setError(null);
-      await setItem(key, value, options);
-      setData(value);
-      return true;
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMsg);
-      return false;
-    }
-  }, [key]);
+  const save = useCallback(
+    async (value: T, options?: StorageOptions) => {
+      try {
+        setError(null);
+        await setItem(key, value, options);
+        setData(value);
+        return true;
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : "Unknown error";
+        setError(errorMsg);
+        return false;
+      }
+    },
+    [key],
+  );
 
   const remove = useCallback(async () => {
     try {
@@ -127,7 +129,7 @@ export function useAsyncStorage<T>(key: string, defaultValue?: T) {
       setData(defaultValue ?? null);
       return true;
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
       setError(errorMsg);
       return false;
     }

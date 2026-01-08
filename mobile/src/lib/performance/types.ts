@@ -72,7 +72,7 @@ export type DomainModules = {
   meals: ComponentType<any>;
   aiCoach: ComponentType<any>;
   settings: ComponentType<any>;
-  progress: ComponentType<any>;
+  analytics: ComponentType<any>;
 };
 
 export type PreloadStrategy = "eager" | "on-demand" | "idle";
@@ -113,5 +113,5 @@ export const DOMAIN_IMPORT_MAP = {
   camera: () => import("@/domains/camera/components/Camera"),
   meals: () => import("../../../app/meal-history"),
   settings: () => import("@/domains/settings/components/SettingsOrbital"),
-  progress: () => import("@/domains/progress/components/ProgressDashboard"),
+  analytics: () => import("@/domains/analytics/components/AnalyticsDashboard"),
 } as const;

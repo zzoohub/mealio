@@ -1,11 +1,11 @@
 import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
-import { TimePeriod, PeriodStats, MetricsDisplayType } from "@/domains/analytics";
-import { statsAggregationUtils } from "@/domains/progress/hooks/useStatsAggregation";
-import { mealStorageUtils } from "@/domains/meals/hooks/useMealStorage";
+import { TimePeriod, PeriodStats, MetricsDisplayType } from "../stores/analyticsStore";
+import { statsAggregationUtils } from "./useStatsAggregation";
+import { mealStorageUtils } from "@/domains/diary";
 
 export const useStatsQuery = (period: TimePeriod, metricsType: MetricsDisplayType) => {
   const generateQueryKey = (period: TimePeriod, metricsType: MetricsDisplayType) => [
-    "progress-stats",
+    "analytics-stats",
     period.type,
     period.startDate?.getTime() || "none",
     period.endDate?.getTime() || "none",
@@ -29,7 +29,7 @@ export const usePrefetchStats = () => {
 
   const prefetchStatsForPeriod = async (period: TimePeriod, metricsType: MetricsDisplayType) => {
     const generateQueryKey = (period: TimePeriod, metricsType: MetricsDisplayType) => [
-      "progress-stats",
+      "analytics-stats",
       period.type,
       period.startDate?.getTime() || "none",
       period.endDate?.getTime() || "none",

@@ -28,14 +28,11 @@ export {
   useI18n,
   useNavigationI18n,
   useCameraI18n,
-  useTimelineI18n,
-  useDiscoverI18n,
   useCommonI18n,
   useErrorI18n,
-  useMealDetailI18n,
-  useProgressI18n,
-  useAICoachI18n,
+  useAnalyticsI18n,
   useSettingsI18n,
+  useDiaryI18n,
 } from "./hooks";
 
 // Export TypeScript types
@@ -44,20 +41,12 @@ export type {
   TranslationKey,
   NavigationTranslations,
   CameraTranslations,
-  TimelineTranslations,
-  DiscoverTranslations,
-  ProgressTranslations,
-  AICoachTranslations,
-  MealDetailTranslations,
+  AnalyticsTranslations,
   CommonTranslations,
   ErrorTranslations,
   SettingsTranslations,
+  DiaryTranslations,
   FormattersType,
-  MealHelpersType,
-  MealType,
-  CategoryType,
-  PeriodType,
-  StatType,
 } from "./types";
 
 // Export development tools (only in development)

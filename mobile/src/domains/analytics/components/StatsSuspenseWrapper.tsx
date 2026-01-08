@@ -1,7 +1,7 @@
 import React, { Suspense, useEffect } from "react";
-import { useStatsQuery, usePrefetchStats } from "@/domains/progress/hooks/useStatsQuery";
+import { useStatsQuery, usePrefetchStats } from "../hooks/useStatsQuery";
 import { StatsSkeleton } from "@/components/SkeletonLoader";
-import { useAnalyticsStore as useTimeContext, TimePeriod } from "@/domains/analytics";
+import { useAnalyticsStore, TimePeriod } from "../stores/analyticsStore";
 import { StatsContent } from "./StatsContent";
 
 interface StatsSuspenseWrapperProps {
@@ -9,7 +9,7 @@ interface StatsSuspenseWrapperProps {
 }
 
 function StatsQueryComponent({ onNavigate }: StatsSuspenseWrapperProps) {
-  const { globalPeriod, metricsDisplayType } = useTimeContext();
+  const { globalPeriod, metricsDisplayType } = useAnalyticsStore();
   const { data: currentStats } = useStatsQuery(globalPeriod, metricsDisplayType);
   const { prefetchStatsForPeriod } = usePrefetchStats();
 

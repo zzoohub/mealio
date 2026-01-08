@@ -1,11 +1,9 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { CircularProgress } from "@/components/CircularProgress";
-import { NutritionChart } from "@/domains/nutrition";
 import { useTheme } from "@/lib/theme";
-import { useProgressI18n } from "@/lib/i18n";
-import { useAnalyticsStore as useTimeContext, PeriodStats } from "@/domains/analytics";
+import { useAnalyticsI18n } from "@/lib/i18n";
+import { useAnalyticsStore, PeriodStats } from "../stores/analyticsStore";
 
 interface StatsContentProps {
   stats: PeriodStats;
@@ -14,14 +12,14 @@ interface StatsContentProps {
 
 export function StatsContent({ stats, onNavigate }: StatsContentProps) {
   const { theme } = useTheme();
-  const progress = useProgressI18n();
-  const { globalPeriod, metricsDisplayType, setMetricsDisplayType } = useTimeContext();
+  const analytics = useAnalyticsI18n();
+  const { globalPeriod, metricsDisplayType, setMetricsDisplayType } = useAnalyticsStore();
 
   return (
     <View style={[styles.summaryCard, { backgroundColor: theme.colors.surface }]}>
       <View style={styles.summaryHeader}>
         <Text style={[styles.summaryTitle, { color: theme.colors.text }]}>
-          {globalPeriod.type === "day" ? progress.todaySummary : "Period Summary"}
+          {globalPeriod.type === "day" ? analytics.todaySummary : "Period Summary"}
         </Text>
         {globalPeriod.type !== "day" && (
           <View style={[styles.inlineToggleButtons, { backgroundColor: theme.colors.background }]}>
@@ -77,7 +75,7 @@ export function StatsContent({ stats, onNavigate }: StatsContentProps) {
             {Math.round(Math.max(0, stats.calories.target - stats.calories.current))}
           </Text>
           <Text style={[styles.remainingLabel, { color: theme.colors.textSecondary }]}>
-            {stats.metricsType === "dailyAverage" ? "avg remaining" : progress.remaining}
+            {stats.metricsType === "dailyAverage" ? "avg remaining" : analytics.remaining}
           </Text>
         </View>
       </View>

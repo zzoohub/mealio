@@ -55,7 +55,7 @@ export async function importDomain<K extends keyof DomainModules>(
 
 export function preloadCriticalModules(): void {
   importDomain('camera', 'eager');
-  importDomain('progress', 'idle');
+  importDomain('analytics', 'idle');
 }
 
 export function getLoadedModulesCount(): number {

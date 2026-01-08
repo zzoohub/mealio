@@ -1,0 +1,12 @@
+{
+  "mealHistory": "식사 기록",
+  "searchPlaceholder": "식사 검색...",
+  "noMealsFound": "식사 기록이 없습니다",
+  "loadMore": "더 불러오는 중...",
+  "meals": "식사",
+  "today": "오늘",
+  "yesterday": "어제",
+  "thisWeek": "이번 주",
+  "thisMonth": "이번 달",
+  "older": "이전"
+}

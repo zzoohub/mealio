@@ -10,33 +10,27 @@ const loadTranslations = async (language: string): Promise<TranslationResources>
     if (__DEV__) {
       console.log(`Loading translations for language: ${language}`);
     }
-    
+
     switch (language) {
       case "ko":
         return {
           navigation: await import("./locales/modules/navigation.ko.json").then(m => m.default),
           camera: await import("./locales/modules/camera.ko.json").then(m => m.default),
-          timeline: await import("./locales/modules/timeline.ko.json").then(m => m.default),
-          discover: await import("./locales/modules/discover.ko.json").then(m => m.default),
-          progress: await import("./locales/modules/progress.ko.json").then(m => m.default),
-          aiCoach: await import("./locales/modules/aiCoach.ko.json").then(m => m.default),
-          mealDetail: await import("./locales/modules/mealDetail.ko.json").then(m => m.default),
+          analytics: await import("./locales/modules/analytics.ko.json").then(m => m.default),
           common: await import("./locales/modules/common.ko.json").then(m => m.default),
           errors: await import("./locales/modules/errors.ko.json").then(m => m.default),
           settings: await import("./locales/modules/settings.ko.json").then(m => m.default),
+          diary: await import("./locales/modules/diary.ko.json").then(m => m.default),
         };
       default:
         return {
           navigation: await import("./locales/modules/navigation.en.json").then(m => m.default),
           camera: await import("./locales/modules/camera.en.json").then(m => m.default),
-          timeline: await import("./locales/modules/timeline.en.json").then(m => m.default),
-          discover: await import("./locales/modules/discover.en.json").then(m => m.default),
-          progress: await import("./locales/modules/progress.en.json").then(m => m.default),
-          aiCoach: await import("./locales/modules/aiCoach.en.json").then(m => m.default),
-          mealDetail: await import("./locales/modules/mealDetail.en.json").then(m => m.default),
+          analytics: await import("./locales/modules/analytics.en.json").then(m => m.default),
           common: await import("./locales/modules/common.en.json").then(m => m.default),
           errors: await import("./locales/modules/errors.en.json").then(m => m.default),
           settings: await import("./locales/modules/settings.en.json").then(m => m.default),
+          diary: await import("./locales/modules/diary.en.json").then(m => m.default),
         };
     }
   } catch (error) {
@@ -54,7 +48,7 @@ const languageDetector = {
   detect: async (callback: (language: string) => void) => {
     try {
       // Try stored language first
-      const storedLanguage = await storage.get<string>(LANGUAGE_STORAGE_KEY, null);
+      const storedLanguage = await storage.get<string>(LANGUAGE_STORAGE_KEY, undefined);
       if (storedLanguage && SUPPORTED_LANGUAGES.some(lang => lang.code === storedLanguage)) {
         if (__DEV__) {
           console.log(`Using stored language: ${storedLanguage}`);
@@ -181,11 +175,7 @@ const initializeI18n = async () => {
 
     // Development helpers
     saveMissing: __DEV__,
-    missingKeyHandler: (
-      lngs: readonly string[],
-      ns: string,
-      key: string,
-    ) => {
+    missingKeyHandler: (lngs: readonly string[], ns: string, key: string) => {
       if (__DEV__) {
         console.warn(`Missing translation: ${ns}:${key} (${lngs.join(",")})`);
       }
@@ -203,12 +193,12 @@ export const changeLanguage = async (language: SupportedLanguage) => {
   try {
     // Wait for i18n to be initialized
     await i18nInstance;
-    
+
     // Validate language is supported
     if (!SUPPORTED_LANGUAGES.some(lang => lang.code === language)) {
       throw new Error(`Unsupported language: ${language}`);
     }
-    
+
     const translations = await loadTranslations(language);
 
     // Add new resources if they're not already loaded

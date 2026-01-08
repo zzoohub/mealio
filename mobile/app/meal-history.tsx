@@ -15,12 +15,10 @@ import {
 import { Calendar } from "react-native-calendars";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Meal, MealHistoryFilter } from "@/domains/meals/types";
-import { mealStorageUtils, generateMockMeals } from "@/domains/meals/hooks/useMealStorage";
-import { useTimelineI18n } from "@/lib/i18n";
+import { Meal, MealHistoryFilter, mealStorageUtils, generateMockMeals, mealSortingUtils } from "@/domains/diary";
+import { useDiaryI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useAnalyticsStore as useTimeContext, SortMethod } from "@/domains/analytics";
-import { mealSortingUtils } from "@/domains/meals/hooks/useMealSorting";
 import { processInChunks, shouldUseVirtualization, getVirtualizationConfig, getCachedData } from "@/lib/performance";
 
 interface MealSection {
@@ -31,7 +29,7 @@ interface MealSection {
 export default function MealHistory() {
   const { theme } = useTheme();
   const router = useRouter();
-  const timeline = useTimelineI18n();
+  const diary = useDiaryI18n();
   const { globalPeriod, setGlobalPeriod, sortMethod, setSortMethod } = useTimeContext();
 
   const [meals, setMeals] = useState<Meal[]>([]);
@@ -161,16 +159,7 @@ export default function MealHistory() {
   }, [mealSections]);
 
   // Meal list functions
-  const handleMealPress = (meal: Meal) => {
-    router.push({
-      pathname: "/meal-detail",
-      params: {
-        mealId: meal.id,
-        photoUri: meal.photoUri || "",
-        isNew: "false",
-      },
-    });
-  };
+  const handleMealPress = (meal: Meal) => {};
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("en-US", {
@@ -300,7 +289,7 @@ export default function MealHistory() {
     <View style={[styles.sectionHeader, { backgroundColor: theme.colors.background }]}>
       <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{section.title}</Text>
       <Text style={[styles.sectionCount, { color: theme.colors.textSecondary }]}>
-        {section.data.length} {timeline.stat("meals")}
+        {section.data.length} {diary.stat("meals")}
       </Text>
     </View>
   );
@@ -342,7 +331,7 @@ export default function MealHistory() {
     return (
       <View style={styles.loadingMoreContainer}>
         <ActivityIndicator size="small" color={theme.colors.primary} />
-        <Text style={[styles.loadingMoreText, { color: theme.colors.textSecondary }]}>{timeline.loadMore}</Text>
+        <Text style={[styles.loadingMoreText, { color: theme.colors.textSecondary }]}>{diary.loadMore}</Text>
       </View>
     );
   };
@@ -472,7 +461,7 @@ export default function MealHistory() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{timeline.mealHistory}</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{diary.mealHistory}</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity onPress={() => setShowSortModal(true)} style={styles.headerButton}>
             <Ionicons name="funnel" size={20} color={theme.colors.text} />
@@ -489,7 +478,7 @@ export default function MealHistory() {
           <Ionicons name="search" size={20} color={theme.colors.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: theme.colors.text }]}
-            placeholder={timeline.searchPlaceholder}
+            placeholder={diary.searchPlaceholder}
             placeholderTextColor={theme.colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -549,7 +538,7 @@ export default function MealHistory() {
       ) : sortedSections.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="restaurant-outline" size={64} color={theme.colors.textSecondary} />
-          <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{timeline.noMealsFound}</Text>
+          <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{diary.noMealsFound}</Text>
           <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
             {searchQuery ? "Try adjusting your search" : "Start logging meals to see your history here!"}
           </Text>
