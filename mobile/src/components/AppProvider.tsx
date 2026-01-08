@@ -7,7 +7,7 @@ import { changeLanguage } from "@/lib/i18n";
 import { useAuthStore } from "@/domains/auth/stores/authStore";
 import { useSettingsStore, flushSettingsStorage } from "@/domains/settings/stores/settingsStore";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import { OverlayProvider } from "@/components/Overlay";
+import { OverlayProvider } from "@/components/overlay";
 import { queryClient, preloadCriticalModules, markPerformance, measurePerformance } from "@/lib/performance";
 
 function AppInitializer() {

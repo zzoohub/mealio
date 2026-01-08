@@ -5,7 +5,7 @@ export * from "./ui";
 export { default as AppProvider } from "./AppProvider";
 
 // Overlay System
-export * from "./Overlay";
+export * from "./overlay";
 
 // Components
 export { ErrorState } from "./ErrorState";

@@ -1,12 +1,9 @@
 import { ComponentType } from "react";
 
-// ============================================================================
-// CACHE TYPES
-// ============================================================================
-
+// Cache types
 export interface CacheConfig {
   maxSize: number;
-  ttl: number; // Time to live in milliseconds
+  ttl: number;
 }
 
 export interface CacheEntry<T> {
@@ -15,38 +12,7 @@ export interface CacheEntry<T> {
   hitCount: number;
 }
 
-export interface PerformanceMetrics {
-  cacheHits: number;
-  cacheMisses: number;
-  averageProcessingTime: number;
-  memoryUsage: number;
-}
-
-// ============================================================================
-// VIRTUALIZATION TYPES
-// ============================================================================
-
-export interface VirtualizationConfig {
-  threshold: number; // Number of items before virtualization kicks in
-  windowSize: number; // Number of items to render
-  bufferSize: number; // Number of items to preload
-}
-
-// ============================================================================
-// QUEUE TYPES
-// ============================================================================
-
-export interface ProcessingQueue {
-  id: string;
-  priority: number;
-  task: () => Promise<any>;
-  timestamp: number;
-}
-
-// ============================================================================
-// PERFORMANCE MONITORING TYPES
-// ============================================================================
-
+// Performance monitoring types
 export interface PerformanceMetric {
   name: string;
   startTime: number;
@@ -63,55 +29,30 @@ export interface NavigationMetric {
   duration?: number;
 }
 
-// ============================================================================
-// BUNDLE TYPES
-// ============================================================================
-
+// Bundle types
 export type DomainModules = {
   camera: ComponentType<any>;
   meals: ComponentType<any>;
-  aiCoach: ComponentType<any>;
   settings: ComponentType<any>;
   analytics: ComponentType<any>;
 };
 
-export type PreloadStrategy = "eager" | "on-demand" | "idle";
-
-// ============================================================================
-// PREFETCH TYPES
-// ============================================================================
-
+// Prefetch types
 export interface PrefetchQuery {
   key: string[];
   fetcher: () => Promise<any>;
   staleTime?: number;
 }
 
-// ============================================================================
-// PERFORMANCE CONSTANTS
-// ============================================================================
-
+// Constants
 export const DEFAULT_CACHE_CONFIG: CacheConfig = {
   maxSize: 1000,
-  ttl: 5 * 60 * 1000, // 5 minutes
+  ttl: 5 * 60 * 1000,
 };
-
-export const VIRTUALIZATION_CONFIG: VirtualizationConfig = {
-  threshold: 100,
-  windowSize: 50,
-  bufferSize: 10,
-};
-
-export const CHUNK_SIZE = 50;
-export const DEBOUNCE_DELAY = 300; // ms
-
-// ============================================================================
-// DOMAIN IMPORT MAP
-// ============================================================================
 
 export const DOMAIN_IMPORT_MAP = {
   camera: () => import("@/domains/camera/components/Camera"),
-  meals: () => import("../../../app/meal-history"),
+  meals: () => import("../../../app/diary-history"),
   settings: () => import("@/domains/settings/components/SettingsOrbital"),
   analytics: () => import("@/domains/analytics/components/AnalyticsDashboard"),
 } as const;

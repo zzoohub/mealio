@@ -10,7 +10,6 @@ import {
   prefetchBatch,
   startNavigation,
   endNavigation,
-  usePerformanceMonitor,
 } from "@/lib/performance";
 
 // Lazy load non-critical components for better performance
@@ -35,7 +34,7 @@ enum OrbitalSection {
 
 // Map sections to prefetch targets
 const SECTION_PREFETCH_MAP: Record<OrbitalSection, string[]> = {
-  [OrbitalSection.Camera]: ["meal-history", "analytics"],
+  [OrbitalSection.Camera]: ["diary-history", "analytics"],
   [OrbitalSection.Analytics]: ["settings"],
   [OrbitalSection.Settings]: ["camera", "analytics"],
 };
@@ -44,7 +43,6 @@ export default function OrbitalNavigation() {
   const { theme } = useTheme();
   const [activeSection, setActiveSection] = useState<OrbitalSection>(OrbitalSection.Camera);
   const [preloadedSections, setPreloadedSections] = useState<Set<OrbitalSection>>(new Set([OrbitalSection.Camera]));
-  const { mark, measure } = usePerformanceMonitor("OrbitalNavigation");
 
   // Prefetch navigation targets based on current section
   // usePrefetchNavigation(SECTION_PREFETCH_MAP[activeSection] || []);

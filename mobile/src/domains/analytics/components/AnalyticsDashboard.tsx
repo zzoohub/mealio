@@ -236,7 +236,7 @@ export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardPro
   ];
 
   const handleSeeAllHistory = () => {
-    router.push("/meal-history");
+    router.push("/diary-history");
   };
 
   const renderProgressRing = (label: string, current: number, target: number, color: string, unit: string) => {

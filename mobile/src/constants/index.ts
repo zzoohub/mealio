@@ -14,7 +14,7 @@ export const API_CONFIG = {
   CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
 } as const;
 
-// Storage keys for AsyncStorage
+// Storage keys for MMKV
 export const STORAGE_KEYS = {
   USER_TOKEN: "user_token",
   USER_DATA: "user_data",

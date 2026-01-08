@@ -28,8 +28,11 @@ export {
 // React hooks
 export {
   useStorage,
-  useAsyncStorage,
+  useLazyStorage,
   useDebouncedStorage,
   useBatchStorage,
   useStorageUtils,
 } from './hooks';
+
+// MMKV instance
+export { mmkv } from './storage';

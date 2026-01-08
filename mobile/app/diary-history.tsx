@@ -19,14 +19,14 @@ import { Meal, MealHistoryFilter, mealStorageUtils, generateMockMeals, mealSorti
 import { useDiaryI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useAnalyticsStore as useTimeContext, SortMethod } from "@/domains/analytics";
-import { processInChunks, shouldUseVirtualization, getVirtualizationConfig, getCachedData } from "@/lib/performance";
+import { getCachedData } from "@/lib/performance";
 
 interface MealSection {
   title: string;
   data: Meal[];
 }
 
-export default function MealHistory() {
+export default function DiaryHistory() {
   const { theme } = useTheme();
   const router = useRouter();
   const diary = useDiaryI18n();
@@ -461,7 +461,7 @@ export default function MealHistory() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{diary.mealHistory}</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{diary.diaryHistory}</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity onPress={() => setShowSortModal(true)} style={styles.headerButton}>
             <Ionicons name="funnel" size={20} color={theme.colors.text} />

@@ -313,7 +313,7 @@ export const useDiaryI18n = () => {
 
   return useMemo(
     () => ({
-      mealHistory: t("mealHistory"),
+      diaryHistory: t("diaryHistory"),
       searchPlaceholder: t("searchPlaceholder"),
       noMealsFound: t("noMealsFound"),
       loadMore: t("loadMore"),

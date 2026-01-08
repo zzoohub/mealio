@@ -114,7 +114,7 @@ export interface ErrorTranslations {
 
 // Diary translations
 export interface DiaryTranslations {
-  mealHistory: string;
+  diaryHistory: string;
   searchPlaceholder: string;
   noMealsFound: string;
   loadMore: string;

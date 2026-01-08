@@ -31,13 +31,6 @@ export type { UserPreferences } from "./domains/settings/types";
 // Constants
 export { CAMERA_SETTINGS, APP_CONFIG, API_CONFIG, STORAGE_KEYS, QUERY_KEYS, MUTATION_KEYS } from "./constants";
 
-// Common Utilities
-export { formatBytes, formatDate, showAlert, showConfirmAlert } from "./utils";
-
-// Domain-specific utilities
-export { getCurrentMealType, formatCalories, formatWeight } from "./domains/diary";
-export { validateEmail, validatePassword, validateUsername, getPasswordStrength } from "./domains/auth/utils";
-
 // Design System
 export {
   tokens,

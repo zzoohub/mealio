@@ -1,5 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createMMKV } from 'react-native-mmkv';
 import { StorageItem, StorageOptions, StorageInfo, STORAGE_CONSTANTS } from './types';
+
+// Initialize MMKV instance
+const mmkv = createMMKV();
 
 // Global state for batch and debounce operations
 const batchQueue = new Map<string, string>();
@@ -8,15 +11,14 @@ let isProcessing = false;
 const debounceTimers = new Map<string, NodeJS.Timeout>();
 
 // Core storage operations
-export async function getItem<T>(key: string, defaultValue?: T): Promise<T | null> {
+export function getItem<T>(key: string, defaultValue?: T): T | null {
   try {
-    const value = await AsyncStorage.getItem(key);
-    if (value === null) {
+    const value = mmkv.getString(key);
+    if (value === undefined) {
       return defaultValue ?? null;
     }
     return JSON.parse(value) as T;
   } catch (error) {
-    // Only log actual errors, not missing keys (which return null)
     if (error instanceof SyntaxError) {
       console.warn(`Failed to parse stored value for key: ${key}`, error);
     } else {
@@ -26,37 +28,37 @@ export async function getItem<T>(key: string, defaultValue?: T): Promise<T | nul
   }
 }
 
-export async function setItemImmediate<T>(key: string, value: T): Promise<void> {
+export function setItemImmediate<T>(key: string, value: T): void {
   try {
     const serializedValue = JSON.stringify(value);
-    await AsyncStorage.setItem(key, serializedValue);
+    mmkv.set(key, serializedValue);
   } catch (error) {
     console.error(`Failed to set item for key: ${key}`, error);
     throw error;
   }
 }
 
-export async function removeItem(key: string): Promise<void> {
+export function removeItem(key: string): void {
   try {
-    await AsyncStorage.removeItem(key);
+    mmkv.remove(key);
   } catch (error) {
     console.error(`Failed to remove item for key: ${key}`, error);
     throw error;
   }
 }
 
-export async function clear(): Promise<void> {
+export function clear(): void {
   try {
-    await AsyncStorage.clear();
+    mmkv.clearAll();
   } catch (error) {
     console.error('Failed to clear storage:', error);
     throw error;
   }
 }
 
-export async function getAllKeys(): Promise<readonly string[]> {
+export function getAllKeys(): string[] {
   try {
-    return await AsyncStorage.getAllKeys();
+    return mmkv.getAllKeys();
   } catch (error) {
     console.error('Failed to get all keys:', error);
     throw error;
@@ -64,35 +66,37 @@ export async function getAllKeys(): Promise<readonly string[]> {
 }
 
 // Multi-item operations
-export async function setMultiple<T>(items: StorageItem<T>[]): Promise<void> {
+export function setMultiple<T>(items: StorageItem<T>[]): void {
   try {
-    const pairs: Array<[string, string]> = items.map(({ key, value }) => [
-      key,
-      JSON.stringify(value),
-    ]);
-    await AsyncStorage.multiSet(pairs);
+    for (const { key, value } of items) {
+      mmkv.set(key, JSON.stringify(value));
+    }
   } catch (error) {
     console.error('Failed to set multiple items:', error);
     throw error;
   }
 }
 
-export async function getMultiple<T>(keys: string[]): Promise<Array<StorageItem<T | null>>> {
+export function getMultiple<T>(keys: string[]): Array<StorageItem<T | null>> {
   try {
-    const result = await AsyncStorage.multiGet(keys);
-    return result.map(([key, value]) => ({
-      key,
-      value: value ? JSON.parse(value) : null,
-    }));
+    return keys.map(key => {
+      const value = mmkv.getString(key);
+      return {
+        key,
+        value: value ? JSON.parse(value) : null,
+      };
+    });
   } catch (error) {
     console.error('Failed to get multiple items:', error);
     throw error;
   }
 }
 
-export async function removeMultiple(keys: string[]): Promise<void> {
+export function removeMultiple(keys: string[]): void {
   try {
-    await AsyncStorage.multiRemove(keys);
+    for (const key of keys) {
+      mmkv.remove(key);
+    }
   } catch (error) {
     console.error('Failed to remove multiple items:', error);
     throw error;
@@ -102,11 +106,11 @@ export async function removeMultiple(keys: string[]): Promise<void> {
 // Batch operations
 export function addToBatch(key: string, value: string): void {
   batchQueue.set(key, value);
-  
+
   if (batchTimeout) {
     clearTimeout(batchTimeout);
   }
-  
+
   batchTimeout = setTimeout(() => {
     processBatch();
   }, STORAGE_CONSTANTS.BATCH_DELAY);
@@ -116,7 +120,7 @@ export function removeFromBatch(key: string): void {
   batchQueue.delete(key);
 }
 
-async function processBatch(): Promise<void> {
+function processBatch(): void {
   if (isProcessing || batchQueue.size === 0) {
     return;
   }
@@ -128,8 +132,8 @@ async function processBatch(): Promise<void> {
       key,
       value: JSON.parse(value),
     }));
-    
-    await setMultiple(items);
+
+    setMultiple(items);
     batchQueue.clear();
   } catch (error) {
     console.error('Failed to process batch operations:', error);
@@ -140,19 +144,19 @@ async function processBatch(): Promise<void> {
   batchTimeout = null;
 }
 
-export async function flushBatch(): Promise<void> {
+export function flushBatch(): void {
   if (batchTimeout) {
     clearTimeout(batchTimeout);
     batchTimeout = null;
   }
-  
-  await processBatch();
+
+  processBatch();
 }
 
 // Debounced operations
 export function setItemDebounced<T>(
-  key: string, 
-  value: T, 
+  key: string,
+  value: T,
   debounceDelay: number = STORAGE_CONSTANTS.DEFAULT_DEBOUNCE_DELAY
 ): void {
   const existingTimer = debounceTimers.get(key);
@@ -163,10 +167,10 @@ export function setItemDebounced<T>(
   const serializedValue = JSON.stringify(value);
   addToBatch(key, serializedValue);
 
-  const timer = setTimeout(async () => {
+  const timer = setTimeout(() => {
     debounceTimers.delete(key);
     try {
-      await setItemImmediate(key, value);
+      setItemImmediate(key, value);
     } catch (error) {
       console.error(`Failed to save debounced item ${key}:`, error);
     }
@@ -190,14 +194,14 @@ export function clearAllDebounceTimers(): void {
 
 // Non-hook function for creating debounced setters (for use outside React components)
 export function createDebouncedSetter<T>(
-  key: string, 
+  key: string,
   debounceDelay: number = STORAGE_CONSTANTS.DEFAULT_DEBOUNCE_DELAY
 ) {
   return (value: T) => setItemDebounced(key, value, debounceDelay);
 }
 
 // Main storage interface
-export async function setItem<T>(key: string, value: T, options?: StorageOptions): Promise<void> {
+export function setItem<T>(key: string, value: T, options?: StorageOptions): void {
   try {
     if (options?.debounceDelay) {
       setItemDebounced(key, value, options.debounceDelay);
@@ -210,18 +214,18 @@ export async function setItem<T>(key: string, value: T, options?: StorageOptions
       return;
     }
 
-    await setItemImmediate(key, value);
+    setItemImmediate(key, value);
   } catch (error) {
     console.error(`Failed to set item for key: ${key}`, error);
     throw error;
   }
 }
 
-export async function removeItemWithCleanup(key: string): Promise<void> {
+export function removeItemWithCleanup(key: string): void {
   try {
     removeFromBatch(key);
     clearDebounceTimer(key);
-    await removeItem(key);
+    removeItem(key);
   } catch (error) {
     console.error(`Failed to remove item for key: ${key}`, error);
     throw error;
@@ -229,11 +233,11 @@ export async function removeItemWithCleanup(key: string): Promise<void> {
 }
 
 // Storage utilities
-export async function getStorageInfo(): Promise<StorageInfo> {
+export function getStorageInfo(): StorageInfo {
   try {
-    const keys = await getAllKeys();
-    const items = await getMultiple([...keys]);
-    
+    const keys = getAllKeys();
+    const items = getMultiple([...keys]);
+
     const totalSize = items.reduce((acc, { value }) => {
       return acc + (JSON.stringify(value)?.length || 0);
     }, 0);
@@ -261,3 +265,6 @@ export const storage = {
   flush: flushBatch,
   getInfo: getStorageInfo,
 };
+
+// Export MMKV instance for direct access if needed
+export { mmkv };
