@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { Ionicons } from "@expo/vector-icons";
-import { CircularProgress } from "@/components/CircularProgress";
+import { CircularProgress } from "./CircularProgress";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { StatsSuspenseWrapper } from "./StatsSuspenseWrapper";
 import { RecentMeals } from "@/domains/diary";
 import { useRouter } from "expo-router";
 import { useAnalyticsI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
-import { useAnalyticsStore, TimePeriod } from "../stores/analyticsStore";
+import { useAnalyticsStore } from "../stores/analyticsStore";
 
 interface AnalyticsDashboardProps {
   onNavigate: (section: string) => void;

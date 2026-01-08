@@ -1,6 +1,5 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { CircularProgress } from "@/components/CircularProgress";
 import { useTheme } from "@/lib/theme";
 import { useAnalyticsI18n } from "@/lib/i18n";
 import { useAnalyticsStore, PeriodStats } from "../stores/analyticsStore";

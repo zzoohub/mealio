@@ -8,7 +8,6 @@ export { default as AppProvider } from "./AppProvider";
 export * from "./Overlay";
 
 // Components
-export { CircularProgress } from "./CircularProgress";
 export { ErrorState } from "./ErrorState";
 export { LoadingState } from "./LoadingState";
 export { OptimizedImage, usePrefetchImages } from "./OptimizedImage";
