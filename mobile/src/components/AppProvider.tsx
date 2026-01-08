@@ -7,6 +7,7 @@ import { changeLanguage } from "@/lib/i18n";
 import { useAuthStore } from "@/domains/auth/stores/authStore";
 import { useSettingsStore, flushSettingsStorage } from "@/domains/settings/stores/settingsStore";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { OverlayProvider } from "@/components/Overlay";
 import { queryClient, preloadCriticalModules, markPerformance, measurePerformance } from "@/lib/performance";
 
 function AppInitializer() {
@@ -74,8 +75,10 @@ export default function AppProvider({ children }: { children: ReactNode }) {
     <ErrorBoundary onError={handleError}>
       <QueryClientProvider client={queryClient}>
         <I18nextProvider i18n={i18n}>
-          <AppInitializer />
-          {children}
+          <OverlayProvider>
+            <AppInitializer />
+            {children}
+          </OverlayProvider>
         </I18nextProvider>
       </QueryClientProvider>
     </ErrorBoundary>

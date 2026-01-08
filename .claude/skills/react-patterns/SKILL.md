@@ -1,16 +1,16 @@
 ---
 name: react-patterns
-description: React component patterns for scalable UI. Covers custom hooks, compound components, render props, HOCs, composition, and controlled components. Use when designing component APIs, sharing logic, or building component libraries.
+description: React component patterns for scalable UI. Covers custom hooks, compound components, render props, HOCs, composition, and controlled components. Use when designing component APIs or sharing logic.
 ---
 
 # React Component Patterns
 
 ## Quick Reference
 
-| Pattern | Use Case | Modern? |
-|---------|----------|---------|
+| Pattern | Use Case | Recommended |
+|---------|----------|-------------|
 | Custom Hooks | Reusable stateful logic | ✅ Preferred |
-| Compound Components | Multi-part components (Tabs, Menu) | ✅ |
+| Compound Components | Multi-part components | ✅ |
 | Composition | Flexible, declarative APIs | ✅ |
 | Render Props | Share logic, flexible rendering | ⚠️ Use hooks |
 | HOC | Cross-cutting concerns | ⚠️ Use hooks |
@@ -21,48 +21,50 @@ description: React component patterns for scalable UI. Covers custom hooks, comp
 
 Extract and share stateful logic.
 
-```jsx
+```tsx
 // useLocalStorage
-const useLocalStorage = (key, initial) => {
-  const [value, setValue] = useState(() => {
+function useLocalStorage<T>(key: string, initial: T) {
+  const [value, setValue] = useState<T>(() => {
     const item = localStorage.getItem(key);
     return item ? JSON.parse(item) : initial;
   });
   
-  const set = (v) => {
+  const set = (v: T | ((prev: T) => T)) => {
     const val = v instanceof Function ? v(value) : v;
     setValue(val);
     localStorage.setItem(key, JSON.stringify(val));
   };
   
-  return [value, set];
-};
-
-// useFetch
-const useFetch = (url) => {
-  const [state, setState] = useState({ data: null, loading: true, error: null });
-  
-  useEffect(() => {
-    const ctrl = new AbortController();
-    fetch(url, { signal: ctrl.signal })
-      .then(r => r.json())
-      .then(data => setState({ data, loading: false, error: null }))
-      .catch(error => setState({ data: null, loading: false, error }));
-    return () => ctrl.abort();
-  }, [url]);
-  
-  return state;
-};
+  return [value, set] as const;
+}
 
 // useDebounce
-const useDebounce = (value, delay) => {
+function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
+  
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
   }, [value, delay]);
+  
   return debounced;
-};
+}
+
+// useMediaQuery
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(false);
+  
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    setMatches(media.matches);
+    
+    const listener = (e: MediaQueryListEvent) => setMatches(e.matches);
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, [query]);
+  
+  return matches;
+}
 ```
 
 ---
@@ -71,34 +73,41 @@ const useDebounce = (value, delay) => {
 
 Components that work together, sharing implicit state.
 
-```jsx
-const TabContext = createContext();
+```tsx
+const TabContext = createContext<{
+  active: number;
+  setActive: (i: number) => void;
+} | null>(null);
 
-const Tabs = ({ children, defaultIndex = 0 }) => {
+function Tabs({ children, defaultIndex = 0 }) {
   const [active, setActive] = useState(defaultIndex);
   return (
     <TabContext.Provider value={{ active, setActive }}>
       <div className="tabs">{children}</div>
     </TabContext.Provider>
   );
-};
+}
 
-const Tab = ({ children, index }) => {
-  const { active, setActive } = useContext(TabContext);
+function Tab({ children, index }: { children: ReactNode; index: number }) {
+  const ctx = useContext(TabContext);
+  if (!ctx) throw new Error('Tab must be within Tabs');
+  
   return (
     <button 
-      className={active === index ? 'active' : ''} 
-      onClick={() => setActive(index)}
+      className={ctx.active === index ? 'active' : ''} 
+      onClick={() => ctx.setActive(index)}
     >
       {children}
     </button>
   );
-};
+}
 
-const TabPanel = ({ children, index }) => {
-  const { active } = useContext(TabContext);
-  return active === index ? <div>{children}</div> : null;
-};
+function TabPanel({ children, index }: { children: ReactNode; index: number }) {
+  const ctx = useContext(TabContext);
+  if (!ctx) throw new Error('TabPanel must be within Tabs');
+  
+  return ctx.active === index ? <div>{children}</div> : null;
+}
 
 Tabs.Tab = Tab;
 Tabs.Panel = TabPanel;
@@ -112,7 +121,7 @@ Tabs.Panel = TabPanel;
 </Tabs>
 ```
 
-**Use for**: Tabs, Accordion, Select, Menu, Modal.
+**Use for**: Tabs, Accordion, Select, Menu, Modal, Card.
 
 ---
 
@@ -120,13 +129,22 @@ Tabs.Panel = TabPanel;
 
 Build complex UIs from simple pieces.
 
-```jsx
-const Card = ({ children, className = '' }) => (
-  <div className={`card ${className}`}>{children}</div>
+```tsx
+function Card({ children, className = '' }) {
+  return <div className={`card ${className}`}>{children}</div>;
+}
+
+Card.Header = ({ children }) => (
+  <div className="card-header">{children}</div>
 );
-Card.Header = ({ children }) => <div className="card-header">{children}</div>;
-Card.Content = ({ children }) => <div className="card-content">{children}</div>;
-Card.Footer = ({ children }) => <div className="card-footer">{children}</div>;
+
+Card.Content = ({ children }) => (
+  <div className="card-content">{children}</div>
+);
+
+Card.Footer = ({ children }) => (
+  <div className="card-footer">{children}</div>
+);
 
 // Usage
 <Card>
@@ -140,18 +158,23 @@ Card.Footer = ({ children }) => <div className="card-footer">{children}</div>;
 
 ## 4. Controlled vs Uncontrolled
 
-```jsx
+```tsx
 // Controlled - React manages state
 const [value, setValue] = useState('');
 <input value={value} onChange={e => setValue(e.target.value)} />
 
 // Uncontrolled - DOM manages state
-const ref = useRef();
+const ref = useRef<HTMLInputElement>(null);
 <input ref={ref} defaultValue="initial" />
-const getValue = () => ref.current.value;
 
 // Hybrid - supports both
-const Input = ({ value: controlled, defaultValue, onChange, ...props }) => {
+interface InputProps {
+  value?: string;
+  defaultValue?: string;
+  onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
+}
+
+function Input({ value: controlled, defaultValue, onChange, ...props }: InputProps) {
   const [internal, setInternal] = useState(defaultValue ?? '');
   const isControlled = controlled !== undefined;
   
@@ -165,7 +188,7 @@ const Input = ({ value: controlled, defaultValue, onChange, ...props }) => {
       {...props}
     />
   );
-};
+}
 ```
 
 ---
@@ -174,11 +197,22 @@ const Input = ({ value: controlled, defaultValue, onChange, ...props }) => {
 
 Share logic with flexible rendering. (Prefer hooks for new code)
 
-```jsx
-const Toggle = ({ children, initial = false }) => {
+```tsx
+interface ToggleRenderProps {
+  on: boolean;
+  toggle: () => void;
+}
+
+function Toggle({ 
+  children, 
+  initial = false 
+}: { 
+  children: (props: ToggleRenderProps) => ReactNode;
+  initial?: boolean;
+}) {
   const [on, setOn] = useState(initial);
-  return children({ on, toggle: () => setOn(p => !p) });
-};
+  return <>{children({ on, toggle: () => setOn(p => !p) })}</>;
+}
 
 // Usage
 <Toggle>
@@ -194,76 +228,105 @@ const Toggle = ({ children, initial = false }) => {
 
 Wrap components to add functionality. (Prefer hooks for new code)
 
-```jsx
-const withAuth = (Component) => (props) => {
-  const { user, loading } = useAuth();
-  if (loading) return <Spinner />;
-  if (!user) return <Navigate to="/login" />;
-  return <Component {...props} user={user} />;
-};
+```tsx
+function withAuth<P extends object>(Component: ComponentType<P & { user: User }>) {
+  return function AuthenticatedComponent(props: P) {
+    const { user, loading } = useAuth();
+    
+    if (loading) return <Spinner />;
+    if (!user) return <Navigate to="/login" />;
+    
+    return <Component {...props} user={user} />;
+  };
+}
 
-export default withAuth(Dashboard);
+// Usage
+const ProtectedDashboard = withAuth(Dashboard);
 ```
-
-**Caveats**: Wrapper hell, refs don't pass through (use forwardRef).
 
 ---
 
 ## 7. Props Getters
 
-Return props for elements (great for a11y).
+Return props for elements (accessibility pattern).
 
-```jsx
-const useDropdown = ({ onSelect }) => {
+```tsx
+function useDropdown<T>({ onSelect }: { onSelect: (item: T) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   
-  const getToggleProps = (props = {}) => ({
+  const getToggleProps = () => ({
     'aria-expanded': isOpen,
+    'aria-haspopup': 'listbox' as const,
     onClick: () => setIsOpen(!isOpen),
-    ...props,
   });
   
-  const getItemProps = ({ item, ...props } = {}) => ({
-    role: 'option',
-    onClick: () => { onSelect(item); setIsOpen(false); },
-    ...props,
+  const getItemProps = (item: T) => ({
+    role: 'option' as const,
+    onClick: () => {
+      onSelect(item);
+      setIsOpen(false);
+    },
   });
   
   return { isOpen, getToggleProps, getItemProps };
-};
+}
 
 // Usage
 const { isOpen, getToggleProps, getItemProps } = useDropdown({ onSelect });
+
 <button {...getToggleProps()}>Menu</button>
 {isOpen && items.map(item => (
-  <div {...getItemProps({ item })}>{item.label}</div>
+  <div key={item.id} {...getItemProps(item)}>{item.label}</div>
 ))}
 ```
 
 ---
 
-## 8. Container/Presentational
+## 8. Slot Pattern
 
-Separate data from UI. (Modern: just use hooks)
+Allow customization of specific parts.
 
-```jsx
-// Hook extracts logic
-const useUsers = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    fetchUsers().then(setUsers).finally(() => setLoading(false));
-  }, []);
-  return { users, loading };
-};
+```tsx
+interface DialogProps {
+  children: ReactNode;
+  title?: ReactNode;
+  footer?: ReactNode;
+}
 
-// Component uses hook
-const UserList = () => {
-  const { users, loading } = useUsers();
-  if (loading) return <Spinner />;
-  return <ul>{users.map(u => <li key={u.id}>{u.name}</li>)}</ul>;
-};
+function Dialog({ children, title, footer }: DialogProps) {
+  return (
+    <div className="dialog">
+      {title && <div className="dialog-title">{title}</div>}
+      <div className="dialog-content">{children}</div>
+      {footer && <div className="dialog-footer">{footer}</div>}
+    </div>
+  );
+}
+
+// Usage
+<Dialog
+  title={<h2>Confirm Action</h2>}
+  footer={
+    <>
+      <Button variant="ghost">Cancel</Button>
+      <Button>Confirm</Button>
+    </>
+  }
+>
+  Are you sure you want to proceed?
+</Dialog>
 ```
+
+---
+
+## 9. Performance
+
+For memoization patterns (`memo`, `useCallback`, `useMemo`), see **performance-patterns** skill.
+
+Key principles:
+- Memoize components receiving callbacks as props
+- Memoize expensive computations
+- Use `memo` for components that render often with same props
 
 ---
 
@@ -273,4 +336,6 @@ const UserList = () => {
 2. **Single Responsibility** - one component, one job
 3. **Composition over Configuration** - small composable pieces
 4. **Lift State Up** to nearest common ancestor
-5. **Consistent Props** - use conventions (onChange, onSubmit)
+5. **Consistent Props** - use conventions (onChange, onSubmit, onClose)
+6. **TypeScript** - always type props and return values
+7. **Context for Compound Components** - not for global state (use Zustand)

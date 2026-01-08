@@ -4,7 +4,6 @@ import { useTheme } from "@/lib/theme";
 import * as Haptics from "expo-haptics";
 
 // Import orbital sections - Camera eagerly loaded as it's the main screen
-import { FloatingNotifications } from "@/components/FloatingNotifications";
 import CameraCenter from "@/domains/camera/components/Camera";
 import {
   createLazyComponent,
@@ -158,13 +157,7 @@ export default function OrbitalNavigation() {
     }
   };
 
-  return (
-    <>
-      {renderActiveSection()}
-      {/* Floating Notifications */}
-      <FloatingNotifications />
-    </>
-  );
+  return <>{renderActiveSection()}</>;
 }
 
 const styles = StyleSheet.create({

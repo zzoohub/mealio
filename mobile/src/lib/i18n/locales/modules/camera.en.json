@@ -2,7 +2,6 @@
   "title": "Mealio",
   "subtitle": "Capture your meals instantly",
   "quickHint": "Tap to log your meal",
-  "hintText": "Point camera at your meal for instant analysis",
   "capturingText": "Analyzing...",
   "preparing": "Preparing camera...",
   "flip": "Flip",
@@ -10,6 +9,8 @@
   "progress": "Progress",
   "aiCoach": "AI Coach",
   "recent": "Recent",
+  "done": "Done",
+  "tapToEdit": "Tap to edit",
   "aiAnalysis": "AI Analysis in Progress",
   "aiAnalysisDesc": "Identifying meal items and calculating nutrition...",
   "welcome": {

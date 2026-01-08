@@ -164,6 +164,8 @@ export const useCameraI18n = () => {
       progress: t("progress"),
       aiCoach: t("aiCoach"),
       recent: t("recent"),
+      done: t("done"),
+      tapToEdit: t("tapToEdit"),
       aiAnalysis: t("aiAnalysis"),
       aiAnalysisDesc: t("aiAnalysisDesc"),
       welcome: {

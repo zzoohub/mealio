@@ -29,7 +29,6 @@ export interface CameraTranslations {
   title: string;
   subtitle: string;
   quickHint: string;
-  hintText: string;
   capturingText: string;
   preparing: string;
   flip: string;
@@ -37,6 +36,8 @@ export interface CameraTranslations {
   progress: string;
   aiCoach: string;
   recent: string;
+  done: string;
+  tapToEdit: string;
   aiAnalysis: string;
   aiAnalysisDesc: string;
   welcome: {

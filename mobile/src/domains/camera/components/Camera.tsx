@@ -1,12 +1,15 @@
-import React, { useState, useRef, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from "react-native";
+import React, { useState, useRef, useCallback } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Image, ScrollView } from "react-native";
 import { CameraView, useCameraPermissions, FlashMode } from "expo-camera";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import { useCameraI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
+import { useOverlayHelpers } from "@/components/Overlay";
+
+const MAX_PHOTOS = 10;
 
 interface CameraProps {
   onNavigate: (section: string) => void;
@@ -18,36 +21,21 @@ export default function Camera({ onNavigate }: CameraProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const [flashMode, setFlashMode] = useState<FlashMode>("off");
   const [isCapturing, setIsCapturing] = useState(false);
-  const [recentMeals] = useState([]);
+  const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
   const cameraRef = useRef<CameraView>(null);
   const router = useRouter();
   const t = useCameraI18n();
+  const { toast } = useOverlayHelpers();
 
   // Animations
-  const pulseAnim = useRef(new Animated.Value(1)).current;
   const captureButtonScale = useRef(new Animated.Value(1)).current;
-  const aiOverlayOpacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    // Pulsing animation for streak indicator
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-  }, []);
 
   const capturePhoto = async () => {
     if (!cameraRef.current || isCapturing) return;
+    if (capturedPhotos.length >= MAX_PHOTOS) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      return;
+    }
 
     try {
       setIsCapturing(true);
@@ -78,8 +66,8 @@ export default function Camera({ onNavigate }: CameraProps) {
       });
 
       if (photo?.uri) {
-        // Show AI processing overlay
-        showAIProcessing(photo.uri);
+        setCapturedPhotos((prev) => [...prev, photo.uri]);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (error) {
       console.error("Photo capture failed:", error);
@@ -89,29 +77,53 @@ export default function Camera({ onNavigate }: CameraProps) {
     }
   };
 
-  const showAIProcessing = (photoUri: string) => {
-    // Show AI overlay
-    Animated.timing(aiOverlayOpacity, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+  const pickFromGallery = async () => {
+    const remainingSlots = MAX_PHOTOS - capturedPhotos.length;
+    if (remainingSlots <= 0) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      return;
+    }
 
-    // Simulate AI processing
-    setTimeout(() => {
-      router.push({
-        pathname: "/meal-detail",
-        params: { photoUri, isNew: "true" },
-      });
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      selectionLimit: remainingSlots,
+      quality: 0.8,
+    });
 
-      // Hide overlay
-      Animated.timing(aiOverlayOpacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    }, 2500);
+    if (!result.canceled && result.assets.length > 0) {
+      const newUris = result.assets.map((asset) => asset.uri);
+      setCapturedPhotos((prev) => [...prev, ...newUris]);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
   };
+
+  const removePhoto = (index: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setCapturedPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDone = useCallback(() => {
+    if (capturedPhotos.length === 0) return;
+
+    const photosToSave = [...capturedPhotos];
+    setCapturedPhotos([]);
+
+    toast({
+      title: t.capture.success,
+      message: t.tapToEdit,
+      type: "success",
+      position: "top",
+      showArrow: true,
+      duration: 4000,
+      onPress: () => {
+        router.push({
+          pathname: "/meal-detail",
+          params: { photoUris: JSON.stringify(photosToSave), isNew: "true" },
+        });
+      },
+    });
+  }, [capturedPhotos, toast, t, router]);
 
   const toggleFlash = () => {
     const modes: FlashMode[] = ["off", "on", "auto"];
@@ -162,32 +174,11 @@ export default function Camera({ onNavigate }: CameraProps) {
       <CameraView ref={cameraRef} style={styles.camera} facing="back" flash={flashMode} mode="picture">
         {/* Top Controls */}
         <View style={styles.topControls}>
-          {/* Phase 2: Discover feature
-          <TouchableOpacity style={styles.controlButton} onPress={() => onNavigate("discover")}>
-            <Ionicons name="search" size={24} color="white" />
-          </TouchableOpacity>
-          */}
-
           <View style={styles.controlButton} />
-
-          <Animated.View style={[styles.streakIndicator, { transform: [{ scale: pulseAnim }] }]}>
-            <Text style={styles.streakText}>🔥 7</Text>
-          </Animated.View>
 
           <TouchableOpacity style={styles.controlButton} onPress={toggleFlash}>
             <Ionicons name={getFlashIcon()} size={24} color="white" />
           </TouchableOpacity>
-        </View>
-
-        {/* AI Viewfinder Overlay */}
-        <View style={styles.viewfinderOverlay}>
-          <View style={styles.gridOverlay}>
-            {/* Rule of thirds grid */}
-            <View style={styles.gridLine} />
-            <View style={[styles.gridLine, styles.gridLineVertical]} />
-          </View>
-
-          <Text style={styles.hintText}>{t.hintText}</Text>
         </View>
 
         {/* Center Capture Area */}
@@ -199,52 +190,59 @@ export default function Camera({ onNavigate }: CameraProps) {
           </Animated.View>
         </TouchableOpacity>
 
-        {/* Bottom Controls */}
-        <View style={styles.bottomControls}>
-          <View style={styles.leftControls}>
-            <TouchableOpacity style={styles.secondaryButton} onPress={() => onNavigate("progress")}>
-              <Ionicons name="bar-chart-outline" size={20} color="white" />
-              <Text style={styles.secondaryButtonText}>{t.progress}</Text>
+        {/* Bottom Controls - Changes based on photo state */}
+        {capturedPhotos.length === 0 ? (
+          <View style={styles.bottomControls}>
+            <TouchableOpacity style={styles.bottomButton} onPress={() => onNavigate("progress")}>
+              <Ionicons name="bar-chart-outline" size={24} color="white" />
+              <Text style={styles.bottomButtonText}>{t.progress}</Text>
             </TouchableOpacity>
-            {/* Phase 2: Social feature
-            <TouchableOpacity style={styles.secondaryButton} onPress={() => onNavigate("social")}>
-              <Ionicons name="people-outline" size={20} color="white" />
-              <Text style={styles.secondaryButtonText}>Social</Text>
+
+            <TouchableOpacity style={styles.bottomButton} onPress={pickFromGallery}>
+              <Ionicons name="images-outline" size={24} color="white" />
             </TouchableOpacity>
-            */}
           </View>
+        ) : (
+          <>
+            {/* Gallery Button - Right side */}
+            <TouchableOpacity style={styles.galleryButtonFloating} onPress={pickFromGallery}>
+              <Ionicons name="images-outline" size={24} color="white" />
+              <View style={styles.photoCountBadge}>
+                <Text style={styles.photoCountText}>{capturedPhotos.length}</Text>
+              </View>
+            </TouchableOpacity>
 
-          <View style={styles.centerHint}>
-            {isCapturing && <Text style={styles.capturingText}>{t.capturingText}</Text>}
-          </View>
-        </View>
+            {/* Thumbnail Strip - Bottom */}
+            <View style={styles.thumbnailContainer}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.thumbnailScrollView}
+                contentContainerStyle={styles.thumbnailScroll}
+              >
+                {capturedPhotos.map((uri, index) => (
+                  <View key={uri} style={styles.thumbnailWrapper}>
+                    <Image source={{ uri }} style={styles.thumbnail} />
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={() => removePhoto(index)}
+                    >
+                      <Ionicons name="close-circle" size={20} color="white" />
+                    </TouchableOpacity>
+                    <View style={styles.thumbnailIndex}>
+                      <Text style={styles.thumbnailIndexText}>{index + 1}</Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
 
-        {/* Recent Meals Quick Access */}
-        {recentMeals.length > 0 && (
-          <View style={styles.recentMeals}>
-            <Text style={styles.recentMealsTitle}>{t.recent}</Text>
-            {/* Recent meals carousel would go here */}
-          </View>
+              <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
+                <Ionicons name="checkmark" size={22} color="white" />
+              </TouchableOpacity>
+            </View>
+          </>
         )}
 
-        {/* AI Processing Overlay */}
-        <Animated.View
-          style={[styles.aiProcessingOverlay, { opacity: aiOverlayOpacity }]}
-          pointerEvents={isCapturing ? "auto" : "none"}
-        >
-          <LinearGradient colors={["rgba(0,0,0,0.8)", "rgba(0,0,0,0.6)"]} style={styles.aiGradient}>
-            <View style={styles.aiProcessingContent}>
-              <View style={styles.aiScanningAnimation}>
-                <Ionicons name="scan" size={60} color="#FF6B35" />
-              </View>
-              <Text style={styles.aiProcessingTitle}>{t.aiAnalysis}</Text>
-              <Text style={styles.aiProcessingSubtitle}>{t.aiAnalysisDesc}</Text>
-              <View style={styles.aiProgressBar}>
-                <Animated.View style={styles.aiProgressFill} />
-              </View>
-            </View>
-          </LinearGradient>
-        </Animated.View>
       </CameraView>
     </View>
   );
@@ -315,58 +313,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  streakIndicator: {
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  streakText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  viewfinderOverlay: {
-    position: "absolute",
-    top: 120,
-    left: 20,
-    right: 20,
-    bottom: 200,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  gridOverlay: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-  },
-  gridLine: {
-    position: "absolute",
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
-    height: 1,
-    width: "100%",
-    top: "33%",
-  },
-  gridLineVertical: {
-    height: "100%",
-    width: 1,
-    left: "33%",
-    top: 0,
-  },
-  hintText: {
-    color: "rgba(255, 255, 255, 0.8)",
-    fontSize: 14,
-    textAlign: "center",
-    textShadowColor: "rgba(0, 0, 0, 0.8)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
   captureArea: {
     position: "absolute",
     bottom: 120,
-    left: 0,
-    right: 0,
-    alignItems: "center",
+    alignSelf: "center",
+    left: "50%",
+    marginLeft: -40,
   },
   captureButton: {
     alignItems: "center",
@@ -394,96 +346,111 @@ const styles = StyleSheet.create({
     backgroundColor: "#FF6B35",
   },
   bottomControls: {
+    position: "absolute",
+    bottom: 40,
+    left: 20,
+    right: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingBottom: 40,
-    paddingHorizontal: 20,
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
   },
-  leftControls: {
-    flexDirection: "row",
-    gap: 16,
-  },
-  secondaryButton: {
+  bottomButton: {
     alignItems: "center",
     padding: 8,
+    position: "relative",
   },
-  secondaryButtonText: {
+  bottomButtonText: {
     color: "white",
     fontSize: 12,
     fontWeight: "500",
     marginTop: 4,
   },
-  centerHint: {
-    flex: 1,
-    alignItems: "center",
-  },
-  capturingText: {
-    color: "#FF6B35",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  recentMeals: {
+  galleryButtonFloating: {
     position: "absolute",
-    bottom: 180,
-    left: 20,
-    right: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    borderRadius: 12,
+    bottom: 120,
+    right: 24,
     padding: 12,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    borderRadius: 24,
   },
-  recentMealsTitle: {
-    color: "white",
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  aiProcessingOverlay: {
+  photoCountBadge: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  aiGradient: {
-    flex: 1,
+    top: 4,
+    right: 4,
+    backgroundColor: "#FF6B35",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
   },
-  aiProcessingContent: {
-    alignItems: "center",
-    padding: 32,
-  },
-  aiScanningAnimation: {
-    marginBottom: 24,
-  },
-  aiProcessingTitle: {
+  photoCountText: {
     color: "white",
-    fontSize: 20,
+    fontSize: 11,
     fontWeight: "bold",
-    marginBottom: 8,
-    textAlign: "center",
   },
-  aiProcessingSubtitle: {
-    color: "rgba(255, 255, 255, 0.8)",
-    fontSize: 14,
-    textAlign: "center",
-    marginBottom: 24,
+  thumbnailContainer: {
+    position: "absolute",
+    bottom: 40,
+    left: 16,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingLeft: 10,
+    paddingRight: 6,
   },
-  aiProgressBar: {
-    width: 200,
-    height: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
-    borderRadius: 2,
-    overflow: "hidden",
+  thumbnailScrollView: {
+    flex: 1,
   },
-  aiProgressFill: {
-    height: "100%",
+  thumbnailScroll: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingRight: 8,
+  },
+  thumbnailWrapper: {
+    position: "relative",
+    paddingTop: 6,
+    paddingRight: 6,
+  },
+  thumbnail: {
+    width: 52,
+    height: 52,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  removeButton: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    borderRadius: 10,
+  },
+  thumbnailIndex: {
+    position: "absolute",
+    bottom: 2,
+    left: 2,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  thumbnailIndexText: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  doneButton: {
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: "#FF6B35",
-    width: "100%",
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    marginLeft: 10,
   },
 });

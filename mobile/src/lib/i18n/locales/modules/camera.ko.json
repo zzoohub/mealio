@@ -2,7 +2,6 @@
   "title": "식사일기",
   "subtitle": "식사를 즉시 기록하세요",
   "quickHint": "탭하여 식사 기록하기",
-  "hintText": "음식에 카메라를 향하면 즉시 분석됩니다",
   "capturingText": "분석 중...",
   "preparing": "카메라 준비 중...",
   "flip": "전환",
@@ -10,6 +9,8 @@
   "progress": "진행 상황",
   "aiCoach": "AI 코치",
   "recent": "최근",
+  "done": "완료",
+  "tapToEdit": "탭하여 수정",
   "aiAnalysis": "AI 분석 진행 중",
   "aiAnalysisDesc": "음식 항목을 식별하고 영양 정보를 계산하는 중...",
   "welcome": {

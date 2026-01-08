@@ -51,12 +51,13 @@ export function AddToCartButton({ productId }: { productId: string }) {
 
 ```tsx
 // Using Client Component in Server Component
-async function ProductPage({ params }) {
-  const product = await getProduct(params.id); // Server
+async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const product = await getProduct(id); // Server
   return (
     <div>
-      <h1>{product.name}</h1>           {/* Server */}
-      <AddToCartButton productId={product.id} />  {/* Client */}
+      <h1>{product.name}</h1>
+      <AddToCartButton productId={product.id} />
     </div>
   );
 }
@@ -64,7 +65,116 @@ async function ProductPage({ params }) {
 
 ---
 
-## 2. Streaming with Suspense
+## 2. State Management
+
+### Decision Tree
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ What kind of state?                                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Server State (API/DB data)                                 │
+│  └→ Server Component: direct fetch (default)               │
+│  └→ Client Component: TanStack Query                       │
+│                                                             │
+│  Client State                                               │
+│  ├→ Component-local: useState                               │
+│  ├→ Complex local: useReducer                               │
+│  ├→ Global (theme, cart, UI): Zustand                       │
+│  └→ Compound components: Context API                        │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Server Component = No State Library Needed
+
+```tsx
+// Server Component - fetch directly
+async function UserProfile({ userId }: { userId: string }) {
+  const user = await db.user.findUnique({ where: { id: userId } });
+  return <div>{user.name}</div>;
+}
+```
+
+### Client Component with TanStack Query
+
+```tsx
+'use client';
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+// Read
+function useUser(id: string) {
+  return useQuery({
+    queryKey: ['user', id],
+    queryFn: () => fetch(`/api/users/${id}`).then(r => r.json()),
+  });
+}
+
+// Write
+function useUpdateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: UpdateUserInput) => 
+      fetch('/api/users', { method: 'PATCH', body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+    },
+  });
+}
+```
+
+### Zustand for Client State
+
+```tsx
+// stores/cart.ts
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+interface CartStore {
+  items: CartItem[];
+  addItem: (item: CartItem) => void;
+  removeItem: (id: string) => void;
+  clear: () => void;
+}
+
+export const useCartStore = create<CartStore>()(
+  persist(
+    (set) => ({
+      items: [],
+      addItem: (item) => set((s) => ({ items: [...s.items, item] })),
+      removeItem: (id) => set((s) => ({ items: s.items.filter(i => i.id !== id) })),
+      clear: () => set({ items: [] }),
+    }),
+    { name: 'cart-storage' }
+  )
+);
+
+// Usage in Client Component
+'use client';
+function CartButton() {
+  const items = useCartStore((s) => s.items);
+  return <button>Cart ({items.length})</button>;
+}
+```
+
+### When to Use What
+
+| State Type | Solution | Example |
+|------------|----------|---------|
+| API data (Server Component) | Direct fetch | `await db.user.findMany()` |
+| API data (Client Component) | TanStack Query | `useQuery`, `useMutation` |
+| Form input | `useState` | `const [email, setEmail] = useState('')` |
+| Complex form | `useReducer` | Multi-field validation |
+| Theme, locale | Zustand + persist | `useThemeStore()` |
+| Shopping cart | Zustand + persist | `useCartStore()` |
+| Modal open/close | `useState` or Zustand | Depends on scope |
+| Compound component | Context API | `<Tabs>` internal state |
+
+---
+
+## 3. Streaming & Suspense
 
 ```tsx
 // app/dashboard/page.tsx
@@ -75,7 +185,7 @@ export default function DashboardPage() {
     <div>
       <h1>Dashboard</h1>
       <Suspense fallback={<StatsSkeleton />}>
-        <StatsCards />  {/* Streams when ready */}
+        <StatsCards />
       </Suspense>
       <Suspense fallback={<ChartSkeleton />}>
         <RevenueChart />
@@ -90,9 +200,36 @@ export default function Loading() {
 }
 ```
 
+### Partial Prerendering (PPR)
+
+```tsx
+// next.config.ts
+export default {
+  experimental: {
+    ppr: true,
+  },
+};
+
+// app/products/page.tsx
+export default function ProductsPage() {
+  return (
+    <div>
+      {/* Static - prerendered */}
+      <h1>Products</h1>
+      <StaticFilters />
+      
+      {/* Dynamic - streams in */}
+      <Suspense fallback={<ProductsSkeleton />}>
+        <ProductList />
+      </Suspense>
+    </div>
+  );
+}
+```
+
 ---
 
-## 3. Data Fetching & Caching
+## 4. Data Fetching & Caching
 
 ```tsx
 // SSG - Cached (default)
@@ -138,7 +275,7 @@ export const revalidate = 3600;          // ISR
 
 ---
 
-## 4. Server Actions
+## 5. Server Actions
 
 ```typescript
 // app/actions/user.ts
@@ -152,13 +289,15 @@ const schema = z.object({
   email: z.string().email(),
 });
 
-export async function updateUser(userId: string, formData: FormData) {
+export async function updateUser(userId: string, prevState: any, formData: FormData) {
   const result = schema.safeParse({
     name: formData.get('name'),
     email: formData.get('email'),
   });
   
-  if (!result.success) return { error: result.error.errors[0].message };
+  if (!result.success) {
+    return { error: result.error.errors[0].message };
+  }
   
   await db.user.update({ where: { id: userId }, data: result.data });
   revalidateTag(`user-${userId}`);
@@ -166,27 +305,46 @@ export async function updateUser(userId: string, formData: FormData) {
 }
 ```
 
-### Form with Server Action
+### Form with Server Action (Next.js 15)
 
 ```tsx
 'use client';
-import { useFormState, useFormStatus } from 'react-dom';
 
-export function UserForm({ userId }) {
-  const [state, dispatch] = useFormState(updateUser.bind(null, userId), {});
+import { useActionState } from 'react';
+
+export function UserForm({ userId }: { userId: string }) {
+  const [state, dispatch, isPending] = useActionState(
+    updateUser.bind(null, userId),
+    { error: null, success: false }
+  );
   
   return (
     <form action={dispatch}>
       <input name="name" required />
-      {state.error && <p className="error">{state.error}</p>}
-      <SubmitButton />
+      <input name="email" type="email" required />
+      {state.error && <p className="text-red-500">{state.error}</p>}
+      <button type="submit" disabled={isPending}>
+        {isPending ? 'Saving...' : 'Save'}
+      </button>
     </form>
   );
 }
+```
+
+### useFormStatus (for nested components)
+
+```tsx
+'use client';
+
+import { useFormStatus } from 'react-dom';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
-  return <button disabled={pending}>{pending ? 'Saving...' : 'Save'}</button>;
+  return (
+    <button type="submit" disabled={pending}>
+      {pending ? 'Saving...' : 'Save'}
+    </button>
+  );
 }
 ```
 
@@ -194,9 +352,10 @@ function SubmitButton() {
 
 ```tsx
 'use client';
+
 import { useOptimistic } from 'react';
 
-export function LikeButton({ post }) {
+export function LikeButton({ post }: { post: Post }) {
   const [optimisticLikes, addOptimistic] = useOptimistic(
     post.likes,
     (state, increment: number) => state + increment
@@ -215,7 +374,38 @@ export function LikeButton({ post }) {
 
 ---
 
-## 5. Routing Patterns
+## 6. Routing Patterns
+
+### Dynamic Routes (Next.js 15)
+
+```tsx
+// app/products/[id]/page.tsx
+export default async function ProductPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const product = await getProduct(id);
+  return <ProductDetail product={product} />;
+}
+
+// searchParams is also a Promise
+export default async function SearchPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const results = await search(q);
+  return <SearchResults results={results} />;
+}
+
+export async function generateStaticParams() {
+  const products = await getProducts();
+  return products.map((p) => ({ id: p.id }));
+}
+```
 
 ### Route Groups
 
@@ -237,12 +427,20 @@ app/
 
 ```tsx
 // app/dashboard/layout.tsx
-export default function Layout({ children, analytics, metrics }) {
+export default function Layout({
+  children,
+  analytics,
+  metrics,
+}: {
+  children: React.ReactNode;
+  analytics: React.ReactNode;
+  metrics: React.ReactNode;
+}) {
   return (
     <div className="grid">
       {children}
-      {analytics}  {/* @analytics/page.tsx */}
-      {metrics}    {/* @metrics/page.tsx */}
+      {analytics}
+      {metrics}
     </div>
   );
 }
@@ -257,24 +455,9 @@ app/
 └── layout.tsx                        # {children} {modal}
 ```
 
-### Dynamic Routes
-
-```tsx
-// app/products/[id]/page.tsx
-export default async function ProductPage({ params }: { params: { id: string } }) {
-  const product = await getProduct(params.id);
-  return <ProductDetail product={product} />;
-}
-
-export async function generateStaticParams() {
-  const products = await getProducts();
-  return products.map((p) => ({ id: p.id }));
-}
-```
-
 ---
 
-## 6. Middleware
+## 7. Middleware
 
 ```typescript
 // middleware.ts
@@ -298,13 +481,19 @@ export const config = {
 
 ---
 
-## 7. Error Handling
+## 8. Error Handling
 
 ```tsx
 // app/dashboard/error.tsx
 'use client';
 
-export default function Error({ error, reset }) {
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
   return (
     <div>
       <h2>Something went wrong!</h2>
@@ -325,11 +514,11 @@ if (!product) notFound();
 
 ---
 
-## 8. File Structure (Domain-First)
+## 9. File Structure (Domain-First)
 
 ```
 app/
-├── (routes)/                 # Route groups
+├── (routes)/
 │   ├── (marketing)/
 │   │   ├── page.tsx
 │   │   └── about/page.tsx
@@ -338,43 +527,29 @@ app/
 │   │   └── cart/page.tsx
 │   └── (dashboard)/
 │       └── dashboard/page.tsx
-├── domains/                  # Domain modules
+├── domains/
 │   ├── user/
 │   │   ├── components/
-│   │   │   ├── UserProfile.tsx      # Server Component
-│   │   │   └── UserEditForm.tsx     # 'use client'
+│   │   │   ├── UserProfile.tsx
+│   │   │   └── UserEditForm.tsx
 │   │   ├── actions/
-│   │   │   ├── queries.ts           # getUser, getUsers
-│   │   │   └── mutations.ts         # updateUser, deleteUser
+│   │   │   ├── queries.ts
+│   │   │   └── mutations.ts
 │   │   └── hooks/
 │   │       └── useUserPreferences.ts
 │   ├── product/
-│   │   ├── components/
-│   │   ├── actions/
-│   │   └── hooks/
 │   └── cart/
-│       ├── components/
-│       ├── actions/
-│       └── hooks/
-├── components/               # Shared UI
-│   └── ui/
-├── lib/                      # Utilities
+├── components/ui/
+├── stores/             # Zustand stores
+├── lib/
 │   ├── db.ts
 │   └── auth.ts
-├── api/
-│   └── webhooks/route.ts
 └── layout.tsx
 ```
 
-**Domain structure principles:**
-- `domains/[feature]/components/` - Feature-specific components
-- `domains/[feature]/actions/` - queries (read) + mutations (write)
-- `domains/[feature]/hooks/` - Client hooks
-- `components/ui/` - Shared components only (Button, Input, etc.)
-
 ---
 
-## 9. Image & Metadata
+## 10. Image & Metadata
 
 ```tsx
 import Image from 'next/image';
@@ -384,15 +559,22 @@ import Image from 'next/image';
   alt={product.name}
   width={300}
   height={200}
-  priority={false}  // true for LCP images
+  priority={false}
   sizes="(max-width: 768px) 100vw, 300px"
 />
 ```
 
 ```tsx
 // app/products/[id]/page.tsx
-export async function generateMetadata({ params }): Promise<Metadata> {
-  const product = await getProduct(params.id);
+import type { Metadata } from 'next';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const product = await getProduct(id);
   return {
     title: product.name,
     description: product.description,
@@ -405,9 +587,12 @@ export async function generateMetadata({ params }): Promise<Metadata> {
 
 ## Best Practices
 
-1. **Server Components by default** - Use 'use client' only when needed
-2. **Streaming with Suspense** - Wrap slow components in Suspense
-3. **Server Actions for mutations** - All writes through Server Actions
-4. **Domain-first structure** - Colocate code by feature
-5. **Proper caching** - Use revalidate, tags, unstable_cache
-6. **Error boundaries** - Place error.tsx at appropriate levels
+1. **Server Components by default** - 'use client' only when needed
+2. **Direct fetch in Server Components** - No TanStack Query needed
+3. **TanStack Query in Client Components** - For client-side data needs
+4. **Zustand for client state** - Theme, cart, UI preferences
+5. **Server Actions for mutations** - All writes through Server Actions
+6. **useActionState for forms** - Handles pending state automatically
+7. **Await params/searchParams** - They're Promises in Next.js 15
+8. **Streaming with Suspense** - Wrap slow components
+9. **Domain-first structure** - Colocate by feature
