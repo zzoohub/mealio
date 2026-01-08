@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,14 +11,14 @@ import {
   Dimensions,
   TouchableWithoutFeedback,
   Keyboard,
-} from 'react-native';
-import { storage } from '@/lib/storage';
-import * as Haptics from 'expo-haptics';
-import { useTheme } from '@/lib/theme';
-import { Button } from '@/components/ui/Button';
-import { PhoneInput } from './PhoneInput';
-import { useAuthStore } from '../stores/authStore';
-import { STORAGE_KEYS } from '@/constants';
+} from "react-native";
+import { storage } from "@/lib/storage";
+import * as Haptics from "expo-haptics";
+import { useTheme } from "@/lib/theme";
+import { Button } from "@/components/ui/Button";
+import { PhoneInput } from "./PhoneInput";
+import { useAuthStore } from "../stores/authStore";
+import { STORAGE_KEYS } from "@/constants";
 
 interface PhoneAuthScreenProps {
   onSuccess: () => void;
@@ -28,9 +28,9 @@ interface PhoneAuthScreenProps {
 export function PhoneAuthScreen({ onSuccess, onCancel }: PhoneAuthScreenProps) {
   const { theme } = useTheme();
   const { sendVerificationCode, isLoading, error, clearError } = useAuthStore();
-  
-  const [phone, setPhone] = useState('');
-  const [countryCode, setCountryCode] = useState('+1'); // Default to US
+
+  const [phone, setPhone] = useState("");
+  const [countryCode, setCountryCode] = useState("+1"); // Default to US
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // Load last used phone number on mount
@@ -45,33 +45,33 @@ export function PhoneAuthScreen({ onSuccess, onCancel }: PhoneAuthScreenProps) {
         // Extract country code and phone number
         const match = lastPhone.match(/^(\+\d{1,3})(.*)$/);
         if (match) {
-          setCountryCode(match[1] || '+1');
-          setPhone(match[2] || '');
+          setCountryCode(match[1] || "+1");
+          setPhone(match[2] || "");
         }
       }
     } catch (error) {
-      console.error('Failed to load last phone number:', error);
+      console.error("Failed to load last phone number:", error);
     }
   };
 
   const handleContinue = async () => {
     try {
       clearError();
-      
+
       if (!agreedToTerms) {
-        Alert.alert('Terms Required', 'Please agree to the Terms of Service and Privacy Policy to continue.');
+        Alert.alert("Terms Required", "Please agree to the Terms of Service and Privacy Policy to continue.");
         return;
       }
 
       if (!phone.trim()) {
-        Alert.alert('Phone Required', 'Please enter your phone number.');
+        Alert.alert("Phone Required", "Please enter your phone number.");
         return;
       }
 
       // Validate phone format
-      const digits = phone.replace(/\D/g, '');
+      const digits = phone.replace(/\D/g, "");
       if (digits.length < 10) {
-        Alert.alert('Invalid Phone', 'Please enter a valid phone number.');
+        Alert.alert("Invalid Phone", "Please enter a valid phone number.");
         return;
       }
 
@@ -82,7 +82,7 @@ export function PhoneAuthScreen({ onSuccess, onCancel }: PhoneAuthScreenProps) {
 
       // Haptic feedback on success
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
+
       onSuccess();
     } catch (error) {
       // Error is handled by the store and displayed via error state
@@ -91,35 +91,31 @@ export function PhoneAuthScreen({ onSuccess, onCancel }: PhoneAuthScreenProps) {
   };
 
   const handleTermsPress = () => {
-    Alert.alert(
-      'Terms & Privacy',
-      'In a real app, this would navigate to the Terms of Service and Privacy Policy.',
-      [{ text: 'OK' }]
-    );
+    Alert.alert("Terms & Privacy", "In a real app, this would navigate to the Terms of Service and Privacy Policy.", [
+      { text: "OK" },
+    ]);
   };
 
-  const screenHeight = Dimensions.get('window').height;
+  const screenHeight = Dimensions.get("window").height;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
-            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
             showsVerticalScrollIndicator={false}
             bounces={false}
           >
             {/* Header */}
             <View style={styles.header}>
-              <Text style={[styles.title, { color: theme.colors.text }]}>
-                Welcome to Meallog
-              </Text>
+              <Text style={[styles.title, { color: theme.colors.text }]}>Welcome to Mealio</Text>
               <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
                 Sync your meals across all devices
               </Text>
@@ -151,31 +147,25 @@ export function PhoneAuthScreen({ onSuccess, onCancel }: PhoneAuthScreenProps) {
                 onPress={() => setAgreedToTerms(!agreedToTerms)}
                 disabled={isLoading}
               >
-                <View style={[
-                  styles.checkbox,
-                  { 
-                    borderColor: theme.colors.border,
-                    backgroundColor: agreedToTerms ? theme.colors.primary : 'transparent',
-                  }
-                ]}>
-                  {agreedToTerms && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
+                <View
+                  style={[
+                    styles.checkbox,
+                    {
+                      borderColor: theme.colors.border,
+                      backgroundColor: agreedToTerms ? theme.colors.primary : "transparent",
+                    },
+                  ]}
+                >
+                  {agreedToTerms && <Text style={styles.checkmark}>✓</Text>}
                 </View>
                 <View style={styles.termsTextContainer}>
                   <Text style={[styles.termsText, { color: theme.colors.textSecondary }]}>
-                    I agree to the{' '}
-                    <Text
-                      style={[styles.termsLink, { color: theme.colors.primary }]}
-                      onPress={handleTermsPress}
-                    >
+                    I agree to the{" "}
+                    <Text style={[styles.termsLink, { color: theme.colors.primary }]} onPress={handleTermsPress}>
                       Terms of Service
-                    </Text>
-                    {' '}and{' '}
-                    <Text
-                      style={[styles.termsLink, { color: theme.colors.primary }]}
-                      onPress={handleTermsPress}
-                    >
+                    </Text>{" "}
+                    and{" "}
+                    <Text style={[styles.termsLink, { color: theme.colors.primary }]} onPress={handleTermsPress}>
                       Privacy Policy
                     </Text>
                   </Text>
@@ -202,14 +192,8 @@ export function PhoneAuthScreen({ onSuccess, onCancel }: PhoneAuthScreenProps) {
 
             {/* Cancel/Skip Option */}
             {onCancel && (
-              <TouchableOpacity
-                onPress={onCancel}
-                style={styles.skipButton}
-                disabled={isLoading}
-              >
-                <Text style={[styles.skipText, { color: theme.colors.textSecondary }]}>
-                  Skip for now
-                </Text>
+              <TouchableOpacity onPress={onCancel} style={styles.skipButton} disabled={isLoading}>
+                <Text style={[styles.skipText, { color: theme.colors.textSecondary }]}>Skip for now</Text>
               </TouchableOpacity>
             )}
           </ScrollView>
@@ -233,18 +217,18 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 48,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 22,
   },
   inputSection: {
@@ -252,7 +236,7 @@ const styles = StyleSheet.create({
   },
   helpText: {
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 12,
     lineHeight: 18,
   },
@@ -260,23 +244,23 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
   },
   checkbox: {
     width: 20,
     height: 20,
     borderWidth: 2,
     borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
     marginTop: 2,
   },
   checkmark: {
-    color: 'white',
+    color: "white",
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   termsTextContainer: {
     flex: 1,
@@ -286,27 +270,27 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   termsLink: {
-    fontWeight: '500',
-    textDecorationLine: 'underline',
+    fontWeight: "500",
+    textDecorationLine: "underline",
   },
   privacySection: {
     marginBottom: 32,
-    alignItems: 'center',
+    alignItems: "center",
   },
   privacyText: {
     fontSize: 13,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 18,
   },
   continueButton: {
     marginBottom: 16,
   },
   skipButton: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 16,
   },
   skipText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });

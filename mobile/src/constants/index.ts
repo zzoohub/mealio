@@ -8,7 +8,7 @@ export const APP_CONFIG = {
 
 // API configuration
 export const API_CONFIG = {
-  BASE_URL: __DEV__ ? "http://localhost:3000/api" : "https://api.meallog.app",
+  BASE_URL: __DEV__ ? "http://localhost:3000/api" : "https://api.mealio.app",
   TIMEOUT: 10000,
   RETRY_ATTEMPTS: 3,
   CACHE_DURATION: 5 * 60 * 1000, // 5 minutes

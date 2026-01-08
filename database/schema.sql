@@ -1,4 +1,4 @@
--- MealLog Database Schema
+-- Mealio Database Schema
 -- Pure PostgreSQL DDL for meal logging application
 -- Version: 1.0.0
 -- Last Updated: 2025-08-28
@@ -151,7 +151,7 @@ CREATE TABLE meals (
     name VARCHAR(255) NOT NULL,
     meal_type VARCHAR(20) NOT NULL CHECK (meal_type IN ('breakfast', 'lunch', 'dinner', 'snack')),
     timestamp TIMESTAMPTZ NOT NULL,
-    
+
     -- Nutrition information
     calories INT CHECK (calories >= 0),
     protein DECIMAL(8, 2) CHECK (protein >= 0),  -- grams
@@ -161,16 +161,16 @@ CREATE TABLE meals (
     sugar DECIMAL(8, 2) CHECK (sugar >= 0),      -- grams
     sodium DECIMAL(8, 2) CHECK (sodium >= 0),    -- milligrams
     water DECIMAL(8, 2) CHECK (water >= 0),      -- glasses/cups
-    
+
     -- Additional meal information
     notes TEXT,
     is_verified BOOLEAN DEFAULT false,  -- User has verified/edited AI results
-    
+
     -- Location (PostGIS point)
     location GEOGRAPHY(POINT, 4326),
     location_name VARCHAR(255),
     restaurant_name VARCHAR(255),
-    
+
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     deleted_at TIMESTAMPTZ  -- Soft delete
@@ -223,17 +223,17 @@ CREATE TABLE ai_analyses (
     estimated_calories INT,
     suggested_meal_type VARCHAR(20),
     cuisine_type VARCHAR(100),
-    
+
     -- AI insights
     health_score INT CHECK (health_score >= 0 AND health_score <= 100),
     nutrition_balance TEXT,
     recommendations TEXT[],
     warnings TEXT[],
-    
+
     -- Processing metadata
     ai_model_version VARCHAR(50),
     processing_time_ms INT,
-    
+
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -313,7 +313,7 @@ CREATE TABLE daily_summaries (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     date DATE NOT NULL,
-    
+
     -- Aggregate nutrition
     total_calories INT DEFAULT 0,
     total_protein DECIMAL(10, 2) DEFAULT 0,
@@ -323,21 +323,21 @@ CREATE TABLE daily_summaries (
     total_sugar DECIMAL(10, 2) DEFAULT 0,
     total_sodium DECIMAL(10, 2) DEFAULT 0,
     total_water DECIMAL(10, 2) DEFAULT 0,
-    
+
     -- Meal counts
     breakfast_count INT DEFAULT 0,
     lunch_count INT DEFAULT 0,
     dinner_count INT DEFAULT 0,
     snack_count INT DEFAULT 0,
     total_meals INT DEFAULT 0,
-    
+
     -- Additional metrics
     average_health_score INT,
     goals_met BOOLEAN DEFAULT false,
-    
+
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    
+
     UNIQUE(user_id, date)
 );
 

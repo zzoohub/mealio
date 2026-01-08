@@ -1,35 +1,35 @@
-# MealLog Database Implementation Guide
+# Mealio Database Implementation Guide
 
 ## 🚀 Quick Start
 
 ### ERD Visualization
-View the complete Entity Relationship Diagram: [dbdiagram.io/meallog](https://dbdiagram.io/d/meallog-676e5f8c5e0e7f3e4e9a2b1c)
+View the complete Entity Relationship Diagram: [dbdiagram.io/mealio](https://dbdiagram.io/d/mealio-676e5f8c5e0e7f3e4e9a2b1c)
 
 ### Docker PostgreSQL Setup
 ```bash
 # Quick start with Docker
-docker run --name meallog-db \
-  -e POSTGRES_DB=meallog \
-  -e POSTGRES_USER=meallog_user \
+docker run --name mealio-db \
+  -e POSTGRES_DB=mealio \
+  -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=your_secure_password \
   -p 5432:5432 \
-  -v meallog_data:/var/lib/postgresql/data \
+  -v mealio_data:/var/lib/postgresql/data \
   -d postgis/postgis:15-3.3
 
 # Apply schema
-docker exec -i meallog-db psql -U meallog_user -d meallog < database/schema.sql
+docker exec -i mealio-db psql -U postgres -d mealio < database/schema.sql
 
 # Load sample data (optional)
-docker exec -i meallog-db psql -U meallog_user -d meallog < database/database.sql
+docker exec -i mealio-db psql -U postgres -d mealio < database/database.sql
 ```
 
 ### Environment Variables
 ```env
-DATABASE_URL=postgresql://meallog_user:your_secure_password@localhost:5432/meallog
+DATABASE_URL=postgresql://postgres:your_secure_password@localhost:5432/mealio
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=meallog
-DB_USER=meallog_user
+DB_NAME=mealio
+DB_USER=postgres
 DB_PASSWORD=your_secure_password
 DB_SSL_MODE=disable  # Use 'require' in production
 ```
@@ -406,7 +406,7 @@ CREATE INDEX CONCURRENTLY idx_meals_unverified
 ```yaml
 # PgBouncer configuration
 [databases]
-meallog = host=localhost port=5432 dbname=meallog
+mealio = host=localhost port=5432 dbname=mealio
 
 [pgbouncer]
 pool_mode = transaction
@@ -603,14 +603,14 @@ WHERE idx_scan = 0 AND indexrelname NOT LIKE '%pkey%';
 ### Backup Strategy
 ```bash
 # Daily backup with compression
-pg_dump -Fc -Z9 meallog > backup_$(date +%Y%m%d).dump
+pg_dump -Fc -Z9 mealio > backup_$(date +%Y%m%d).dump
 
 # Point-in-time recovery setup
 archive_mode = on
 archive_command = 'cp %p /backup/wal/%f'
 
 # Test restore
-pg_restore -d meallog_test backup_20250828.dump
+pg_restore -d mealio_test backup_20250828.dump
 ```
 
 ### Disaster Recovery Plan

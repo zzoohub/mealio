@@ -1,5 +1,5 @@
 {
-  "title": "MealLog",
+  "title": "Mealio",
   "subtitle": "Capture your meals instantly",
   "quickHint": "Tap to log your meal",
   "hintText": "Point camera at your meal for instant analysis",
@@ -13,7 +13,7 @@
   "aiAnalysis": "AI Analysis in Progress",
   "aiAnalysisDesc": "Identifying meal items and calculating nutrition...",
   "welcome": {
-    "title": "Welcome to MealLog",
+    "title": "Welcome to Mealio",
     "message": "Capture your meals instantly with one tap. Enable camera access to get started.",
     "enableCamera": "Enable Camera"
   },
