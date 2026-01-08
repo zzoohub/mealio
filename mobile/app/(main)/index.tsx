@@ -16,12 +16,10 @@ import {
 
 // Lazy load non-critical components for better performance
 const ProgressDashboard = createLazyComponent(() => import("@/domains/progress/components/ProgressDashboard"));
-const AICoach = createLazyComponent(() => import("@/domains/ai-coach/components/AICoach"));
 const SettingsOrbital = createLazyComponent(() => import("@/domains/settings/components/SettingsOrbital"));
 
 // Preload functions for each lazy component
 const preloadProgress = () => import("@/domains/progress/components/ProgressDashboard");
-const preloadAICoach = () => import("@/domains/ai-coach/components/AICoach");
 const preloadSettings = () => import("@/domains/settings/components/SettingsOrbital");
 
 // MVP Phase 2: Social features (lazy loaded but currently disabled)
@@ -33,15 +31,13 @@ enum OrbitalSection {
   // Social = 'social',  // Phase 2
   // Discover = 'discover',  // Phase 2
   Progress = "progress",
-  AICoach = "ai-coach",
   Settings = "settings",
 }
 
 // Map sections to prefetch targets
 const SECTION_PREFETCH_MAP: Record<OrbitalSection, string[]> = {
   [OrbitalSection.Camera]: ["meal-history", "progress"],
-  [OrbitalSection.Progress]: ["ai-coach", "settings"],
-  [OrbitalSection.AICoach]: ["progress", "settings"],
+  [OrbitalSection.Progress]: ["settings"],
   [OrbitalSection.Settings]: ["camera", "progress"],
 };
 
@@ -58,28 +54,20 @@ export default function OrbitalNavigation() {
   const preloadAllSections = useCallback(async () => {
     // Small delay to ensure main screen is fully rendered
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     // Preload all sections in parallel
-    const preloadPromises = [
-      preloadProgress(),
-      preloadAICoach(), 
-      preloadSettings()
-    ];
-    
+    const preloadPromises = [preloadProgress(), preloadSettings()];
+
     Promise.all(preloadPromises)
       .then(() => {
-        setPreloadedSections(new Set([
-          OrbitalSection.Progress,
-          OrbitalSection.AICoach,
-          OrbitalSection.Settings
-        ]));
+        setPreloadedSections(new Set([OrbitalSection.Progress, OrbitalSection.AICoach, OrbitalSection.Settings]));
         if (__DEV__) {
-          console.log('All sections preloaded successfully');
+          console.log("All sections preloaded successfully");
         }
       })
       .catch(error => {
         if (__DEV__) {
-          console.warn('Failed to preload some sections:', error);
+          console.warn("Failed to preload some sections:", error);
         }
       });
   }, []);
@@ -161,15 +149,8 @@ export default function OrbitalNavigation() {
     switch (activeSection) {
       case OrbitalSection.Camera:
         return <CameraCenter {...commonProps} />;
-      // Phase 2: Social features
-      // case OrbitalSection.Social:
-      //   return <SocialFeed {...commonProps} />;
-      // case OrbitalSection.Discover:
-      //   return <DiscoverSection {...commonProps} />;
       case OrbitalSection.Progress:
         return <ProgressDashboard {...commonProps} />;
-      case OrbitalSection.AICoach:
-        return <AICoach {...commonProps} />;
       case OrbitalSection.Settings:
         return <SettingsOrbital {...commonProps} />;
       default:

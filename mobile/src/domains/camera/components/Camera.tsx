@@ -147,7 +147,10 @@ export default function Camera({ onNavigate }: CameraProps) {
         <Ionicons name="camera-outline" size={80} color={theme.colors.primary} />
         <Text style={[styles.permissionTitle, { color: theme.colors.text }]}>{t.permissions.title}</Text>
         <Text style={[styles.permissionMessage, { color: theme.colors.textSecondary }]}>{t.permissions.message}</Text>
-        <TouchableOpacity style={[styles.permissionButton, { backgroundColor: theme.colors.primary }]} onPress={requestPermission}>
+        <TouchableOpacity
+          style={[styles.permissionButton, { backgroundColor: theme.colors.primary }]}
+          onPress={requestPermission}
+        >
           <Text style={styles.permissionButtonText}>{t.welcome.enableCamera}</Text>
         </TouchableOpacity>
       </View>
@@ -164,7 +167,7 @@ export default function Camera({ onNavigate }: CameraProps) {
             <Ionicons name="search" size={24} color="white" />
           </TouchableOpacity>
           */}
-          
+
           <View style={styles.controlButton} />
 
           <Animated.View style={[styles.streakIndicator, { transform: [{ scale: pulseAnim }] }]}>
@@ -212,15 +215,8 @@ export default function Camera({ onNavigate }: CameraProps) {
           </View>
 
           <View style={styles.centerHint}>
-            {isCapturing && (
-              <Text style={styles.capturingText}>{t.capturingText}</Text>
-            )}
+            {isCapturing && <Text style={styles.capturingText}>{t.capturingText}</Text>}
           </View>
-
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => onNavigate("ai-coach")}>
-            <Ionicons name="chatbubble-outline" size={20} color="white" />
-            <Text style={styles.secondaryButtonText}>{t.aiCoach}</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Recent Meals Quick Access */}
@@ -257,7 +253,7 @@ export default function Camera({ onNavigate }: CameraProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: "#000000",
   },
   camera: {
     flex: 1,

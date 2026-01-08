@@ -51,14 +51,6 @@ export default function RootLayout() {
         />
 
         <Stack.Screen
-          name="ai-coach"
-          options={{
-            presentation: "modal",
-            animation: "slide_from_left",
-          }}
-        />
-
-        <Stack.Screen
           name="profile"
           options={{
             presentation: "modal",

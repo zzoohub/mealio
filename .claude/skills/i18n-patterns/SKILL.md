@@ -1,328 +1,233 @@
 ---
 name: i18n-patterns
-description: Internationalization patterns for web apps. Covers translation structure, next-intl setup, pluralization, date/number formatting, language switcher, and SEO. Use when adding multi-language support to Next.js or React applications.
+description: Internationalization patterns for web and mobile apps. Covers type-safe translation structure, domain-specific hooks, pluralization, date/number formatting, and language switching. Use when adding multi-language support to Next.js, React, or React Native applications.
 ---
 
 # i18n Patterns
 
-## Quick Reference
-
-| Topic | Library |
-|-------|---------|
+| Platform | Library |
+|----------|---------|
+| React / React Native | react-i18next |
 | Next.js App Router | next-intl |
-| React SPA | react-i18next |
-| Formatting | Intl API (built-in) |
 
 ---
+
+# Part 1: Common Patterns
 
 ## 1. File Structure
 
 ```
-locales/
-├── en/
-│   ├── common.json    # Nav, footer, buttons
-│   ├── auth.json      # Login, register
-│   ├── errors.json    # Error messages
-│   └── [page].json    # Page-specific
-├── ko/
-└── ja/
+locales/modules/
+├── common.en.json
+├── common.ko.json
+├── auth.en.json
+└── auth.ko.json
 ```
-
-### Key Naming
 
 ```json
 // ✅ Good - hierarchical
 {
-  "nav": { "home": "Home", "products": "Products" },
-  "auth": {
-    "login": { "title": "Sign In", "submit": "Sign In" }
-  },
-  "product": { "addToCart": "Add to Cart", "price": "Price: {price}" }
+  "login": { "title": "Sign In", "submit": "Sign In" },
+  "welcome": { "title": "Welcome", "message": "Get started" }
 }
-
-// ❌ Bad - flat, unclear
-{ "login": "Sign In", "login_btn": "Sign In", "add": "Add" }
 ```
 
 ---
 
-## 2. Next.js App Router (next-intl)
+## 2. Type-Safe Translations
+
+```typescript
+// types/i18n.ts
+export interface TranslationResources {
+  common: CommonTranslations;
+  auth: AuthTranslations;
+  errors: ErrorTranslations;
+}
+
+export interface AuthTranslations {
+  login: { title: string; submit: string };
+  register: { title: string; submit: string };
+}
+
+// Nested key path utility
+type KeyPath<T> = T extends object
+  ? { [K in keyof T]: K extends string
+      ? T[K] extends object ? `${K}.${KeyPath<T[K]>}` : K
+      : never
+    }[keyof T]
+  : never;
+
+export type AuthKeys = KeyPath<AuthTranslations>;
+```
+
+---
+
+## 3. Domain-Specific Hooks
+
+```typescript
+// hooks/useI18n.ts
+export const useI18n = <T extends string = string>(ns?: string) => {
+  const { t, i18n, ready } = useTranslation(ns);
+  const lang = i18n.language;
+
+  const format = useMemo(() => ({
+    number: (v: number) => new Intl.NumberFormat(lang).format(v),
+    currency: (v: number, cur = 'USD') =>
+      new Intl.NumberFormat(lang, { style: 'currency', currency: cur }).format(v),
+    date: (d: Date, opt?: Intl.DateTimeFormatOptions) =>
+      new Intl.DateTimeFormat(lang, { year: 'numeric', month: 'short', day: 'numeric', ...opt }).format(d),
+    relativeTime: (d: Date) => {
+      const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+      const rtf = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' });
+      if (diff < 60) return rtf.format(-diff, 'second');
+      if (diff < 3600) return rtf.format(-Math.floor(diff / 60), 'minute');
+      if (diff < 86400) return rtf.format(-Math.floor(diff / 3600), 'hour');
+      return rtf.format(-Math.floor(diff / 86400), 'day');
+    },
+  }), [lang]);
+
+  return { t: (key: T, opt?: any) => t(key, opt) as string, i18n, ready, language: lang, format };
+};
+
+// hooks/useAuthI18n.ts
+export const useAuthI18n = () => {
+  const { t, format } = useI18n<AuthKeys>('auth');
+  return useMemo(() => ({
+    login: { title: t('login.title'), submit: t('login.submit') },
+    register: { title: t('register.title'), submit: t('register.submit') },
+    formatDate: format.date,
+  }), [t, format.date]);
+};
+```
+
+```tsx
+// Usage
+function LoginForm() {
+  const auth = useAuthI18n();
+  return <h1>{auth.login.title}</h1>;
+}
+```
+
+---
+
+## 4. Pluralization
+
+```json
+// common.en.json
+{ "items_zero": "No items", "items_one": "{{count}} item", "items_other": "{{count}} items" }
+```
+
+```tsx
+t('items', { count: 5 })  // "5 items"
+```
+
+---
+
+## 5. Language Configuration
+
+```typescript
+// config/languages.ts
+export const SUPPORTED_LANGUAGES = [
+  { code: 'en', nativeName: 'English', direction: 'ltr', currency: 'USD' },
+  { code: 'ko', nativeName: '한국어', direction: 'ltr', currency: 'KRW' },
+  { code: 'ar', nativeName: 'العربية', direction: 'rtl', currency: 'SAR' },
+] as const;
+
+export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number]['code'];
+export const isRTL = (code: string) =>
+  SUPPORTED_LANGUAGES.find(l => l.code === code)?.direction === 'rtl';
+```
+
+---
+
+# Part 2: React / React Native
+
+```bash
+# Web
+npm install i18next react-i18next i18next-browser-languagedetector
+# React Native
+npm install i18next react-i18next expo-localization
+```
+
+```typescript
+// lib/i18n/config.ts
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+
+// Web: import LanguageDetector from 'i18next-browser-languagedetector';
+// RN:  import * as Localization from 'expo-localization';
+
+const loadTranslations = async (lang: string) => ({
+  common: (await import(`./locales/modules/common.${lang}.json`)).default,
+  auth: (await import(`./locales/modules/auth.${lang}.json`)).default,
+});
+
+export const initializeI18n = async () => {
+  const [en, ko] = await Promise.all([loadTranslations('en'), loadTranslations('ko')]);
+
+  await i18n.use(initReactI18next).init({
+    resources: { en, ko },
+    fallbackLng: 'en',
+    defaultNS: 'common',
+    interpolation: { escapeValue: false },
+    react: { useSuspense: false },
+  });
+};
+
+export const changeLanguage = async (lang: SupportedLanguage) => {
+  const translations = await loadTranslations(lang);
+  Object.entries(translations).forEach(([ns, res]) => {
+    if (!i18n.hasResourceBundle(lang, ns)) i18n.addResourceBundle(lang, ns, res);
+  });
+  await i18n.changeLanguage(lang);
+};
+```
+
+---
+
+# Part 3: Next.js App Router
 
 ```bash
 npm install next-intl
 ```
 
-### Config
-
 ```typescript
 // i18n.ts
 import { getRequestConfig } from 'next-intl/server';
-export const locales = ['en', 'ko', 'ja'] as const;
-export const defaultLocale = 'en';
+export const locales = ['en', 'ko'] as const;
 
 export default getRequestConfig(async ({ locale }) => ({
-  messages: (await import(`./locales/${locale}.json`)).default,
+  messages: {
+    common: (await import(`./locales/modules/common.${locale}.json`)).default,
+    auth: (await import(`./locales/modules/auth.${locale}.json`)).default,
+  },
 }));
 ```
 
 ```typescript
 // middleware.ts
 import createMiddleware from 'next-intl/middleware';
-import { locales, defaultLocale } from './i18n';
-
-export default createMiddleware({ locales, defaultLocale, localePrefix: 'as-needed' });
+export default createMiddleware({ locales: ['en', 'ko'], defaultLocale: 'en', localePrefix: 'as-needed' });
 export const config = { matcher: ['/((?!api|_next|.*\\..*).*)'] };
 ```
 
-```javascript
-// next.config.js
-const withNextIntl = require('next-intl/plugin')('./i18n.ts');
-module.exports = withNextIntl({});
-```
-
-### Layout
-
-```tsx
-// app/[locale]/layout.tsx
-import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
-
-export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
-}
-
-export default async function LocaleLayout({ children, params: { locale } }) {
-  const messages = await getMessages();
-  return (
-    <html lang={locale}>
-      <body>
-        <NextIntlClientProvider messages={messages}>
-          {children}
-        </NextIntlClientProvider>
-      </body>
-    </html>
-  );
-}
-```
-
-### Usage
-
 ```tsx
 // Server Component
-import { getTranslations } from 'next-intl/server';
-export default async function Page() {
-  const t = await getTranslations('home');
-  return <h1>{t('title')}</h1>;
-}
+const t = await getTranslations('auth');
+return <h1>{t('login.title')}</h1>;
 
 // Client Component
-'use client';
-import { useTranslations } from 'next-intl';
-export function Button() {
-  const t = useTranslations('product');
-  return <button>{t('addToCart')}</button>;
-}
-```
-
----
-
-## 3. Interpolation
-
-```json
-{ "greeting": "Hello, {name}!", "items": "You have {count} items" }
+const t = useTranslations('auth');
+return <button>{t('login.submit')}</button>;
 ```
 
 ```tsx
-t('greeting', { name: 'John' })  // "Hello, John!"
-```
-
-### Rich Text
-
-```json
-{ "terms": "Agree to our <link>Terms</link>" }
-```
-
-```tsx
-t.rich('terms', { link: (chunks) => <a href="/terms">{chunks}</a> })
-```
-
----
-
-## 4. Pluralization (ICU Format)
-
-```json
-// en
-{ "cart.items": "{count, plural, =0 {No items} one {# item} other {# items}}" }
-// ko
-{ "cart.items": "상품 {count}개" }
-```
-
-```tsx
-t('cart.items', { count: 0 })  // "No items"
-t('cart.items', { count: 1 })  // "1 item"
-t('cart.items', { count: 5 })  // "5 items"
-```
-
-### Gender
-
-```json
-{ "welcome": "{gender, select, male {Mr. {name}} female {Ms. {name}} other {{name}}}" }
-```
-
----
-
-## 5. Date/Number Formatting
-
-```tsx
-import { useFormatter } from 'next-intl';
-
-function Display({ date, amount }) {
-  const format = useFormatter();
-  return (
-    <>
-      <p>{format.dateTime(date, { dateStyle: 'medium' })}</p>
-      <p>{format.relativeTime(date)}</p>  {/* "3 days ago" */}
-      <p>{format.number(amount, { style: 'currency', currency: 'USD' })}</p>
-      <p>{format.number(0.85, { style: 'percent' })}</p>
-    </>
-  );
-}
-
-// Server: use getFormatter() from 'next-intl/server'
-```
-
----
-
-## 6. Language Switcher
-
-```tsx
-'use client';
-import { useLocale } from 'next-intl';
-import { useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
-
-export function LanguageSwitcher() {
-  const locale = useLocale();
-  const pathname = usePathname();
-  
-  const switchLocale = (newLocale: string) => 
-    pathname.replace(`/${locale}`, `/${newLocale}`);
-
-  return (
-    <nav>
-      {['en', 'ko', 'ja'].map((loc) => (
-        <Link key={loc} href={switchLocale(loc)} hrefLang={loc}>
-          {loc.toUpperCase()}
-        </Link>
-      ))}
-    </nav>
-  );
-}
-```
-
----
-
-## 7. SEO
-
-### Alternate Links
-
-```tsx
-// app/[locale]/layout.tsx - generateMetadata
+// SEO - generateMetadata
 export async function generateMetadata({ params: { locale } }) {
   return {
     alternates: {
-      canonical: `https://example.com/${locale}`,
-      languages: Object.fromEntries(
-        locales.map((loc) => [loc, `https://example.com/${loc}`])
-      ),
+      languages: Object.fromEntries(locales.map(l => [l, `https://example.com/${l}`])),
     },
   };
-}
-```
-
-### Sitemap
-
-```typescript
-// app/sitemap.ts
-export default function sitemap() {
-  const pages = ['', '/about', '/products'];
-  return pages.flatMap((page) =>
-    locales.map((locale) => ({
-      url: `https://example.com/${locale}${page}`,
-      lastModified: new Date(),
-    }))
-  );
-}
-```
-
----
-
-## 8. React SPA (react-i18next)
-
-```bash
-npm install i18next react-i18next i18next-browser-languagedetector
-```
-
-```typescript
-// i18n.ts
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
-
-i18n.use(LanguageDetector).use(initReactI18next).init({
-  resources: {
-    en: { translation: require('./locales/en.json') },
-    ko: { translation: require('./locales/ko.json') },
-  },
-  fallbackLng: 'en',
-  interpolation: { escapeValue: false },
-});
-```
-
-```tsx
-import { useTranslation } from 'react-i18next';
-
-function Component() {
-  const { t, i18n } = useTranslation();
-  return (
-    <div>
-      <h1>{t('welcome')}</h1>
-      <button onClick={() => i18n.changeLanguage('ko')}>한국어</button>
-    </div>
-  );
-}
-```
-
----
-
-## 9. Common Patterns
-
-### RTL Support
-
-```tsx
-const rtlLocales = ['ar', 'he', 'fa'];
-<html lang={locale} dir={rtlLocales.includes(locale) ? 'rtl' : 'ltr'}>
-```
-
-### Type Safety
-
-```typescript
-// types/i18n.d.ts
-import en from '../locales/en.json';
-declare global {
-  interface IntlMessages extends typeof en {}
-}
-```
-
-### Missing Translation Handler
-
-```typescript
-{
-  fallbackLng: 'en',
-  missingKeyHandler: (lng, ns, key) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn(`Missing: ${lng}/${ns}/${key}`);
-    }
-  },
 }
 ```

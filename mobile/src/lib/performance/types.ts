@@ -1,4 +1,4 @@
-import { ComponentType } from 'react';
+import { ComponentType } from "react";
 
 // ============================================================================
 // CACHE TYPES
@@ -75,7 +75,7 @@ export type DomainModules = {
   progress: ComponentType<any>;
 };
 
-export type PreloadStrategy = 'eager' | 'on-demand' | 'idle';
+export type PreloadStrategy = "eager" | "on-demand" | "idle";
 
 // ============================================================================
 // PREFETCH TYPES
@@ -112,7 +112,6 @@ export const DEBOUNCE_DELAY = 300; // ms
 export const DOMAIN_IMPORT_MAP = {
   camera: () => import("@/domains/camera/components/Camera"),
   meals: () => import("../../../app/meal-history"),
-  aiCoach: () => import("@/domains/ai-coach/components/AICoach"),
   settings: () => import("@/domains/settings/components/SettingsOrbital"),
   progress: () => import("@/domains/progress/components/ProgressDashboard"),
 } as const;
