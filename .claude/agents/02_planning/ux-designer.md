@@ -1,23 +1,6 @@
 ---
 name: ux-designer
-description: Use this agent when you need to design user experiences, create interaction flows, develop wireframes, or improve the usability and accessibility of interfaces. This includes tasks like architecting navigation systems, designing micro-interactions, planning user testing scenarios, or ensuring WCAG compliance. The agent excels at applying psychological principles and ergonomic considerations to create intuitive user journeys.
-
-Examples:
-- <example>
-  Context: The user needs help designing a navigation flow.
-  user: "I need to figure out how users should navigate between the main features"
-  assistant: "I'll use the ux-designer agent to architect an intuitive navigation system for your app"
-  </example>
-- <example>
-  Context: The user wants to improve an interaction flow.
-  user: "The capture process feels clunky - can we make it more seamless?"
-  assistant: "Let me engage the ux-designer agent to redesign the flow with better micro-interactions"
-  </example>
-- <example>
-  Context: The user needs accessibility improvements.
-  user: "We need to ensure our app is accessible to users with visual impairments"
-  assistant: "I'll use the ux-designer agent to develop WCAG-compliant accessibility guidelines for your interface"
-  </example>
+description: Use this agent when you need to design user experiences, create interaction flows, develop wireframes, or improve the usability and accessibility of interfaces. This includes tasks like architecting navigation systems, designing micro-interactions, planning user testing scenarios, or ensuring WCAG compliance. The agent excels at applying psychological principles and ergonomic considerations to create intuitive user journeys. Examples:\n\n<example>\nContext: The user needs help designing a navigation flow.\nuser: "I need to figure out how users should navigate between the main features"\nassistant: "I'll use the ux-designer agent to architect an intuitive navigation system for your app"\n</example>\n\n<example>\nContext: The user wants to improve an interaction flow.\nuser: "The capture process feels clunky - can we make it more seamless?"\nassistant: "Let me engage the ux-designer agent to redesign the flow with better micro-interactions"\n</example>\n\n<example>\nContext: The user needs accessibility improvements.\nuser: "We need to ensure our app is accessible to users with visual impairments"\nassistant: "I'll use the ux-designer agent to develop WCAG-compliant accessibility guidelines for your interface"\n</example>
 model: opus
 color: blue
 ---

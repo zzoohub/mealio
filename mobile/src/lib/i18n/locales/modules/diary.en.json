@@ -1,5 +1,5 @@
 {
-  "diaryHistory": "Diary History",
+  "diaryHistory": "Search",
   "searchPlaceholder": "Search meals...",
   "noMealsFound": "No meals found",
   "loadMore": "Loading more...",
@@ -8,5 +8,7 @@
   "yesterday": "Yesterday",
   "thisWeek": "This Week",
   "thisMonth": "This Month",
-  "older": "Older"
+  "older": "Older",
+  "diary": "Diary",
+  "recordMeal": "Record a meal"
 }

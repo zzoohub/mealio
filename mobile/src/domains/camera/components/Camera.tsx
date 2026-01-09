@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { useCameraI18n } from "@/lib/i18n";
+import { useCameraI18n, useNavigationI18n } from "@/lib/i18n";
 import { useTheme } from "@/design-system/theme";
 import { useOverlayHelpers } from "@/providers/overlay";
 
@@ -25,6 +25,7 @@ export default function Camera({ onNavigate }: CameraProps) {
   const cameraRef = useRef<CameraView>(null);
   const router = useRouter();
   const t = useCameraI18n();
+  const nav = useNavigationI18n();
   const { toast } = useOverlayHelpers();
 
   // Animations
@@ -166,75 +167,77 @@ export default function Camera({ onNavigate }: CameraProps) {
 
   return (
     <View style={styles.container}>
-      <CameraView ref={cameraRef} style={styles.camera} facing="back" flash={flashMode} mode="picture">
-        {/* Top Controls */}
-        <View style={styles.topControls}>
-          <View style={styles.controlButton} />
+      {/* Camera - no children to avoid Fabric unmount index issues */}
+      <CameraView ref={cameraRef} style={styles.camera} facing="back" flash={flashMode} mode="picture" />
 
-          <TouchableOpacity style={styles.controlButton} onPress={toggleFlash}>
-            <Ionicons name={getFlashIcon()} size={24} color="white" />
+      {/* All UI overlays outside CameraView */}
+      {/* Top Controls */}
+      <View style={styles.topControls}>
+        <View style={styles.controlButton} />
+
+        <TouchableOpacity style={styles.controlButton} onPress={toggleFlash}>
+          <Ionicons name={getFlashIcon()} size={24} color="white" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Center Capture Area */}
+      <TouchableOpacity style={styles.captureArea} onPress={capturePhoto} disabled={isCapturing} activeOpacity={0.8}>
+        <Animated.View style={[styles.captureButton, { transform: [{ scale: captureButtonScale }] }]}>
+          <View style={[styles.captureRing, isCapturing && styles.capturingRing]}>
+            <View style={[styles.captureInner, isCapturing && styles.capturingInner]} />
+          </View>
+        </Animated.View>
+      </TouchableOpacity>
+
+      {/* Bottom Controls - Changes based on photo state */}
+      {capturedPhotos.length === 0 ? (
+        <View style={styles.bottomControls}>
+          <TouchableOpacity style={styles.bottomButton} onPress={() => router.push("/diary")}>
+            <Ionicons name="book-outline" size={24} color="white" />
+            <Text style={styles.bottomButtonText}>{nav.diary}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.bottomButton} onPress={pickFromGallery}>
+            <Ionicons name="images-outline" size={24} color="white" />
           </TouchableOpacity>
         </View>
-
-        {/* Center Capture Area */}
-        <TouchableOpacity style={styles.captureArea} onPress={capturePhoto} disabled={isCapturing} activeOpacity={0.8}>
-          <Animated.View style={[styles.captureButton, { transform: [{ scale: captureButtonScale }] }]}>
-            <View style={[styles.captureRing, isCapturing && styles.capturingRing]}>
-              <View style={[styles.captureInner, isCapturing && styles.capturingInner]} />
+      ) : (
+        <>
+          {/* Gallery Button - Right side */}
+          <TouchableOpacity style={styles.galleryButtonFloating} onPress={pickFromGallery}>
+            <Ionicons name="images-outline" size={24} color="white" />
+            <View style={styles.photoCountBadge}>
+              <Text style={styles.photoCountText}>{capturedPhotos.length}</Text>
             </View>
-          </Animated.View>
-        </TouchableOpacity>
+          </TouchableOpacity>
 
-        {/* Bottom Controls - Changes based on photo state */}
-        {capturedPhotos.length === 0 ? (
-          <View style={styles.bottomControls}>
-            <TouchableOpacity style={styles.bottomButton} onPress={() => onNavigate("analytics")}>
-              <Ionicons name="bar-chart-outline" size={24} color="white" />
-              <Text style={styles.bottomButtonText}>{t.analytics}</Text>
-            </TouchableOpacity>
+          {/* Thumbnail Strip - Bottom */}
+          <View style={styles.thumbnailContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.thumbnailScrollView}
+              contentContainerStyle={styles.thumbnailScroll}
+            >
+              {capturedPhotos.map((uri, index) => (
+                <View key={uri} style={styles.thumbnailWrapper}>
+                  <Image source={{ uri }} style={styles.thumbnail} />
+                  <TouchableOpacity style={styles.removeButton} onPress={() => removePhoto(index)}>
+                    <Ionicons name="close-circle" size={20} color="white" />
+                  </TouchableOpacity>
+                  <View style={styles.thumbnailIndex}>
+                    <Text style={styles.thumbnailIndexText}>{index + 1}</Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
 
-            <TouchableOpacity style={styles.bottomButton} onPress={pickFromGallery}>
-              <Ionicons name="images-outline" size={24} color="white" />
+            <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
+              <Ionicons name="checkmark" size={22} color="white" />
             </TouchableOpacity>
           </View>
-        ) : (
-          <>
-            {/* Gallery Button - Right side */}
-            <TouchableOpacity style={styles.galleryButtonFloating} onPress={pickFromGallery}>
-              <Ionicons name="images-outline" size={24} color="white" />
-              <View style={styles.photoCountBadge}>
-                <Text style={styles.photoCountText}>{capturedPhotos.length}</Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Thumbnail Strip - Bottom */}
-            <View style={styles.thumbnailContainer}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.thumbnailScrollView}
-                contentContainerStyle={styles.thumbnailScroll}
-              >
-                {capturedPhotos.map((uri, index) => (
-                  <View key={uri} style={styles.thumbnailWrapper}>
-                    <Image source={{ uri }} style={styles.thumbnail} />
-                    <TouchableOpacity style={styles.removeButton} onPress={() => removePhoto(index)}>
-                      <Ionicons name="close-circle" size={20} color="white" />
-                    </TouchableOpacity>
-                    <View style={styles.thumbnailIndex}>
-                      <Text style={styles.thumbnailIndexText}>{index + 1}</Text>
-                    </View>
-                  </View>
-                ))}
-              </ScrollView>
-
-              <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
-                <Ionicons name="checkmark" size={22} color="white" />
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
-      </CameraView>
+        </>
+      )}
     </View>
   );
 }
@@ -245,7 +248,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#000000",
   },
   camera: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
   },
   loadingContainer: {
     flex: 1,

@@ -1,5 +1,5 @@
 {
-  "diaryHistory": "다이어리 기록",
+  "diaryHistory": "검색",
   "searchPlaceholder": "식사 검색...",
   "noMealsFound": "식사 기록이 없습니다",
   "loadMore": "더 불러오는 중...",
@@ -8,5 +8,7 @@
   "yesterday": "어제",
   "thisWeek": "이번 주",
   "thisMonth": "이번 달",
-  "older": "이전"
+  "older": "이전",
+  "diary": "다이어리",
+  "recordMeal": "식사 기록하기"
 }

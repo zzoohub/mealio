@@ -30,7 +30,7 @@ enum OrbitalSection {
 
 // Map sections to prefetch targets
 const SECTION_PREFETCH_MAP: Record<OrbitalSection, string[]> = {
-  [OrbitalSection.Camera]: ["diary-history", "analytics"],
+  [OrbitalSection.Camera]: ["diary", "analytics"],
   [OrbitalSection.Analytics]: ["settings"],
   [OrbitalSection.Settings]: ["camera", "analytics"],
 };

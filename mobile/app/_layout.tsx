@@ -55,6 +55,15 @@ export default function RootLayout() {
           }}
         />
 
+        {/* Diary Flow */}
+        <Stack.Screen
+          name="diary"
+          options={{
+            animation: "slide_from_right",
+            gestureEnabled: true,
+          }}
+        />
+
         {/* Settings Flow - Connected Navigation */}
         <Stack.Screen
           name="settings"

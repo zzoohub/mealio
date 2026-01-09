@@ -32,7 +32,7 @@ export interface NavigationMetric {
 // Bundle types
 export type DomainModules = {
   camera: ComponentType<any>;
-  meals: ComponentType<any>;
+  diary: ComponentType<any>;
   settings: ComponentType<any>;
   analytics: ComponentType<any>;
 };
@@ -45,7 +45,7 @@ export const DEFAULT_CACHE_CONFIG: CacheConfig = {
 
 export const DOMAIN_IMPORT_MAP = {
   camera: () => import("@/domains/camera/components/Camera"),
-  meals: () => import("../../../app/diary-history"),
+  diary: () => import("../../../app/diary/index"),
   settings: () => import("@/domains/settings/components/SettingsOrbital"),
   analytics: () => import("@/domains/analytics/components/AnalyticsDashboard"),
 } as const;

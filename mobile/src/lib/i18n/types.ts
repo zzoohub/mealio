@@ -124,6 +124,8 @@ export interface DiaryTranslations {
   thisWeek: string;
   thisMonth: string;
   older: string;
+  diary: string;
+  recordMeal: string;
 }
 
 // Settings translations
