@@ -1,173 +1,196 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, Alert } from "react-native";
 import { useTheme } from "@/lib/theme";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { SettingsSection, SettingsLayout } from "@/domains/settings/components";
+import { SettingsItem, SettingsSection, SelectionModal, SettingsLayout } from "@/domains/settings/components";
+import { useSettingsStore } from "@/domains/settings/stores/settingsStore";
 import { useAuthStore } from "@/domains/auth/stores/authStore";
-import * as Haptics from "expo-haptics";
-import { useSettingsI18n } from "@/lib/i18n";
+import { changeLanguage, useSettingsI18n, type SupportedLanguage } from "@/lib/i18n";
 
-interface SettingsCategory {
-  id: string;
-  title: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  description?: string;
-  onPress: () => void;
+interface SelectionState {
+  type: "theme" | "language" | null;
+  visible: boolean;
 }
 
 export default function SettingsScreen() {
   const { theme } = useTheme();
-  const { user } = useAuthStore();
+  const { user, logout, isLoading: authLoading } = useAuthStore();
+  const { display, notifications, updateDisplay, updateNotifications, isLoading } = useSettingsStore();
   const isAuthenticated = !!user?.isLoggedIn;
   const settings = useSettingsI18n();
+  const [selection, setSelection] = useState<SelectionState>({ type: null, visible: false });
 
-  const handleCategoryPress = (categoryId: string) => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (error) {
-      console.warn("Haptics feedback failed:", error);
-    }
-
-    // Navigate to specific setting category
-    router.push(`/settings/${categoryId}` as any);
+  const openSelection = (type: SelectionState["type"]) => {
+    setSelection({ type, visible: true });
   };
 
-  const settingsCategories: SettingsCategory[] = [
-    // Only show account-related settings for authenticated users
-    ...(isAuthenticated ? [{
-      id: "account",
-      title: "Account & Profile",
-      icon: "person-outline" as keyof typeof Ionicons.glyphMap,
-      description: "Manage your account information and preferences",
-      onPress: () => handleCategoryPress("account"),
-    }] : []),
-    {
-      id: "privacy",
-      title: settings.privacy.title,
-      icon: "shield-outline",
-      description: settings.privacy.description,
-      onPress: () => handleCategoryPress("privacy"),
-    },
-    {
-      id: "notifications",
-      title: settings.notifications.title,
-      icon: "notifications-outline",
-      description: settings.notifications.description,
-      onPress: () => handleCategoryPress("notifications"),
-    },
-    {
-      id: "display",
-      title: settings.display.title,
-      icon: "color-palette-outline",
-      description: settings.display.appearance.description,
-      onPress: () => handleCategoryPress("display"),
-    },
-    // Only show user-specific settings for authenticated users
-    ...(isAuthenticated ? [{
-      id: "goals",
-      title: "Goals & Targets",
-      icon: "trophy-outline" as keyof typeof Ionicons.glyphMap,
-      description: "Set and track your nutrition and health goals",
-      onPress: () => handleCategoryPress("goals"),
-    }] : []),
-    ...(isAuthenticated ? [{
-      id: "data",
-      title: "Data Management", 
-      icon: "download-outline" as keyof typeof Ionicons.glyphMap,
-      description: "Export, import, and manage your data",
-      onPress: () => handleCategoryPress("data"),
-    }] : []),
+  const closeSelection = () => {
+    setSelection({ type: null, visible: false });
+  };
+
+  const handleSelectionChange = async (value: string) => {
+    if (!selection.type) return;
+
+    if (selection.type === "theme") {
+      await updateDisplay({ theme: value as "light" | "dark" | "system" });
+    } else if (selection.type === "language") {
+      await updateDisplay({ language: value });
+      await changeLanguage(value as SupportedLanguage);
+    }
+  };
+
+  const handleLogout = () => {
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await logout();
+          } catch (error) {
+            Alert.alert("Error", "Failed to sign out. Please try again.");
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account",
+      "This will permanently delete your account and all associated data. This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Account",
+          style: "destructive",
+          onPress: () => {
+            // TODO: Implement account deletion
+            console.log("Delete account");
+          },
+        },
+      ]
+    );
+  };
+
+  const themeOptions = [
+    { value: "light", label: settings.display.theme.light, description: settings.display.theme.lightDesc },
+    { value: "dark", label: settings.display.theme.dark, description: settings.display.theme.darkDesc },
+    { value: "system", label: settings.display.theme.system, description: settings.display.theme.systemDesc },
   ];
 
-  const renderSettingCategory = (category: SettingsCategory) => (
-    <TouchableOpacity key={category.id} style={styles.categoryContent} onPress={category.onPress} activeOpacity={0.7}>
-      <View style={styles.categoryLeft}>
-        <View style={[styles.iconContainer, { backgroundColor: theme.colors.primary + "20" }]}>
-          <Ionicons name={category.icon} size={24} color={theme.colors.primary} />
-        </View>
-        <View style={styles.categoryTextContainer}>
-          <Text style={[styles.categoryTitle, { color: theme.colors.text }]}>{category.title}</Text>
-          {category.description && (
-            <Text style={[styles.categoryDescription, { color: theme.colors.textSecondary }]}>
-              {category.description}
-            </Text>
-          )}
-        </View>
-      </View>
-      <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
-    </TouchableOpacity>
-  );
+  const languageOptions = [
+    { value: "en", label: "English", description: "English (United States)" },
+    { value: "ko", label: "한국어", description: "Korean (South Korea)" },
+  ];
+
+  const getDisplayValue = (key: "theme" | "language") => {
+    const value = display[key];
+    if (key === "theme") {
+      return themeOptions.find((opt) => opt.value === value)?.label || value;
+    }
+    return languageOptions.find((opt) => opt.value === value)?.label || value;
+  };
 
   const renderUserInfo = () => {
     if (!isAuthenticated) return null;
-    
+
     return (
       <Card variant="elevated" style={styles.userCard}>
-        <TouchableOpacity
-          style={styles.userInfo}
-          onPress={() => router.push("/settings/account")}
-          activeOpacity={0.7}
-        >
+        <View style={styles.userInfo}>
           <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
             <Text style={styles.avatarText}>{user?.username?.charAt(0).toUpperCase() || "U"}</Text>
           </View>
           <View style={styles.userDetails}>
             <Text style={[styles.username, { color: theme.colors.text }]}>{user?.username || "User"}</Text>
-            <Text style={[styles.email, { color: theme.colors.textSecondary }]}>{user?.email || "Signed in"}</Text>
+            <Text style={[styles.email, { color: theme.colors.textSecondary }]}>
+              {user?.email || user?.phone || "Signed in"}
+            </Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
-        </TouchableOpacity>
+        </View>
       </Card>
     );
   };
 
-  const renderQuickActions = () => (
-    <View style={styles.quickActions}>
-      <Button
-        title="Help"
-        icon="help-circle-outline"
-        variant="ghost"
-        size="small"
-        onPress={() => {
-          // TODO: Navigate to help screen
-          console.log("Navigate to help");
-        }}
-        style={styles.quickActionButton}
-      />
-      <Button
-        title={settings.about.title}
-        icon="information-circle-outline"
-        variant="ghost"
-        size="small"
-        onPress={() => {
-          // TODO: Show about modal
-          console.log("Show about modal");
-        }}
-        style={styles.quickActionButton}
-      />
-    </View>
-  );
-
   return (
     <SettingsLayout title={settings.title}>
-      {/* User Info Section */}
       {renderUserInfo()}
 
-      {/* Settings Categories */}
-      <SettingsSection variant="grouped" style={styles.categoriesContainer}>
-        {settingsCategories.map(renderSettingCategory)}
+      {/* Display Settings */}
+      <SettingsSection title={settings.display.title} variant="grouped">
+        <SettingsItem
+          title={settings.display.theme.title}
+          description={settings.display.theme.description}
+          icon="color-palette-outline"
+          type="select"
+          value={getDisplayValue("theme")}
+          onPress={() => openSelection("theme")}
+          disabled={isLoading}
+          variant="grouped"
+        />
+        <SettingsItem
+          title={settings.language.title}
+          description={settings.language.description}
+          icon="language-outline"
+          type="select"
+          value={getDisplayValue("language")}
+          onPress={() => openSelection("language")}
+          disabled={isLoading}
+          variant="grouped"
+        />
       </SettingsSection>
 
-      {/* Quick Actions */}
-      {renderQuickActions()}
+      {/* Notification Settings */}
+      <SettingsSection title={settings.notifications.title} variant="grouped">
+        <SettingsItem
+          title={settings.notifications.title}
+          description={settings.notifications.description}
+          icon="notifications-outline"
+          type="toggle"
+          value={notifications.enabled}
+          onValueChange={(value) => updateNotifications({ enabled: value })}
+          variant="grouped"
+        />
+      </SettingsSection>
+
+      {/* Account Settings - only for authenticated users */}
+      {isAuthenticated && (
+        <SettingsSection title="Account" variant="grouped">
+          <SettingsItem
+            title="Sign Out"
+            description="Sign out of your account"
+            icon="log-out-outline"
+            type="navigation"
+            onPress={handleLogout}
+            disabled={authLoading}
+            variant="grouped"
+          />
+          <SettingsItem
+            title="Delete Account"
+            description="Permanently delete your account"
+            icon="trash-outline"
+            type="navigation"
+            onPress={handleDeleteAccount}
+            disabled={authLoading}
+            variant="grouped"
+          />
+        </SettingsSection>
+      )}
 
       {/* App Info */}
       <View style={styles.appInfo}>
         <Text style={[styles.appVersion, { color: theme.colors.textSecondary }]}>Version 1.0.0</Text>
       </View>
+
+      <SelectionModal
+        visible={selection.visible}
+        title={selection.type === "theme" ? "Choose Theme" : settings.display.language.select}
+        options={selection.type === "theme" ? themeOptions : languageOptions}
+        selectedValue={selection.type === "theme" ? display.theme : display.language}
+        onSelect={handleSelectionChange}
+        onClose={closeSelection}
+      />
     </SettingsLayout>
   );
 }
@@ -204,49 +227,6 @@ const styles = StyleSheet.create({
   },
   email: {
     fontSize: 14,
-  },
-  categoriesContainer: {
-    marginBottom: 32,
-  },
-  categoryContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    minHeight: 72,
-  },
-  categoryLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
-  },
-  categoryTextContainer: {
-    flex: 1,
-  },
-  categoryTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  categoryDescription: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  quickActions: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 24,
-  },
-  quickActionButton: {
-    flex: 1,
   },
   appInfo: {
     alignItems: "center",
