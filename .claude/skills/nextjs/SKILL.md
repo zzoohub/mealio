@@ -423,65 +423,13 @@ app/
     └── dashboard/page.tsx
 ```
 
-### Parallel Routes
+### Advanced: Parallel & Intercepting Routes
 
-```tsx
-// app/dashboard/layout.tsx
-export default function Layout({
-  children,
-  analytics,
-  metrics,
-}: {
-  children: React.ReactNode;
-  analytics: React.ReactNode;
-  metrics: React.ReactNode;
-}) {
-  return (
-    <div className="grid">
-      {children}
-      {analytics}
-      {metrics}
-    </div>
-  );
-}
-```
-
-### Intercepting Routes (Modals)
-
-```
-app/
-├── @modal/(.)products/[id]/page.tsx  # Intercept as modal
-├── products/[id]/page.tsx            # Full page
-└── layout.tsx                        # {children} {modal}
-```
+For complex UI patterns like modals over pages or independent loading states, Next.js supports Parallel Routes (`@folder`) and Intercepting Routes (`(.)`, `(..)`, `(...)`). See [official docs](https://nextjs.org/docs/app/building-your-application/routing/parallel-routes) when needed.
 
 ---
 
-## 7. Middleware
-
-```typescript
-// middleware.ts
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-
-export function middleware(request: NextRequest) {
-  const token = request.cookies.get('auth-token');
-  
-  if (!token && request.nextUrl.pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-  
-  return NextResponse.next();
-}
-
-export const config = {
-  matcher: ['/dashboard/:path*', '/admin/:path*'],
-};
-```
-
----
-
-## 8. Error Handling
+## 7. Error Handling
 
 ```tsx
 // app/dashboard/error.tsx
@@ -514,7 +462,7 @@ if (!product) notFound();
 
 ---
 
-## 9. Project Structure
+## 8. Project Structure
 
 ```
 app/                 # Next.js App Router (file-based routing)
@@ -539,7 +487,7 @@ src/
 
 ---
 
-## 10. Image & Metadata
+## 9. Image & Metadata
 
 ```tsx
 import Image from 'next/image';
