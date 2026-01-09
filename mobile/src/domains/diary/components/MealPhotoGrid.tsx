@@ -1,27 +1,3 @@
-import React from 'react';
-import {
-  View,
-  StyleSheet,
-  AccessibilityProps,
-} from 'react-native';
-import { useTheme } from '@/lib/theme';
-import { SPACING } from '@/constants';
-import { MealPhotoCard, MealPhotoData } from './MealPhotoCard';
-import type { BaseComponentProps } from '@/types';
-
-export interface MealPhotoGridProps extends BaseComponentProps {
-  /** Array of meal photos to display */
-  meals: MealPhotoData[];
-  /** Number of columns in the grid */
-  columns?: 3 | 4;
-  /** Size of each photo card */
-  cardSize?: 'small' | 'medium' | 'large';
-  /** Callback when a meal card is pressed */
-  onMealPress?: (meal: MealPhotoData) => void;
-  /** Callback when a meal card is long pressed */
-  onMealLongPress?: (meal: MealPhotoData) => void;
-}
-
 /**
  * MealPhotoGrid - Grid layout for meal photos
  *
@@ -48,6 +24,26 @@ export interface MealPhotoGridProps extends BaseComponentProps {
  * />
  * ```
  */
+
+import React from 'react';
+import { View } from 'react-native';
+import { Stack } from '@/design-system/styled';
+import { MealPhotoCard, MealPhotoData } from './MealPhotoCard';
+import type { BaseComponentProps } from '@/types';
+
+export interface MealPhotoGridProps extends BaseComponentProps {
+  /** Array of meal photos to display */
+  meals: MealPhotoData[];
+  /** Number of columns in the grid */
+  columns?: 3 | 4;
+  /** Size of each photo card */
+  cardSize?: 'small' | 'medium' | 'large';
+  /** Callback when a meal card is pressed */
+  onMealPress?: (meal: MealPhotoData) => void;
+  /** Callback when a meal card is long pressed */
+  onMealLongPress?: (meal: MealPhotoData) => void;
+}
+
 export function MealPhotoGrid({
   meals,
   columns = 3,
@@ -57,57 +53,35 @@ export function MealPhotoGrid({
   testID,
   style,
 }: MealPhotoGridProps) {
-  const { theme } = useTheme();
-
-  const accessibilityProps: AccessibilityProps = {
-    accessible: true,
-    accessibilityRole: 'list',
-    accessibilityLabel: `Meal photos grid with ${meals.length} items`,
-  };
-
   // Calculate gap based on columns
-  const gap = columns === 3 ? SPACING.lg : SPACING.md;
+  const gap = columns === 3 ? 'lg' : 'md';
 
   return (
     <View
-      style={[
-        styles.container,
-        style,
-      ]}
+      style={[{ flex: 1 }, style]}
       testID={testID}
-      {...accessibilityProps}
+      accessible={true}
+      accessibilityRole="list"
+      accessibilityLabel={`Meal photos grid with ${meals.length} items`}
     >
-      <View
-        style={[
-          styles.grid,
-          {
-            gap,
-          },
-        ]}
+      <Stack
+        direction="horizontal"
+        gap={gap}
+        wrap
+        align="start"
+        justify="start"
       >
         {meals.map((meal) => (
           <MealPhotoCard
             key={meal.id}
             meal={meal}
             size={cardSize}
-            onPress={() => onMealPress?.(meal)}
-            onLongPress={() => onMealLongPress?.(meal)}
-            testID={`${testID}-meal-${meal.id}`}
+            onPress={onMealPress ? () => onMealPress(meal) : undefined}
+            onLongPress={onMealLongPress ? () => onMealLongPress(meal) : undefined}
+            testID={testID ? `${testID}-meal-${meal.id}` : undefined}
           />
         ))}
-      </View>
+      </Stack>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-  },
-});

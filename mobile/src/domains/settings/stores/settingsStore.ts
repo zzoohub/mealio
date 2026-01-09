@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { STORAGE_KEYS } from '@/constants';
 import { storage, createDebouncedSetter } from '@/lib/storage';
+import type { SupportedLanguage } from '@/lib/i18n';
 
 export interface NotificationSettings {
   enabled: boolean;
@@ -9,7 +10,7 @@ export interface NotificationSettings {
 
 export interface DisplaySettings {
   theme: 'light' | 'dark' | 'system';
-  language: string;
+  language: SupportedLanguage;
 }
 
 export interface CameraSettings {

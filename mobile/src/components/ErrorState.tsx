@@ -1,10 +1,9 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "@/lib/theme";
-import { textStyles } from "@/styles/tokens";
-import { SPACING } from "@/constants";
-import { Button } from "./ui/Button";
+import { useTheme } from "@/design-system/theme";
+import { tokens } from "@/design-system/tokens";
+import { Button } from "@/design-system/styled";
 import type { BaseComponentProps } from "@/types";
 
 interface ErrorStateProps extends BaseComponentProps {
@@ -26,20 +25,20 @@ export function ErrorState({
   testID,
   style,
 }: ErrorStateProps) {
-  const { theme } = useTheme();
+  const { colors } = useTheme();
 
   const containerStyle = fullScreen ? styles.fullScreen : styles.inline;
 
   return (
     <View style={[containerStyle, style]} testID={testID}>
-      <Ionicons name={icon} size={64} color={theme.colors.error} style={styles.icon} testID={`${testID}-icon`} />
+      <Ionicons name={icon} size={64} color={colors.status.error} style={styles.icon} testID={`${testID}-icon`} />
 
-      <Text style={[textStyles.heading3, { color: theme.colors.text }, styles.title]} testID={`${testID}-title`}>
+      <Text style={[styles.titleText, { color: colors.text.primary }]} testID={`${testID}-title`}>
         {title}
       </Text>
 
       <Text
-        style={[textStyles.body, { color: theme.colors.textSecondary }, styles.message]}
+        style={[styles.messageText, { color: colors.text.secondary }]}
         testID={`${testID}-message`}
       >
         {message}
@@ -47,12 +46,14 @@ export function ErrorState({
 
       {onRetry && (
         <Button
-          title={retryLabel}
           onPress={onRetry}
-          variant="primary"
+          variant="solid"
+          colorScheme="primary"
           style={styles.retryButton}
           testID={`${testID}-retry-button`}
-        />
+        >
+          {retryLabel}
+        </Button>
       )}
     </View>
   );
@@ -63,24 +64,28 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: SPACING.lg,
+    paddingHorizontal: tokens.spacing.component.lg,
   },
   inline: {
     justifyContent: "center",
     alignItems: "center",
-    padding: SPACING.lg,
+    padding: tokens.spacing.component.lg,
   },
   icon: {
-    marginBottom: SPACING.lg,
+    marginBottom: tokens.spacing.component.lg,
   },
-  title: {
+  titleText: {
+    fontSize: tokens.typography.fontSize.h3,
+    fontWeight: tokens.typography.fontWeight.semibold,
     textAlign: "center",
-    marginBottom: SPACING.sm,
+    marginBottom: tokens.spacing.component.sm,
   },
-  message: {
+  messageText: {
+    fontSize: tokens.typography.fontSize.body,
+    fontWeight: tokens.typography.fontWeight.normal,
     textAlign: "center",
     lineHeight: 22,
-    marginBottom: SPACING.xl,
+    marginBottom: tokens.spacing.component.xl,
   },
   retryButton: {
     minWidth: 120,

@@ -1,16 +1,10 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  Modal,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-} from 'react-native';
+import { View, Modal, TouchableOpacity, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/lib/theme';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { createStyles, useStyles, useTheme } from '@/design-system/theme';
+import { Box, Text, VStack } from '@/design-system/styled';
+import { Card, Button } from '@/design-system/styled';
+import { tokens } from '@/design-system/tokens';
 import * as Haptics from 'expo-haptics';
 
 interface SelectionOption {
@@ -36,7 +30,8 @@ export function SelectionModal({
   onSelect,
   onClose,
 }: SelectionModalProps) {
-  const { theme } = useTheme();
+  const s = useStyles(styles);
+  const { colors } = useTheme();
 
   const handleSelect = (value: any) => {
     try {
@@ -44,7 +39,7 @@ export function SelectionModal({
     } catch (error) {
       console.warn('Haptics feedback failed:', error);
     }
-    
+
     onSelect(value);
     onClose();
   };
@@ -55,35 +50,31 @@ export function SelectionModal({
     } catch (error) {
       console.warn('Haptics feedback failed:', error);
     }
-    
+
     onClose();
   };
 
   const renderOption = (option: SelectionOption) => {
     const isSelected = option.value === selectedValue;
-    
+
     return (
-      <Card key={option.value} style={styles.optionCard}>
+      <Card key={option.value} variant="filled" style={s.optionCard}>
         <TouchableOpacity
-          style={styles.optionContent}
+          style={s.optionContent}
           onPress={() => handleSelect(option.value)}
           activeOpacity={0.7}
         >
-          <View style={styles.optionLeft}>
-            <Text style={[styles.optionLabel, { color: theme.colors.text }]}>
-              {option.label}
-            </Text>
+          <View style={s.optionLeft}>
+            <Text style={s.optionLabel}>{option.label}</Text>
             {option.description && (
-              <Text style={[styles.optionDescription, { color: theme.colors.textSecondary }]}>
-                {option.description}
-              </Text>
+              <Text style={s.optionDescription}>{option.description}</Text>
             )}
           </View>
           {isSelected && (
             <Ionicons
               name="checkmark"
-              size={20}
-              color={theme.colors.primary}
+              size={tokens.size.icon.sm}
+              color={colors.interactive.primary}
             />
           )}
         </TouchableOpacity>
@@ -98,93 +89,92 @@ export function SelectionModal({
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>
-            {title}
-          </Text>
-          <TouchableOpacity
-            style={[styles.closeButton, { backgroundColor: theme.colors.surface }]}
-            onPress={handleClose}
-          >
+      <SafeAreaView style={s.container}>
+        <View style={s.header}>
+          <Text style={s.title}>{title}</Text>
+          <TouchableOpacity style={s.closeButton} onPress={handleClose}>
             <Ionicons
               name="close"
-              size={20}
-              color={theme.colors.text}
+              size={tokens.size.icon.sm}
+              color={colors.text.primary}
             />
           </TouchableOpacity>
         </View>
-        
-        <View style={styles.content}>
-          {options.map(renderOption)}
-        </View>
-        
-        <View style={styles.footer}>
-          <Button
-            title="Cancel"
-            variant="secondary"
-            onPress={handleClose}
-            fullWidth
-          />
+
+        <View style={s.content}>{options.map(renderOption)}</View>
+
+        <View style={s.footer}>
+          <Button variant="outline" size="lg" onPress={handleClose}>
+            Cancel
+          </Button>
         </View>
       </SafeAreaView>
     </Modal>
   );
 }
 
-const styles = StyleSheet.create({
+// =============================================================================
+// STYLES
+// =============================================================================
+
+const styles = createStyles((colors) => ({
   container: {
     flex: 1,
+    backgroundColor: colors.bg.primary,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    paddingBottom: 8,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    padding: tokens.spacing.component.lg,
+    paddingBottom: tokens.spacing.component.sm,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: tokens.typography.fontSize.h3,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    color: colors.text.primary,
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: tokens.radius.full,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    backgroundColor: colors.bg.secondary,
   },
   content: {
     flex: 1,
-    padding: 16,
-    paddingTop: 8,
+    padding: tokens.spacing.component.lg,
+    paddingTop: tokens.spacing.component.sm,
   },
   optionCard: {
-    marginBottom: 8,
+    marginBottom: tokens.spacing.component.sm,
     padding: 0,
-    overflow: 'hidden',
+    overflow: 'hidden' as const,
   },
   optionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    minHeight: 56,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    padding: tokens.spacing.component.lg,
+    minHeight: tokens.size.touchTarget.lg,
   },
   optionLeft: {
     flex: 1,
   },
   optionLabel: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: tokens.typography.fontSize.body,
+    fontWeight: tokens.typography.fontWeight.medium,
     marginBottom: 2,
+    color: colors.text.primary,
   },
   optionDescription: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: tokens.typography.fontSize.caption,
+    lineHeight: tokens.typography.fontSize.caption * tokens.typography.lineHeight.body,
+    color: colors.text.secondary,
   },
   footer: {
-    padding: 16,
-    paddingTop: 8,
+    padding: tokens.spacing.component.lg,
+    paddingTop: tokens.spacing.component.sm,
   },
-});
+}));

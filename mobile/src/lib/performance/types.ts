@@ -37,13 +37,6 @@ export type DomainModules = {
   analytics: ComponentType<any>;
 };
 
-// Prefetch types
-export interface PrefetchQuery {
-  key: string[];
-  fetcher: () => Promise<any>;
-  staleTime?: number;
-}
-
 // Constants
 export const DEFAULT_CACHE_CONFIG: CacheConfig = {
   maxSize: 1000,

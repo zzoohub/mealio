@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useCallback, useEffect } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { I18nextProvider } from "react-i18next";
@@ -6,9 +6,11 @@ import i18n from "@/lib/i18n/config";
 import { changeLanguage } from "@/lib/i18n";
 import { useAuthStore } from "@/domains/auth/stores/authStore";
 import { useSettingsStore, flushSettingsStorage } from "@/domains/settings/stores/settingsStore";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import { OverlayProvider } from "@/components/overlay";
-import { queryClient, preloadCriticalModules, markPerformance, measurePerformance } from "@/lib/performance";
+import { ErrorBoundary } from "./error";
+import { OverlayProvider } from "./overlay";
+import { queryClient } from "./query";
+import { preloadCriticalModules, markPerformance, measurePerformance } from "@/lib/performance";
+import { ThemeProvider, type ThemePreference } from "@/design-system/theme";
 
 function AppInitializer() {
   const loadUserFromStorage = useAuthStore(state => state.loadUserFromStorage);
@@ -61,6 +63,16 @@ function AppInitializer() {
 }
 
 export default function AppProvider({ children }: { children: ReactNode }) {
+  const themePreference = useSettingsStore(state => state.display.theme);
+  const updateDisplay = useSettingsStore(state => state.updateDisplay);
+
+  const handleThemeChange = useCallback(
+    (preference: ThemePreference) => {
+      updateDisplay({ theme: preference });
+    },
+    [updateDisplay]
+  );
+
   const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
     // Log critical errors to crash reporting service
     if (__DEV__) {
@@ -75,10 +87,15 @@ export default function AppProvider({ children }: { children: ReactNode }) {
     <ErrorBoundary onError={handleError}>
       <QueryClientProvider client={queryClient}>
         <I18nextProvider i18n={i18n}>
-          <OverlayProvider>
-            <AppInitializer />
-            {children}
-          </OverlayProvider>
+          <ThemeProvider
+            preference={themePreference}
+            onPreferenceChange={handleThemeChange}
+          >
+            <OverlayProvider>
+              <AppInitializer />
+              {children}
+            </OverlayProvider>
+          </ThemeProvider>
         </I18nextProvider>
       </QueryClientProvider>
     </ErrorBoundary>

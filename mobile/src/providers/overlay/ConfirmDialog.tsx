@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Pressable } from "react-native";
-import { useTheme } from "@/lib/theme";
+import { useTheme } from "@/design-system/theme";
 import * as Haptics from "expo-haptics";
 
 export interface ConfirmDialogProps {
@@ -28,7 +28,7 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  const { theme } = useTheme();
+  const { colors, isDark } = useTheme();
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
@@ -80,7 +80,7 @@ export function ConfirmDialog({
   };
 
   const confirmButtonColor =
-    confirmVariant === "destructive" ? "#F44336" : theme.colors.primary;
+    confirmVariant === "destructive" ? colors.status.error : colors.interactive.primary;
 
   return (
     <View style={styles.container} pointerEvents={isOpen ? "auto" : "none"}>
@@ -92,27 +92,27 @@ export function ConfirmDialog({
         style={[
           styles.dialog,
           {
-            backgroundColor: theme.isDark ? "#1C1C1E" : "#FFFFFF",
+            backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF",
             opacity: backdropAnim,
             transform: [{ scale: scaleAnim }],
           },
         ]}
       >
         <View style={styles.content}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
+          <Text style={[styles.title, { color: colors.text.primary }]}>{title}</Text>
           {message && (
-            <Text style={[styles.message, { color: theme.colors.textSecondary }]}>
+            <Text style={[styles.message, { color: colors.text.secondary }]}>
               {message}
             </Text>
           )}
         </View>
 
-        <View style={[styles.buttonContainer, { borderTopColor: theme.colors.border }]}>
+        <View style={[styles.buttonContainer, { borderTopColor: colors.border.default }]}>
           <TouchableOpacity
-            style={[styles.button, styles.cancelButton, { borderRightColor: theme.colors.border }]}
+            style={[styles.button, styles.cancelButton, { borderRightColor: colors.border.default }]}
             onPress={handleCancel}
           >
-            <Text style={[styles.buttonText, { color: theme.colors.primary }]}>
+            <Text style={[styles.buttonText, { color: colors.interactive.primary }]}>
               {cancelText}
             </Text>
           </TouchableOpacity>

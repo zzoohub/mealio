@@ -1,18 +1,136 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useTheme } from "@/lib/theme";
-import { createElevation } from "@/styles/tokens";
-import type { Meal } from "../types";
-import { mealStorageUtils, generateMockMeals } from "../hooks/useMealStorage";
+/**
+ * RecentMeals - Horizontal scrolling list of recent meals
+ *
+ * Displays the user's most recent meals in a horizontal carousel.
+ * Uses Card component from design system for meal items.
+ *
+ * Features:
+ * - Horizontal scroll with meal cards
+ * - Loading and empty states
+ * - Navigation to meal detail
+ * - "See All" action to view full history
+ *
+ * @example
+ * ```tsx
+ * <RecentMeals onSeeAll={() => navigation.navigate('MealHistory')} />
+ * ```
+ */
+
+import React, { useState, useEffect } from 'react';
+import { ScrollView, Image, TouchableOpacity, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { Box, Text, HStack, VStack, Card } from '@/design-system/styled';
+import { createStyles, useStyles } from '@/design-system/theme';
+import { tokens } from '@/design-system/tokens';
+import type { Meal } from '../types';
+import { mealStorageUtils, generateMockMeals } from '../hooks/useMealStorage';
+
+// =============================================================================
+// TYPES
+// =============================================================================
 
 interface RecentMealsProps {
   onSeeAll?: () => void;
 }
 
+// =============================================================================
+// SUB-COMPONENTS
+// =============================================================================
+
+interface MealCardItemProps {
+  meal: Meal;
+  onPress: () => void;
+  formatTime: (date: Date) => string;
+}
+
+function MealCardItem({ meal, onPress, formatTime }: MealCardItemProps) {
+  const s = useStyles(mealCardStyles);
+
+  return (
+    <Card
+      variant="elevated"
+      pressable
+      onPress={onPress}
+      style={s.card}
+    >
+      <Image source={{ uri: meal.photoUri }} style={s.image} />
+      <VStack gap="xs" style={s.content}>
+        <Text variant="bodySmall" weight="medium" numberOfLines={2}>
+          {meal.name}
+        </Text>
+        <Text variant="caption" color="secondary">
+          {formatTime(meal.timestamp)}
+        </Text>
+        <Text variant="caption" color="link" weight="medium">
+          {meal.nutrition.calories} cal
+        </Text>
+      </VStack>
+    </Card>
+  );
+}
+
+interface HeaderProps {
+  onSeeAll?: (() => void) | undefined;
+}
+
+function Header({ onSeeAll }: HeaderProps) {
+  const s = useStyles(headerStyles);
+
+  return (
+    <HStack justify="space-between" align="center" style={{ marginBottom: tokens.spacing.component.lg }}>
+      <Text variant="h3" weight="semibold">
+        Recent Meals
+      </Text>
+      {onSeeAll && (
+        <TouchableOpacity onPress={onSeeAll}>
+          <HStack gap="xs" align="center">
+            <Text variant="bodySmall" color="link">
+              See All
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={tokens.size.icon.xs}
+              color={s.chevron.color}
+            />
+          </HStack>
+        </TouchableOpacity>
+      )}
+    </HStack>
+  );
+}
+
+function LoadingState() {
+  return (
+    <Box mb="lg">
+      <Header />
+      <Box height={100} center>
+        <Text variant="bodySmall" color="secondary">
+          Loading meals...
+        </Text>
+      </Box>
+    </Box>
+  );
+}
+
+function EmptyState() {
+  return (
+    <Box mb="lg">
+      <Header />
+      <Box height={100} center>
+        <Text variant="bodySmall" color="secondary" align="center">
+          No meals logged yet. Start by taking a photo of your meal!
+        </Text>
+      </Box>
+    </Box>
+  );
+}
+
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
+
 export default function RecentMeals({ onSeeAll }: RecentMealsProps) {
-  const { theme } = useTheme();
   const [recentMeals, setRecentMeals] = useState<Meal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [mockDataInitialized, setMockDataInitialized] = useState(false);
@@ -53,7 +171,7 @@ export default function RecentMeals({ onSeeAll }: RecentMealsProps) {
 
       setRecentMeals(meals);
     } catch (error) {
-      console.error("Error loading recent meals:", error);
+      console.error('Error loading recent meals:', error);
     } finally {
       setIsLoading(false);
     }
@@ -79,141 +197,57 @@ export default function RecentMeals({ onSeeAll }: RecentMealsProps) {
     }
   };
 
-  const styles = StyleSheet.create({
-    container: {
-      marginBottom: 24,
-    },
-    header: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 16,
-    },
-    title: {
-      fontSize: 18,
-      fontWeight: "600",
-      color: theme.colors.text,
-    },
-    seeAllButton: {
-      flexDirection: "row",
-      alignItems: "center",
-    },
-    seeAllText: {
-      fontSize: 14,
-      color: theme.colors.primary,
-      marginRight: 4,
-    },
-    mealsContainer: {
-      paddingLeft: 0,
-    },
-    mealCard: {
-      width: 140,
-      marginRight: 12,
-      backgroundColor: theme.colors.surface,
-      borderRadius: 12,
-      overflow: "hidden",
-      ...createElevation("sm"),
-    },
-    mealImage: {
-      width: "100%",
-      height: 100,
-      backgroundColor: theme.colors.border,
-    },
-    mealInfo: {
-      padding: 12,
-    },
-    mealName: {
-      fontSize: 14,
-      fontWeight: "500",
-      color: theme.colors.text,
-      marginBottom: 4,
-    },
-    mealTime: {
-      fontSize: 12,
-      color: theme.colors.textSecondary,
-      marginBottom: 6,
-    },
-    mealCalories: {
-      fontSize: 12,
-      fontWeight: "500",
-      color: theme.colors.primary,
-    },
-    loadingContainer: {
-      height: 100,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    loadingText: {
-      color: theme.colors.textSecondary,
-      fontSize: 14,
-    },
-    emptyContainer: {
-      height: 100,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    emptyText: {
-      color: theme.colors.textSecondary,
-      fontSize: 14,
-      textAlign: "center",
-    },
-  });
-
   if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Recent Meals</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading meals...</Text>
-        </View>
-      </View>
-    );
+    return <LoadingState />;
   }
 
   if (recentMeals.length === 0) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Recent Meals</Text>
-        </View>
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No meals logged yet. Start by taking a photo of your meal!</Text>
-        </View>
-      </View>
-    );
+    return <EmptyState />;
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Recent Meals</Text>
-        <TouchableOpacity style={styles.seeAllButton} onPress={onSeeAll}>
-          <Text style={styles.seeAllText}>See All</Text>
-          <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.mealsContainer}>
-        {recentMeals.map(meal => (
-          <TouchableOpacity
+    <Box mb="lg">
+      <Header onSeeAll={onSeeAll} />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingLeft: 0 }}
+      >
+        {recentMeals.map((meal) => (
+          <MealCardItem
             key={meal.id}
-            style={styles.mealCard}
+            meal={meal}
             onPress={() => handleMealPress(meal)}
-            activeOpacity={0.7}
-          >
-            <Image source={{ uri: meal.photoUri }} style={styles.mealImage} />
-            <View style={styles.mealInfo}>
-              <Text style={styles.mealName} numberOfLines={2}>
-                {meal.name}
-              </Text>
-              <Text style={styles.mealTime}>{formatRelativeTime(meal.timestamp)}</Text>
-              <Text style={styles.mealCalories}>{meal.nutrition.calories} cal</Text>
-            </View>
-          </TouchableOpacity>
+            formatTime={formatRelativeTime}
+          />
         ))}
       </ScrollView>
-    </View>
+    </Box>
   );
 }
+
+// =============================================================================
+// STYLES
+// =============================================================================
+
+const mealCardStyles = createStyles((colors) => ({
+  card: {
+    width: 140,
+    marginRight: tokens.spacing.component.md,
+    overflow: 'hidden' as const,
+  },
+  image: {
+    width: '100%' as const,
+    height: 100,
+    backgroundColor: colors.border.default,
+  },
+  content: {
+    padding: tokens.spacing.component.md,
+  },
+}));
+
+const headerStyles = createStyles((colors) => ({
+  chevron: {
+    color: colors.interactive.primary,
+  },
+}));

@@ -5,9 +5,8 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import { useTheme } from '@/lib/theme';
-import { textStyles } from '@/styles/tokens';
-import { SPACING } from '@/constants';
+import { useTheme } from '@/design-system/theme';
+import { tokens } from '@/design-system/tokens';
 import type { BaseComponentProps } from '@/types';
 
 interface LoadingStateProps extends BaseComponentProps {
@@ -25,9 +24,9 @@ export function LoadingState({
   testID,
   style,
 }: LoadingStateProps) {
-  const { theme } = useTheme();
+  const { colors } = useTheme();
 
-  const indicatorColor = color || theme.colors.primary;
+  const indicatorColor = color || colors.interactive.primary;
   const containerStyle = fullScreen ? styles.fullScreen : styles.inline;
 
   return (
@@ -40,9 +39,8 @@ export function LoadingState({
       {message && (
         <Text
           style={[
-            textStyles.body,
-            { color: theme.colors.textSecondary },
-            styles.message,
+            styles.messageText,
+            { color: colors.text.secondary },
           ]}
           testID={`${testID}-message`}
         >
@@ -62,10 +60,12 @@ const styles = StyleSheet.create({
   inline: {
     justifyContent: 'center',
     alignItems: 'center',
-    padding: SPACING.lg,
+    padding: tokens.spacing.component.lg,
   },
-  message: {
-    marginTop: SPACING.md,
+  messageText: {
+    fontSize: tokens.typography.fontSize.body,
+    fontWeight: tokens.typography.fontWeight.normal,
+    marginTop: tokens.spacing.component.md,
     textAlign: 'center',
   },
 });

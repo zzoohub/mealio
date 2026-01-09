@@ -1,72 +1,3 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  Image,
-  Pressable,
-  StyleSheet,
-  ViewStyle,
-  ImageStyle,
-  AccessibilityProps,
-} from 'react-native';
-import { useTheme } from '@/lib/theme';
-import {
-  SPACING,
-  BORDER_RADIUS,
-  FONT_SIZES,
-  FONT_WEIGHTS,
-  UI_CONSTANTS,
-} from '@/constants';
-import { createElevation } from '@/styles/tokens';
-import type { BaseComponentProps } from '@/types';
-
-/**
- * Meal photo data for display
- */
-export interface MealPhotoData {
-  /** Unique identifier */
-  id: string;
-  /** Photo URI (local or remote) */
-  photoUri: string;
-  /** Time of the meal (for display) */
-  time: string;
-  /** Optional meal name for accessibility */
-  name?: string;
-}
-
-export interface MealPhotoCardProps extends BaseComponentProps {
-  /** Meal photo data */
-  meal: MealPhotoData;
-  /** Size variant */
-  size?: 'small' | 'medium' | 'large';
-  /** Press handler - parent handles navigation/selection */
-  onPress?: () => void;
-  /** Long press handler - parent handles context menu */
-  onLongPress?: () => void;
-}
-
-// Size configurations using design tokens
-const SIZE_CONFIG = {
-  small: {
-    width: 80,
-    height: 80,
-    borderRadius: BORDER_RADIUS.md,
-    fontSize: FONT_SIZES.xs,
-  },
-  medium: {
-    width: 100,
-    height: 100,
-    borderRadius: BORDER_RADIUS.lg,
-    fontSize: FONT_SIZES.sm,
-  },
-  large: {
-    width: 120,
-    height: 120,
-    borderRadius: BORDER_RADIUS.lg,
-    fontSize: FONT_SIZES.md,
-  },
-} as const;
-
 /**
  * MealPhotoCard - Individual meal photo card with time display
  *
@@ -93,6 +24,73 @@ const SIZE_CONFIG = {
  * />
  * ```
  */
+
+import React from 'react';
+import {
+  Image,
+  Pressable,
+  AccessibilityProps,
+} from 'react-native';
+import { Box, Text } from '@/design-system/styled';
+import { createStyles, useStyles } from '@/design-system/theme';
+import { tokens } from '@/design-system/tokens';
+import type { BaseComponentProps } from '@/types';
+
+/**
+ * Meal photo data for display
+ */
+export interface MealPhotoData {
+  /** Unique identifier */
+  id: string;
+  /** Photo URI (local or remote) */
+  photoUri: string;
+  /** Time of the meal (for display) */
+  time: string;
+  /** Optional meal name for accessibility */
+  name?: string;
+}
+
+export interface MealPhotoCardProps {
+  /** Meal photo data */
+  meal: MealPhotoData;
+  /** Size variant */
+  size?: 'small' | 'medium' | 'large' | undefined;
+  /** Press handler - parent handles navigation/selection */
+  onPress?: (() => void) | undefined;
+  /** Long press handler - parent handles context menu */
+  onLongPress?: (() => void) | undefined;
+  /** Test ID for testing */
+  testID?: string | undefined;
+  /** Custom style */
+  style?: any;
+}
+
+// Size configurations using design tokens
+const SIZE_CONFIG = {
+  small: {
+    width: 80,
+    height: 80,
+    radius: 'md' as const,
+    textVariant: 'caption' as const,
+  },
+  medium: {
+    width: 100,
+    height: 100,
+    radius: 'lg' as const,
+    textVariant: 'bodySmall' as const,
+  },
+  large: {
+    width: 120,
+    height: 120,
+    radius: 'lg' as const,
+    textVariant: 'body' as const,
+  },
+} as const;
+
+// =============================================================================
+// COMPONENT
+// =============================================================================
+
 export function MealPhotoCard({
   meal,
   size = 'medium',
@@ -101,8 +99,14 @@ export function MealPhotoCard({
   testID,
   style,
 }: MealPhotoCardProps) {
-  const { theme } = useTheme();
+  const s = useStyles(styles);
   const config = SIZE_CONFIG[size];
+
+  const imageContainerStyle = {
+    small: s.imageContainerSmall,
+    medium: s.imageContainerMedium,
+    large: s.imageContainerLarge,
+  }[size];
 
   const accessibilityLabel = [
     meal.name || 'Meal',
@@ -116,30 +120,11 @@ export function MealPhotoCard({
     accessibilityHint: 'Double tap to view meal details',
   };
 
-  const containerStyle: ViewStyle = {
-    width: config.width,
-    alignItems: 'center',
-  };
-
-  const imageContainerStyle: ViewStyle = {
-    width: config.width,
-    height: config.height,
-    borderRadius: config.borderRadius,
-    overflow: 'hidden',
-    backgroundColor: theme.colors.surface,
-    ...createElevation('sm'),
-  };
-
-  const imageStyle: ImageStyle = {
-    width: '100%',
-    height: '100%',
-  };
-
   return (
     <Pressable
       style={({ pressed }) => [
-        containerStyle,
-        pressed && styles.pressed,
+        { width: config.width, alignItems: 'center' as const },
+        pressed && s.pressed,
         style,
       ]}
       onPress={onPress}
@@ -148,22 +133,20 @@ export function MealPhotoCard({
       testID={testID}
       {...accessibilityProps}
     >
-      <View style={imageContainerStyle}>
+      <Box style={imageContainerStyle}>
         <Image
           source={{ uri: meal.photoUri }}
-          style={imageStyle}
+          style={s.image}
           resizeMode="cover"
           accessible={false}
         />
-      </View>
+      </Box>
       <Text
-        style={[
-          styles.timeText,
-          {
-            color: theme.colors.textSecondary,
-            fontSize: config.fontSize,
-          },
-        ]}
+        variant={config.textVariant}
+        color="secondary"
+        weight="medium"
+        align="center"
+        style={{ marginTop: tokens.spacing.component.xs }}
         numberOfLines={1}
       >
         {meal.time}
@@ -172,14 +155,38 @@ export function MealPhotoCard({
   );
 }
 
-const styles = StyleSheet.create({
+// =============================================================================
+// STYLES
+// =============================================================================
+
+const styles = createStyles((colors) => ({
+  image: {
+    width: '100%' as const,
+    height: '100%' as const,
+  },
   pressed: {
-    opacity: 0.7,
+    opacity: tokens.opacity.pressed,
     transform: [{ scale: 0.98 }],
   },
-  timeText: {
-    fontWeight: FONT_WEIGHTS.medium,
-    marginTop: SPACING.xs,
-    textAlign: 'center',
+  imageContainerSmall: {
+    width: SIZE_CONFIG.small.width,
+    height: SIZE_CONFIG.small.height,
+    borderRadius: tokens.radius[SIZE_CONFIG.small.radius],
+    overflow: 'hidden' as const,
+    backgroundColor: colors.bg.secondary,
   },
-});
+  imageContainerMedium: {
+    width: SIZE_CONFIG.medium.width,
+    height: SIZE_CONFIG.medium.height,
+    borderRadius: tokens.radius[SIZE_CONFIG.medium.radius],
+    overflow: 'hidden' as const,
+    backgroundColor: colors.bg.secondary,
+  },
+  imageContainerLarge: {
+    width: SIZE_CONFIG.large.width,
+    height: SIZE_CONFIG.large.height,
+    borderRadius: tokens.radius[SIZE_CONFIG.large.radius],
+    overflow: 'hidden' as const,
+    backgroundColor: colors.bg.secondary,
+  },
+}));

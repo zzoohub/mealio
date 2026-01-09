@@ -1,16 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { StyleSheet } from "react-native";
-import { useTheme } from "@/lib/theme";
+import { useTheme } from "@/design-system/theme";
 import * as Haptics from "expo-haptics";
 
 // Import orbital sections - Camera eagerly loaded as it's the main screen
 import CameraCenter from "@/domains/camera/components/Camera";
-import {
-  createLazyComponent,
-  prefetchBatch,
-  startNavigation,
-  endNavigation,
-} from "@/lib/performance";
+import { createLazyComponent, startNavigation, endNavigation } from "@/lib/performance";
+import { prefetchBatch } from "@/providers/query";
 
 // Lazy load non-critical components for better performance
 const AnalyticsDashboard = createLazyComponent(() => import("@/domains/analytics/components/AnalyticsDashboard"));
@@ -40,7 +36,8 @@ const SECTION_PREFETCH_MAP: Record<OrbitalSection, string[]> = {
 };
 
 export default function OrbitalNavigation() {
-  const { theme } = useTheme();
+  // Theme imported for future use
+  useTheme();
   const [activeSection, setActiveSection] = useState<OrbitalSection>(OrbitalSection.Camera);
   const [preloadedSections, setPreloadedSections] = useState<Set<OrbitalSection>>(new Set([OrbitalSection.Camera]));
 

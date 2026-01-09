@@ -1,15 +1,16 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from "react";
 import {
   View,
-  Text,
   TextInput,
-  StyleSheet,
+  Pressable,
   Dimensions,
-  TouchableOpacity,
-} from 'react-native';
-import * as Haptics from 'expo-haptics';
-import { useTheme } from '@/lib/theme';
-import { VALIDATION_PATTERNS } from '@/constants';
+  Text as RNText,
+} from "react-native";
+import * as Haptics from "expo-haptics";
+import { createStyles, useStyles } from "@/design-system/theme";
+import { Box, Text } from "@/design-system/styled";
+import { tokens } from "@/design-system/tokens";
+import { VALIDATION_PATTERNS } from "@/constants";
 
 interface VerificationInputProps {
   length?: number;
@@ -21,6 +22,9 @@ interface VerificationInputProps {
   autoFocus?: boolean;
 }
 
+const { width: screenWidth } = Dimensions.get("window");
+const cellSize = Math.min((screenWidth - 48 - 60) / 6, 56);
+
 export function VerificationInput({
   length = 6,
   value,
@@ -30,14 +34,15 @@ export function VerificationInput({
   disabled = false,
   autoFocus = true,
 }: VerificationInputProps) {
-  const { theme } = useTheme();
+  const s = useStyles(styles);
+
   const [focusedIndex, setFocusedIndex] = useState(autoFocus ? 0 : -1);
   const inputRefs = useRef<Array<TextInput | null>>([]);
 
   // Split the value into individual digits
-  const digits = value.split('').slice(0, length);
+  const digits = value.split("").slice(0, length);
   while (digits.length < length) {
-    digits.push('');
+    digits.push("");
   }
 
   useEffect(() => {
@@ -62,14 +67,14 @@ export function VerificationInput({
 
   const handleChangeText = (text: string, index: number) => {
     // Only allow digits
-    const digit = text.replace(/\D/g, '').slice(-1);
-    
+    const digit = text.replace(/\D/g, "").slice(-1);
+
     // Create new code array
     const newDigits = [...digits];
     newDigits[index] = digit;
-    
+
     // Update the code
-    const newCode = newDigits.join('');
+    const newCode = newDigits.join("");
     onChangeText(newCode);
 
     // Move to next input or handle completion
@@ -84,7 +89,7 @@ export function VerificationInput({
   };
 
   const handleKeyPress = (key: string, index: number) => {
-    if (key === 'Backspace') {
+    if (key === "Backspace") {
       if (!digits[index] && index > 0) {
         // If current input is empty and backspace is pressed, move to previous input
         inputRefs.current[index - 1]?.focus();
@@ -108,39 +113,32 @@ export function VerificationInput({
   };
 
   const isValid = value.length === 0 || VALIDATION_PATTERNS.VERIFICATION_CODE.test(value);
-  const borderColor = error ? theme.colors.error : 
-                     !isValid ? theme.colors.error : theme.colors.border;
+  const hasError = !!error || (!isValid && value.length > 0);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.inputContainer}>
+    <Box style={s.container}>
+      <View style={s.inputContainer}>
         {digits.map((digit, index) => {
           const isFocused = focusedIndex === index;
-          const hasValue = digit !== '';
-          
+          const hasValue = digit !== "";
+
           return (
-            <View key={index} style={styles.cellContainer}>
-              <TouchableOpacity
+            <View key={index} style={s.cellContainer}>
+              <Pressable
                 onPress={() => handleCellPress(index)}
                 style={[
-                  styles.cell,
-                  {
-                    borderColor: (isFocused || hasValue) ? theme.colors.primary : borderColor,
-                    backgroundColor: theme.colors.surface,
-                    transform: isFocused ? [{ scale: 1.02 }] : [{ scale: 1 }],
-                    shadowOpacity: isFocused ? 0.1 : 0.05,
-                  },
-                  disabled && { opacity: 0.6 },
+                  s.cell,
+                  (isFocused || hasValue) && s.cellHasValue,
+                  isFocused && s.cellFocused,
+                  hasError && s.cellError,
+                  disabled && s.cellDisabled,
                 ]}
               >
                 <TextInput
-                  ref={(ref) => { inputRefs.current[index] = ref; }}
-                  style={[
-                    styles.input,
-                    {
-                      color: theme.colors.text,
-                    }
-                  ]}
+                  ref={(ref) => {
+                    inputRefs.current[index] = ref;
+                  }}
+                  style={s.input}
                   value={digit}
                   onChangeText={(text) => handleChangeText(text, index)}
                   onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
@@ -156,106 +154,113 @@ export function VerificationInput({
                   autoCorrect={false}
                   autoCapitalize="none"
                 />
-                
+
                 {/* Visual digit display */}
-                <View style={styles.digitDisplay}>
-                  <Text style={[
-                    styles.digitText,
-                    { color: theme.colors.text },
-                    !hasValue && { opacity: 0 }
-                  ]}>
-                    {digit}
-                  </Text>
+                <View style={s.digitDisplay}>
+                  <RNText style={[s.digitText, !hasValue && s.digitHidden]}>{digit}</RNText>
                 </View>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           );
         })}
       </View>
 
       {/* Error message container - Reserve space to prevent layout shift */}
-      <View style={styles.errorContainer}>
-        {error && (
-          <Text style={[styles.errorText, { color: theme.colors.error }]}>
-            {error}
-          </Text>
-        )}
+      <View style={s.errorContainer}>
+        {error && <Text style={s.errorText}>{error}</Text>}
 
         {!isValid && !error && value.length > 0 && (
-          <Text style={[styles.errorText, { color: theme.colors.error }]}>
-            Please enter a valid 6-digit code
-          </Text>
+          <Text style={s.errorText}>Please enter a valid 6-digit code</Text>
         )}
       </View>
-    </View>
+    </Box>
   );
 }
 
-const { width } = Dimensions.get('window');
-const cellSize = Math.min((width - 48 - 60) / 6, 56); // Account for 24px padding on each side + gaps
+// =============================================================================
+// STYLES
+// =============================================================================
 
-const styles = StyleSheet.create({
+const styles = createStyles((colors) => ({
   container: {
-    alignItems: 'center',
-    width: '100%',
+    alignItems: "center" as const,
+    width: "100%" as const,
   },
   inputContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
+    flexDirection: "row" as const,
+    justifyContent: "center" as const,
+    gap: tokens.spacing.component.md,
   },
   cellContainer: {
-    position: 'relative',
+    position: "relative" as const,
   },
   cell: {
     width: cellSize,
     height: cellSize,
-    borderWidth: 2,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    // Apply consistent shadow to all cells to prevent layout shift
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    borderWidth: tokens.borderWidth.thick,
+    borderRadius: tokens.radius.md,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    position: "relative" as const,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 2,
+    borderColor: colors.border.default,
+    backgroundColor: colors.bg.secondary,
+  },
+  cellFocused: {
+    borderColor: colors.interactive.primary,
+    transform: [{ scale: 1.02 }],
+    shadowOpacity: 0.1,
+  },
+  cellHasValue: {
+    borderColor: colors.interactive.primary,
+  },
+  cellError: {
+    borderColor: colors.status.error,
+  },
+  cellDisabled: {
+    opacity: tokens.opacity.disabled,
   },
   input: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    textAlign: 'center',
-    fontSize: 20,
-    fontWeight: '600',
+    position: "absolute" as const,
+    width: "100%" as const,
+    height: "100%" as const,
+    textAlign: "center" as const,
+    fontSize: tokens.typography.fontSize.h3,
+    fontWeight: tokens.typography.fontWeight.semibold,
     opacity: 0, // Hide the actual input, show the digit display instead
+    color: colors.text.primary,
   },
   digitDisplay: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    pointerEvents: 'none',
+    position: "absolute" as const,
+    width: "100%" as const,
+    height: "100%" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    pointerEvents: "none" as const,
   },
   digitText: {
-    fontSize: 20,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontSize: tokens.typography.fontSize.h3,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    textAlign: "center" as const,
+    color: colors.text.primary,
+  },
+  digitHidden: {
+    opacity: 0,
   },
   errorContainer: {
-    minHeight: 40, // Reserve space for error message to prevent layout shift
-    marginTop: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    minHeight: 40,
+    marginTop: tokens.spacing.component.lg,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
   },
   errorText: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 18,
+    fontSize: tokens.typography.fontSize.bodySmall,
+    textAlign: "center" as const,
+    lineHeight: tokens.typography.fontSize.bodySmall * tokens.typography.lineHeight.body,
+    color: colors.status.error,
   },
-});
+}));

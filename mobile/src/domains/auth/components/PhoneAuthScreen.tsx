@@ -1,21 +1,18 @@
 import { useState, useEffect } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   Alert,
-  Dimensions,
   TouchableWithoutFeedback,
   Keyboard,
+  Pressable,
 } from "react-native";
 import { storage } from "@/lib/storage";
 import * as Haptics from "expo-haptics";
-import { useTheme } from "@/lib/theme";
-import { Button } from "@/components/ui/Button";
+import { createStyles, useStyles } from "@/design-system/theme";
+import { Box, Text, VStack, HStack, Button, Checkbox } from "@/design-system/styled";
+import { tokens } from "@/design-system/tokens";
 import { PhoneInput } from "./PhoneInput";
 import { useAuthStore } from "../stores/authStore";
 import { STORAGE_KEYS } from "@/constants";
@@ -26,14 +23,14 @@ interface PhoneAuthScreenProps {
 }
 
 export function PhoneAuthScreen({ onSuccess, onCancel }: PhoneAuthScreenProps) {
-  const { theme } = useTheme();
+  const s = useStyles(styles);
+
   const { sendVerificationCode, isLoading, error, clearError } = useAuthStore();
 
   const [phone, setPhone] = useState("");
-  const [countryCode, setCountryCode] = useState("+1"); // Default to US
+  const [countryCode, setCountryCode] = useState("+1");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
-  // Load last used phone number on mount
   useEffect(() => {
     loadLastPhoneNumber();
   }, []);
@@ -42,7 +39,6 @@ export function PhoneAuthScreen({ onSuccess, onCancel }: PhoneAuthScreenProps) {
     try {
       const lastPhone = await storage.get<string>(STORAGE_KEYS.LAST_PHONE_NUMBER);
       if (lastPhone) {
-        // Extract country code and phone number
         const match = lastPhone.match(/^(\+\d{1,3})(.*)$/);
         if (match) {
           setCountryCode(match[1] || "+1");
@@ -68,7 +64,6 @@ export function PhoneAuthScreen({ onSuccess, onCancel }: PhoneAuthScreenProps) {
         return;
       }
 
-      // Validate phone format
       const digits = phone.replace(/\D/g, "");
       if (digits.length < 10) {
         Alert.alert("Invalid Phone", "Please enter a valid phone number.");
@@ -80,12 +75,10 @@ export function PhoneAuthScreen({ onSuccess, onCancel }: PhoneAuthScreenProps) {
         countryCode,
       });
 
-      // Haptic feedback on success
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       onSuccess();
     } catch (error) {
-      // Error is handled by the store and displayed via error state
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -96,33 +89,33 @@ export function PhoneAuthScreen({ onSuccess, onCancel }: PhoneAuthScreenProps) {
     ]);
   };
 
-  const screenHeight = Dimensions.get("window").height;
-
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <Box style={s.container}>
       <KeyboardAvoidingView
-        style={styles.keyboardView}
+        style={s.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={s.scrollContent}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
             showsVerticalScrollIndicator={false}
             bounces={false}
           >
             {/* Header */}
-            <View style={styles.header}>
-              <Text style={[styles.title, { color: theme.colors.text }]}>Welcome to Mealio</Text>
-              <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
+            <VStack align="center" gap="sm">
+              <Text variant="h1" align="center">
+                Welcome to Mealio
+              </Text>
+              <Text variant="body" color="secondary" align="center">
                 Sync your meals across all devices
               </Text>
-            </View>
+            </VStack>
 
             {/* Phone Input */}
-            <View style={styles.inputSection}>
+            <Box mt="2xl">
               <PhoneInput
                 value={phone}
                 onChangeText={setPhone}
@@ -135,162 +128,105 @@ export function PhoneAuthScreen({ onSuccess, onCancel }: PhoneAuthScreenProps) {
                 onSubmitEditing={handleContinue}
               />
 
-              <Text style={[styles.helpText, { color: theme.colors.textSecondary }]}>
-                📱 We'll text you a verification code
+              <Text variant="bodySmall" color="secondary" align="center" style={{ marginTop: tokens.spacing.component.md }}>
+                We'll text you a verification code
               </Text>
-            </View>
+            </Box>
 
             {/* Terms Agreement */}
-            <View style={styles.termsSection}>
-              <TouchableOpacity
-                style={styles.checkboxContainer}
-                onPress={() => setAgreedToTerms(!agreedToTerms)}
+            <Box mt="2xl">
+              <Pressable
+                style={s.termsContainer}
+                onPress={() => !isLoading && setAgreedToTerms(!agreedToTerms)}
                 disabled={isLoading}
               >
-                <View
-                  style={[
-                    styles.checkbox,
-                    {
-                      borderColor: theme.colors.border,
-                      backgroundColor: agreedToTerms ? theme.colors.primary : "transparent",
-                    },
-                  ]}
-                >
-                  {agreedToTerms && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <View style={styles.termsTextContainer}>
-                  <Text style={[styles.termsText, { color: theme.colors.textSecondary }]}>
+                <Checkbox
+                  checked={agreedToTerms}
+                  onChange={setAgreedToTerms}
+                  disabled={isLoading}
+                  size="md"
+                />
+                <Box style={s.termsTextContainer}>
+                  <Text variant="bodySmall" color="secondary">
                     I agree to the{" "}
-                    <Text style={[styles.termsLink, { color: theme.colors.primary }]} onPress={handleTermsPress}>
+                    <Text variant="bodySmall" color="link" underline onPress={handleTermsPress}>
                       Terms of Service
                     </Text>{" "}
                     and{" "}
-                    <Text style={[styles.termsLink, { color: theme.colors.primary }]} onPress={handleTermsPress}>
+                    <Text variant="bodySmall" color="link" underline onPress={handleTermsPress}>
                       Privacy Policy
                     </Text>
                   </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
+                </Box>
+              </Pressable>
+            </Box>
 
             {/* Privacy Notice */}
-            <View style={styles.privacySection}>
-              <Text style={[styles.privacyText, { color: theme.colors.textSecondary }]}>
+            <Box mt="xl" align="center">
+              <Text variant="caption" color="secondary" align="center">
                 Your phone number is encrypted and never shared.
               </Text>
-            </View>
+            </Box>
 
             {/* Continue Button */}
-            <Button
-              title="Continue →"
-              onPress={handleContinue}
-              loading={isLoading}
-              disabled={isLoading || !agreedToTerms}
-              style={styles.continueButton}
-              size="large"
-            />
+            <Box mt="xl">
+              <Button
+                variant="solid"
+                colorScheme="primary"
+                size="lg"
+                fullWidth
+                onPress={handleContinue}
+                loading={isLoading}
+                disabled={isLoading || !agreedToTerms}
+              >
+                Continue
+              </Button>
+            </Box>
 
             {/* Cancel/Skip Option */}
             {onCancel && (
-              <TouchableOpacity onPress={onCancel} style={styles.skipButton} disabled={isLoading}>
-                <Text style={[styles.skipText, { color: theme.colors.textSecondary }]}>Skip for now</Text>
-              </TouchableOpacity>
+              <Box mt="md" align="center" p="lg">
+                <Button
+                  variant="ghost"
+                  colorScheme="secondary"
+                  onPress={onCancel}
+                  disabled={isLoading}
+                >
+                  Skip for now
+                </Button>
+              </Box>
             )}
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
-    </View>
+    </Box>
   );
 }
 
-const styles = StyleSheet.create({
+// =============================================================================
+// STYLES
+// =============================================================================
+
+const styles = createStyles((colors) => ({
   container: {
     flex: 1,
+    backgroundColor: colors.bg.primary,
   },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingHorizontal: tokens.spacing.layout.lg,
+    paddingTop: tokens.spacing.layout.xl,
+    paddingBottom: tokens.spacing.layout.lg,
   },
-  header: {
-    alignItems: "center",
-    marginBottom: 48,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  inputSection: {
-    marginBottom: 48,
-  },
-  helpText: {
-    fontSize: 14,
-    textAlign: "center",
-    marginTop: 12,
-    lineHeight: 18,
-  },
-  termsSection: {
-    marginBottom: 32,
-  },
-  checkboxContainer: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderRadius: 4,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-    marginTop: 2,
-  },
-  checkmark: {
-    color: "white",
-    fontSize: 12,
-    fontWeight: "bold",
+  termsContainer: {
+    flexDirection: "row" as const,
+    alignItems: "flex-start" as const,
   },
   termsTextContainer: {
     flex: 1,
+    marginLeft: tokens.spacing.component.sm,
   },
-  termsText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  termsLink: {
-    fontWeight: "500",
-    textDecorationLine: "underline",
-  },
-  privacySection: {
-    marginBottom: 32,
-    alignItems: "center",
-  },
-  privacyText: {
-    fontSize: 13,
-    textAlign: "center",
-    lineHeight: 18,
-  },
-  continueButton: {
-    marginBottom: 16,
-  },
-  skipButton: {
-    alignItems: "center",
-    padding: 16,
-  },
-  skipText: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-});
+}));

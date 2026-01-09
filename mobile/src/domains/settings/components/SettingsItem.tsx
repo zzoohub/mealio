@@ -1,14 +1,10 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Switch,
-  StyleSheet,
-} from 'react-native';
+import { View, TouchableOpacity, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/lib/theme';
-import { Card } from '@/components/ui/Card';
+import { createStyles, useStyles, useTheme } from '@/design-system/theme';
+import { Box, Text, HStack } from '@/design-system/styled';
+import { Card } from '@/design-system/styled';
+import { tokens } from '@/design-system/tokens';
 import * as Haptics from 'expo-haptics';
 
 interface SettingsItemProps {
@@ -38,17 +34,18 @@ export function SettingsItem({
   rightElement,
   variant = 'default',
 }: SettingsItemProps) {
-  const { theme } = useTheme();
+  const s = useStyles(styles);
+  const { colors } = useTheme();
 
   const handlePress = () => {
     if (disabled) return;
-    
+
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (error) {
       console.warn('Haptics feedback failed:', error);
     }
-    
+
     if (type === 'toggle' && onValueChange) {
       onValueChange(!value);
     } else if (onPress) {
@@ -68,26 +65,24 @@ export function SettingsItem({
             value={value}
             onValueChange={onValueChange}
             trackColor={{
-              false: theme.colors.border,
-              true: theme.colors.primary + '40',
+              false: colors.border.default,
+              true: colors.interactive.primary + '40',
             }}
-            thumbColor={value ? theme.colors.primary : '#f4f3f4'}
-            ios_backgroundColor={theme.colors.border}
+            thumbColor={value ? colors.interactive.primary : '#f4f3f4'}
+            ios_backgroundColor={colors.border.default}
             disabled={disabled}
           />
         );
       case 'select':
         return (
-          <View style={styles.selectValue}>
-            <Text style={[styles.valueText, { color: theme.colors.textSecondary }]}>
-              {value}
-            </Text>
+          <View style={s.selectValue}>
+            <Text style={s.valueText}>{value}</Text>
             {showChevron && (
               <Ionicons
                 name="chevron-forward"
-                size={16}
-                color={theme.colors.textSecondary}
-                style={styles.chevron}
+                size={tokens.size.icon.xs}
+                color={colors.text.secondary}
+                style={s.chevron}
               />
             )}
           </View>
@@ -96,16 +91,12 @@ export function SettingsItem({
         return showChevron ? (
           <Ionicons
             name="chevron-forward"
-            size={20}
-            color={theme.colors.textSecondary}
+            size={tokens.size.icon.sm}
+            color={colors.text.secondary}
           />
         ) : null;
       case 'info':
-        return (
-          <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
-            {value}
-          </Text>
-        );
+        return <Text style={s.infoText}>{value}</Text>;
       default:
         return null;
     }
@@ -114,63 +105,49 @@ export function SettingsItem({
   const isInteractive = type !== 'info' && !disabled;
 
   const content = (
-    <View style={[
-      styles.container,
-      { opacity: disabled ? 0.6 : 1 }
-    ]}>
-      <View style={styles.leftSection}>
+    <View
+      style={[s.container, { opacity: disabled ? tokens.opacity.disabled : 1 }]}
+    >
+      <View style={s.leftSection}>
         {icon && (
-          <View style={[styles.iconContainer, { backgroundColor: theme.colors.primary + '20' }]}>
+          <View style={s.iconContainer}>
             <Ionicons
               name={icon}
-              size={20}
-              color={theme.colors.primary}
+              size={tokens.size.icon.sm}
+              color={colors.interactive.primary}
             />
           </View>
         )}
-        <View style={styles.textContainer}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>
-            {title}
-          </Text>
-          {description && (
-            <Text style={[styles.description, { color: theme.colors.textSecondary }]}>
-              {description}
-            </Text>
-          )}
+        <View style={s.textContainer}>
+          <Text style={s.title}>{title}</Text>
+          {description && <Text style={s.description}>{description}</Text>}
         </View>
       </View>
-      <View style={styles.rightSection}>
-        {renderRightElement()}
-      </View>
+      <View style={s.rightSection}>{renderRightElement()}</View>
     </View>
   );
 
   if (variant === 'grouped') {
-    // For grouped items, no card wrapper - just the content
     if (isInteractive) {
       return (
         <TouchableOpacity
           onPress={handlePress}
           activeOpacity={0.7}
           disabled={disabled}
-          style={styles.groupedContainer}
+          style={s.groupedContainer}
         >
           {content}
         </TouchableOpacity>
       );
     }
 
-    return (
-      <View style={styles.groupedContainer}>
-        {content}
-      </View>
-    );
+    return <View style={s.groupedContainer}>{content}</View>;
   }
 
-  // Default variant with refined styling
+  // Default variant with Card
   if (isInteractive) {
     return (
-      <Card variant="subtle" style={styles.card}>
+      <Card variant="filled" style={s.card}>
         <TouchableOpacity
           onPress={handlePress}
           activeOpacity={0.7}
@@ -183,69 +160,78 @@ export function SettingsItem({
   }
 
   return (
-    <Card variant="subtle" style={styles.card}>
+    <Card variant="filled" style={s.card}>
       {content}
     </Card>
   );
 }
 
-const styles = StyleSheet.create({
+// =============================================================================
+// STYLES
+// =============================================================================
+
+const styles = createStyles((colors) => ({
   card: {
-    marginVertical: 4,
+    marginVertical: tokens.spacing.component.xs,
     padding: 0,
-    overflow: 'hidden',
+    overflow: 'hidden' as const,
   },
   groupedContainer: {
     backgroundColor: 'transparent',
   },
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    minHeight: 56,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    padding: tokens.spacing.component.lg,
+    minHeight: tokens.size.touchTarget.lg,
   },
   leftSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     flex: 1,
   },
   iconContainer: {
     width: 36,
     height: 36,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+    borderRadius: tokens.radius.sm,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginRight: tokens.spacing.component.md,
+    backgroundColor: colors.interactive.primary + '20',
   },
   textContainer: {
     flex: 1,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: tokens.typography.fontSize.body,
+    fontWeight: tokens.typography.fontWeight.medium,
     marginBottom: 2,
+    color: colors.text.primary,
   },
   description: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: tokens.typography.fontSize.caption,
+    lineHeight: tokens.typography.fontSize.caption * tokens.typography.lineHeight.body,
+    color: colors.text.secondary,
   },
   rightSection: {
-    marginLeft: 12,
+    marginLeft: tokens.spacing.component.md,
   },
   selectValue: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
   },
   valueText: {
-    fontSize: 15,
-    fontWeight: '500',
+    fontSize: tokens.typography.fontSize.bodySmall,
+    fontWeight: tokens.typography.fontWeight.medium,
+    color: colors.text.secondary,
   },
   chevron: {
-    marginLeft: 4,
+    marginLeft: tokens.spacing.component.xs,
   },
   infoText: {
-    fontSize: 15,
-    fontWeight: '500',
+    fontSize: tokens.typography.fontSize.bodySmall,
+    fontWeight: tokens.typography.fontWeight.medium,
+    color: colors.text.secondary,
   },
-});
+}));

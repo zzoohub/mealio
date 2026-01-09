@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Alert } from "react-native";
-import { useTheme } from "@/lib/theme";
-import { Card } from "@/components/ui/Card";
+import { useTheme } from "@/design-system/theme";
+import { Card } from "@/design-system/styled";
 import { SettingsItem, SettingsSection, SelectionModal, SettingsLayout } from "@/domains/settings/components";
 import { useSettingsStore } from "@/domains/settings/stores/settingsStore";
 import { useAuthStore } from "@/domains/auth/stores/authStore";
@@ -13,7 +13,7 @@ interface SelectionState {
 }
 
 export default function SettingsScreen() {
-  const { theme } = useTheme();
+  const { colors } = useTheme();
   const { user, logout, isLoading: authLoading } = useAuthStore();
   const { display, notifications, updateDisplay, updateNotifications, isLoading } = useSettingsStore();
   const isAuthenticated = !!user?.isLoggedIn;
@@ -34,7 +34,7 @@ export default function SettingsScreen() {
     if (selection.type === "theme") {
       await updateDisplay({ theme: value as "light" | "dark" | "system" });
     } else if (selection.type === "language") {
-      await updateDisplay({ language: value });
+      await updateDisplay({ language: value as SupportedLanguage });
       await changeLanguage(value as SupportedLanguage);
     }
   };
@@ -99,12 +99,12 @@ export default function SettingsScreen() {
     return (
       <Card variant="elevated" style={styles.userCard}>
         <View style={styles.userInfo}>
-          <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
+          <View style={[styles.avatar, { backgroundColor: colors.interactive.primary }]}>
             <Text style={styles.avatarText}>{user?.username?.charAt(0).toUpperCase() || "U"}</Text>
           </View>
           <View style={styles.userDetails}>
-            <Text style={[styles.username, { color: theme.colors.text }]}>{user?.username || "User"}</Text>
-            <Text style={[styles.email, { color: theme.colors.textSecondary }]}>
+            <Text style={[styles.username, { color: colors.text.primary }]}>{user?.username || "User"}</Text>
+            <Text style={[styles.email, { color: colors.text.secondary }]}>
               {user?.email || user?.phone || "Signed in"}
             </Text>
           </View>
@@ -180,7 +180,7 @@ export default function SettingsScreen() {
 
       {/* App Info */}
       <View style={styles.appInfo}>
-        <Text style={[styles.appVersion, { color: theme.colors.textSecondary }]}>Version 1.0.0</Text>
+        <Text style={[styles.appVersion, { color: colors.text.secondary }]}>Version 1.0.0</Text>
       </View>
 
       <SelectionModal

@@ -1,15 +1,10 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import { SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/lib/theme';
+import { createStyles, useStyles, useTheme } from '@/design-system/theme';
+import { Box, Text, HStack } from '@/design-system/styled';
+import { tokens } from '@/design-system/tokens';
 import * as Haptics from 'expo-haptics';
 
 interface SettingsLayoutProps {
@@ -23,7 +18,8 @@ export function SettingsLayout({
   children,
   showBackButton = true,
 }: SettingsLayoutProps) {
-  const { theme } = useTheme();
+  const s = useStyles(styles);
+  const { colors } = useTheme();
 
   const handleBack = () => {
     try {
@@ -35,37 +31,38 @@ export function SettingsLayout({
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={s.container}>
       <Stack.Screen
         options={{
-          headerShown: false, // We'll create our own unified header
+          headerShown: false,
         }}
       />
-      
-      {/* Unified Header with Visual Continuity */}
-      <View style={[styles.header, { borderBottomColor: theme.colors.border + '20' }]}>
+
+      {/* Header */}
+      <Box style={s.header}>
         {showBackButton && (
           <TouchableOpacity
-            style={styles.backButton}
+            style={s.backButton}
             onPress={handleBack}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+            <Ionicons
+              name="arrow-back"
+              size={tokens.size.icon.md}
+              color={colors.text.primary}
+            />
           </TouchableOpacity>
         )}
-        
-        <View style={styles.headerContent}>
-          {/* Clean title only */}
-          <Text style={[styles.title, { color: theme.colors.text }]}>
-            {title}
-          </Text>
-        </View>
-      </View>
+
+        <Box style={s.headerContent}>
+          <Text style={s.title}>{title}</Text>
+        </Box>
+      </Box>
 
       {/* Scrollable Content */}
       <ScrollView
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContent}
+        style={s.scrollContainer}
+        contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {children}
@@ -74,40 +71,47 @@ export function SettingsLayout({
   );
 }
 
-const styles = StyleSheet.create({
+// =============================================================================
+// STYLES
+// =============================================================================
+
+const styles = createStyles((colors) => ({
   container: {
     flex: 1,
+    backgroundColor: colors.bg.primary,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 16,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: tokens.spacing.component.lg,
+    paddingTop: tokens.spacing.component.sm,
+    paddingBottom: tokens.spacing.component.lg,
     borderBottomWidth: 0.5,
+    borderBottomColor: colors.border.divider,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
+    width: tokens.size.touchTarget.md,
+    height: tokens.size.touchTarget.md,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginRight: tokens.spacing.component.sm,
   },
   headerContent: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'center' as const,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginRight: 44, // Offset for back button to center title
+    fontSize: tokens.typography.fontSize.h4,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    textAlign: 'center' as const,
+    marginRight: tokens.size.touchTarget.md,
+    color: colors.text.primary,
   },
   scrollContainer: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
+    padding: tokens.spacing.component.lg,
+    paddingBottom: tokens.spacing.layout.lg,
   },
-});
+}));

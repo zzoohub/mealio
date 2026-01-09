@@ -1,7 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { DARK_THEME_COLORS, BRAND_COLORS } from '@/constants';
+import { tokens, darkColors } from '@/design-system/tokens';
 
 interface Props {
   children: ReactNode;
@@ -76,11 +76,11 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <View style={styles.container}>
           <View style={styles.content}>
-            <Ionicons 
-              name="alert-circle-outline" 
-              size={64} 
-              color={BRAND_COLORS.PRIMARY} 
-              style={styles.icon} 
+            <Ionicons
+              name="alert-circle-outline"
+              size={64}
+              color={tokens.color.interactive.primary}
+              style={styles.icon}
             />
             
             <Text style={styles.title}>Oops! Something went wrong</Text>
@@ -98,12 +98,12 @@ export class ErrorBoundary extends Component<Props, State> {
                 <Text style={styles.retryButtonText}>Try Again</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity 
-                style={styles.reloadButton} 
+              <TouchableOpacity
+                style={styles.reloadButton}
                 onPress={this.handleReload}
                 activeOpacity={0.7}
               >
-                <Ionicons name="reload" size={20} color={BRAND_COLORS.PRIMARY} />
+                <Ionicons name="reload" size={20} color={tokens.color.interactive.primary} />
                 <Text style={styles.reloadButtonText}>Reload App</Text>
               </TouchableOpacity>
             </View>
@@ -133,85 +133,85 @@ export class ErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: DARK_THEME_COLORS.background,
+    backgroundColor: darkColors.bg.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: tokens.spacing.layout.sm,
   },
   content: {
     alignItems: 'center',
     maxWidth: 320,
   },
   icon: {
-    marginBottom: 24,
+    marginBottom: tokens.spacing.component.xl,
   },
   title: {
-    color: DARK_THEME_COLORS.text,
-    fontSize: 24,
-    fontWeight: '700',
+    color: darkColors.text.primary,
+    fontSize: tokens.typography.fontSize.h2,
+    fontWeight: tokens.typography.fontWeight.bold,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: tokens.spacing.component.md,
   },
   subtitle: {
-    color: DARK_THEME_COLORS.textSecondary,
-    fontSize: 16,
+    color: darkColors.text.secondary,
+    fontSize: tokens.typography.fontSize.body,
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 32,
+    marginBottom: tokens.spacing.layout.lg,
   },
   buttonContainer: {
-    gap: 16,
+    gap: tokens.spacing.component.lg,
     width: '100%',
   },
   retryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: BRAND_COLORS.PRIMARY,
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
+    backgroundColor: tokens.color.interactive.primary,
+    paddingHorizontal: tokens.spacing.component.xl,
+    paddingVertical: tokens.spacing.component.lg,
+    borderRadius: tokens.radius.lg,
+    gap: tokens.spacing.component.sm,
   },
   retryButtonText: {
     color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: tokens.typography.fontSize.body,
+    fontWeight: tokens.typography.fontWeight.semibold,
   },
   reloadButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: BRAND_COLORS.PRIMARY,
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
+    borderWidth: tokens.borderWidth.default,
+    borderColor: tokens.color.interactive.primary,
+    paddingHorizontal: tokens.spacing.component.xl,
+    paddingVertical: tokens.spacing.component.lg,
+    borderRadius: tokens.radius.lg,
+    gap: tokens.spacing.component.sm,
   },
   reloadButtonText: {
-    color: BRAND_COLORS.PRIMARY,
-    fontSize: 16,
-    fontWeight: '600',
+    color: tokens.color.interactive.primary,
+    fontSize: tokens.typography.fontSize.body,
+    fontWeight: tokens.typography.fontWeight.semibold,
   },
   debugContainer: {
-    marginTop: 24,
+    marginTop: tokens.spacing.component.xl,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    padding: 16,
-    borderRadius: 8,
+    padding: tokens.spacing.component.lg,
+    borderRadius: tokens.radius.md,
     maxHeight: 200,
     width: '100%',
   },
   debugTitle: {
-    color: BRAND_COLORS.PRIMARY,
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
+    color: tokens.color.interactive.primary,
+    fontSize: tokens.typography.fontSize.bodySmall,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    marginBottom: tokens.spacing.component.sm,
   },
   debugText: {
-    color: DARK_THEME_COLORS.textSecondary,
-    fontSize: 12,
+    color: darkColors.text.secondary,
+    fontSize: tokens.typography.fontSize.caption,
     fontFamily: 'monospace',
     lineHeight: 18,
   },

@@ -8,25 +8,23 @@ description: Expo/React Native patterns including project structure, Expo Router
 ## Project Structure
 
 ```
+app/                 # Expo Router (file-based routing)
 src/
-├── app/                      # Expo Router
-│   ├── (auth)/
-│   │   ├── _layout.tsx
-│   │   └── login.tsx
-│   ├── (app)/
-│   │   ├── _layout.tsx
-│   │   └── (tabs)/
-│   │       ├── _layout.tsx
-│   │       ├── home.tsx
-│   │       └── profile.tsx
-│   ├── _layout.tsx
-│   └── +not-found.tsx
-├── components/ui/            # From ui-engineer
-├── domains/                  # Feature modules
-├── hooks/
-├── stores/                   # Zustand
-├── tokens/                   # Design tokens (from design-system skill)
-└── constants/
+├── providers/       # App infrastructure (QueryClient, Overlay, ErrorBoundary)
+├── design-system/   # UI system (tokens, headless hooks, styled components)
+├── domains/         # Feature modules (fractal structure)
+│   └── auth/        # Example domain
+│       ├── components/
+│       ├── hooks/
+│       ├── store/
+│       └── types/
+├── components/      # Shared components (Header, Footer)
+├── lib/             # independent modules (i18n, storage)
+├── constants/       # App constants
+├── utils/           # shared utilities
+├── hooks/           # shared custom hooks
+├── store/           # zustand store
+└── types/           # Shared types
 ```
 
 ---

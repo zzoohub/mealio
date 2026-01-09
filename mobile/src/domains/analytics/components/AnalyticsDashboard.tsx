@@ -1,15 +1,20 @@
 import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { ScrollView, TouchableOpacity, View, Text as RNText, StyleSheet } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { Ionicons } from "@expo/vector-icons";
 import { CircularProgress } from "./CircularProgress";
-import { BottomSheet } from "@/components/ui/BottomSheet";
+import { BottomSheet } from "@/design-system/styled";
 import { StatsSuspenseWrapper } from "./StatsSuspenseWrapper";
 import { RecentMeals } from "@/domains/diary";
 import { useRouter } from "expo-router";
 import { useAnalyticsI18n } from "@/lib/i18n";
-import { useTheme } from "@/lib/theme";
 import { useAnalyticsStore } from "../stores/analyticsStore";
+import { createStyles, useStyles, useTheme } from "@/design-system/theme";
+import { tokens, iconSizes } from "@/design-system/tokens";
+
+// =============================================================================
+// TYPES
+// =============================================================================
 
 interface AnalyticsDashboardProps {
   onNavigate: (section: string) => void;
@@ -35,18 +40,137 @@ interface Achievement {
   isCompleted: boolean;
 }
 
-const mockStats: DailyStats = {
-  calories: { current: 1680, target: 2000 },
-  protein: { current: 89, target: 120 },
-  carbs: { current: 180, target: 250 },
-  fat: { current: 65, target: 80 },
-  water: { current: 6, target: 8 },
-  fiber: { current: 22, target: 25 },
-};
+// =============================================================================
+// SUB-COMPONENTS
+// =============================================================================
+
+interface PeriodButtonProps {
+  period: "day" | "week" | "month";
+  isActive: boolean;
+  onPress: () => void;
+  label: string;
+}
+
+function PeriodButton({ period, isActive, onPress, label }: PeriodButtonProps) {
+  const s = useStyles(periodButtonStyles);
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.periodButton,
+        isActive ? s.active : s.inactive,
+      ]}
+      onPress={onPress}
+    >
+      <RNText
+        style={[
+          styles.periodButtonText,
+          isActive ? s.activeText : s.inactiveText,
+        ]}
+      >
+        {label}
+      </RNText>
+    </TouchableOpacity>
+  );
+}
+
+interface ProgressRingProps {
+  label: string;
+  current: number;
+  target: number;
+  color: string;
+  unit: string;
+}
+
+function ProgressRing({ label, current, target, color, unit }: ProgressRingProps) {
+  const s = useStyles(progressRingStyles);
+  const percentage = Math.min((current / target) * 100, 100);
+
+  return (
+    <View style={styles.progressRingContainer}>
+      <CircularProgress size={80} strokeWidth={6} progress={percentage} color={color}>
+        <View style={styles.progressContent}>
+          <RNText style={[styles.progressValue, s.value]}>{current}</RNText>
+          <RNText style={[styles.progressUnit, s.unit]}>{unit}</RNText>
+        </View>
+      </CircularProgress>
+      <RNText style={[styles.progressLabel, s.label]}>{label}</RNText>
+      <RNText style={[styles.progressTarget, s.target]}>
+        {current}/{target} {unit}
+      </RNText>
+    </View>
+  );
+}
+
+interface AchievementCardProps {
+  achievement: Achievement;
+}
+
+function AchievementCard({ achievement }: AchievementCardProps) {
+  const s = useStyles(achievementCardStyles);
+  const progressWidth = `${(achievement.progress / achievement.target) * 100}%`;
+
+  return (
+    <TouchableOpacity style={[styles.achievementCard, s.card]}>
+      <View style={styles.achievementHeader}>
+        <RNText style={styles.achievementEmoji}>{achievement.emoji}</RNText>
+        <View style={styles.achievementInfo}>
+          <RNText style={[styles.achievementTitle, s.title]}>
+            {achievement.title}
+          </RNText>
+          <RNText style={[styles.achievementDescription, s.description]}>
+            {achievement.description}
+          </RNText>
+        </View>
+        <View style={styles.achievementProgress}>
+          <RNText style={[styles.achievementProgressText, s.progressText]}>
+            {achievement.progress}/{achievement.target}
+          </RNText>
+        </View>
+      </View>
+      <View style={[styles.achievementBar, s.bar]}>
+        <View
+          style={[
+            styles.achievementBarFill,
+            s.barFill,
+            { width: progressWidth as any },
+          ]}
+        />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+interface InsightCardProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  title: string;
+  description: string;
+}
+
+function InsightCard({ icon, iconColor, title, description }: InsightCardProps) {
+  const s = useStyles(insightCardStyles);
+
+  return (
+    <View style={[styles.insightCard, s.card]}>
+      <Ionicons name={icon} size={iconSizes.md} color={iconColor} />
+      <View style={styles.insightContent}>
+        <RNText style={[styles.insightTitle, s.title]}>{title}</RNText>
+        <RNText style={[styles.insightDescription, s.description]}>
+          {description}
+        </RNText>
+      </View>
+    </View>
+  );
+}
+
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
 
 export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardProps) {
-  const { theme } = useTheme();
-  const { globalPeriod, setGlobalPeriod, getPeriodLabel } = useAnalyticsStore();
+  const { colors } = useTheme();
+  const { globalPeriod, setGlobalPeriod } = useAnalyticsStore();
   const router = useRouter();
   const analytics = useAnalyticsI18n();
 
@@ -76,27 +200,24 @@ export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardPro
       const start = new Date(globalPeriod.startDate);
       const end = new Date(globalPeriod.endDate);
 
-      // Mark the start date
       const startDateString = start.toISOString().split("T")[0];
       if (startDateString) {
         marked[startDateString] = {
           startingDay: true,
-          color: "#FF6B35",
+          color: colors.interactive.primary,
           textColor: "white",
         };
       }
 
-      // Mark the end date
       const endDateString = end.toISOString().split("T")[0];
       if (endDateString) {
         marked[endDateString] = {
           endingDay: true,
-          color: "#FF6B35",
+          color: colors.interactive.primary,
           textColor: "white",
         };
       }
 
-      // Mark dates in between
       const currentDate = new Date(start);
       currentDate.setDate(currentDate.getDate() + 1);
 
@@ -104,7 +225,7 @@ export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardPro
         const dateString = currentDate.toISOString().split("T")[0];
         if (dateString) {
           marked[dateString] = {
-            color: "#FF6B35",
+            color: colors.interactive.primary,
             textColor: "white",
           };
         }
@@ -123,7 +244,7 @@ export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardPro
       if (dateString) {
         markedDates[dateString] = {
           startingDay: true,
-          color: theme.colors.primary,
+          color: colors.interactive.primary,
           textColor: "white",
         };
       }
@@ -135,22 +256,21 @@ export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardPro
         markedDates[startString] = {
           startingDay: true,
           endingDay: true,
-          color: theme.colors.primary,
+          color: colors.interactive.primary,
           textColor: "white",
         };
       } else if (startString && endString) {
         markedDates[startString] = {
           startingDay: true,
-          color: theme.colors.primary,
+          color: colors.interactive.primary,
           textColor: "white",
         };
         markedDates[endString] = {
           endingDay: true,
-          color: theme.colors.primary,
+          color: colors.interactive.primary,
           textColor: "white",
         };
 
-        // Mark days in between
         const currentDate = new Date(start);
         currentDate.setDate(currentDate.getDate() + 1);
 
@@ -158,8 +278,8 @@ export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardPro
           const dateString = currentDate.toISOString().split("T")[0];
           if (dateString) {
             markedDates[dateString] = {
-              color: theme.colors.primary + "40",
-              textColor: theme.colors.text,
+              color: colors.interactive.primary + "40",
+              textColor: colors.text.primary,
             };
           }
           currentDate.setDate(currentDate.getDate() + 1);
@@ -169,7 +289,6 @@ export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardPro
 
     setCalendarRange({ startDate: start, endDate: end, markedDates });
 
-    // Update global period if we have both dates
     if (start && end) {
       setGlobalPeriod({
         type: "custom",
@@ -188,7 +307,6 @@ export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardPro
     setGlobalPeriod({ type: newPeriod });
   };
 
-  // Date selection functions
   const handleDayPress = (day: any) => {
     const selectedDate = new Date(day.dateString);
     const { startDate, endDate } = calendarRange;
@@ -198,7 +316,6 @@ export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardPro
     } else if (startDate && !endDate) {
       if (selectedDate >= startDate) {
         updateCalendarRange(startDate, selectedDate);
-        // The updateCalendarRange already handles this
       } else {
         updateCalendarRange(selectedDate, null);
       }
@@ -235,114 +352,73 @@ export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardPro
     },
   ];
 
+  // Mock stats - to be replaced with props/hooks
+  const mockStats: DailyStats = {
+    calories: { current: 1680, target: 2000 },
+    protein: { current: 89, target: 120 },
+    carbs: { current: 180, target: 250 },
+    fat: { current: 65, target: 80 },
+    water: { current: 6, target: 8 },
+    fiber: { current: 22, target: 25 },
+  };
+
   const handleSeeAllHistory = () => {
-    router.push("/diary-history");
+    router.push("/meal-history" as any);
   };
 
-  const renderProgressRing = (label: string, current: number, target: number, color: string, unit: string) => {
-    const percentage = Math.min((current / target) * 100, 100);
-
-    return (
-      <View style={styles.progressRingContainer}>
-        <CircularProgress
-          size={80}
-          strokeWidth={6}
-          progress={percentage}
-          color={color}
-          backgroundColor={theme.colors.border}
-        >
-          <View style={styles.progressContent}>
-            <Text style={[styles.progressValue, { color: theme.colors.text }]}>{current}</Text>
-            <Text style={[styles.progressUnit, { color: theme.colors.textSecondary }]}>{unit}</Text>
-          </View>
-        </CircularProgress>
-        <Text style={[styles.progressLabel, { color: theme.colors.text }]}>{label}</Text>
-        <Text style={[styles.progressTarget, { color: theme.colors.textSecondary }]}>
-          {current}/{target} {unit}
-        </Text>
-      </View>
-    );
+  // Nutrition colors from design tokens
+  const nutritionColors = {
+    protein: colors.interactive.primary,
+    carbs: colors.interactive.secondary,
+    fat: colors.status.info,
   };
-
-  const renderAchievement = (achievement: Achievement) => (
-    <TouchableOpacity key={achievement.id} style={[styles.achievementCard, { backgroundColor: theme.colors.surface }]}>
-      <View style={styles.achievementHeader}>
-        <Text style={styles.achievementEmoji}>{achievement.emoji}</Text>
-        <View style={styles.achievementInfo}>
-          <Text style={[styles.achievementTitle, { color: theme.colors.text }]}>{achievement.title}</Text>
-          <Text style={[styles.achievementDescription, { color: theme.colors.textSecondary }]}>
-            {achievement.description}
-          </Text>
-        </View>
-        <View style={styles.achievementProgress}>
-          <Text style={[styles.achievementProgressText, { color: theme.colors.primary }]}>
-            {achievement.progress}/{achievement.target}
-          </Text>
-        </View>
-      </View>
-      <View style={[styles.achievementBar, { backgroundColor: theme.colors.border + "40" }]}>
-        <View
-          style={[
-            styles.achievementBarFill,
-            { width: `${(achievement.progress / achievement.target) * 100}%`, backgroundColor: theme.colors.primary },
-          ]}
-        />
-      </View>
-    </TouchableOpacity>
-  );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.bg.primary }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => onNavigate("camera")}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          <Ionicons name="arrow-back" size={iconSizes.md} color={colors.text.primary} />
         </TouchableOpacity>
 
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{analytics.title}</Text>
+        <RNText style={[styles.headerTitle, { color: colors.text.primary }]}>
+          {analytics.title}
+        </RNText>
 
         <TouchableOpacity onPress={() => onNavigate("settings")}>
-          <Ionicons name="settings-outline" size={24} color={theme.colors.text} />
+          <Ionicons name="settings-outline" size={iconSizes.md} color={colors.text.primary} />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Period Selector */}
-        <View style={[styles.periodSelector, { backgroundColor: theme.colors.surface }]}>
-          {/* Period Buttons Row */}
+        <View style={[styles.periodSelector, { backgroundColor: colors.bg.elevated }]}>
           <View style={styles.periodButtonsRow}>
             {(["day", "week", "month"] as const).map(period => (
-              <TouchableOpacity
+              <PeriodButton
                 key={period}
-                style={[styles.periodButton, globalPeriod.type === period && { backgroundColor: theme.colors.primary }]}
+                period={period}
+                isActive={globalPeriod.type === period}
                 onPress={() => handlePeriodChange(period)}
-              >
-                <Text
-                  style={[
-                    styles.periodButtonText,
-                    { color: theme.colors.textSecondary },
-                    globalPeriod.type === period && { color: "white" },
-                  ]}
-                >
-                  {analytics[period]}
-                </Text>
-              </TouchableOpacity>
+                label={analytics[period]}
+              />
             ))}
             <TouchableOpacity
               style={[
-                styles.periodButton,
                 styles.calendarButton,
-                globalPeriod.type === "custom" && { backgroundColor: theme.colors.primary },
+                globalPeriod.type === "custom" && {
+                  backgroundColor: colors.interactive.primary,
+                },
               ]}
               onPress={() => setShowCalendarModal(true)}
             >
               <Ionicons
                 name="calendar"
-                size={16}
-                color={globalPeriod.type === "custom" ? "white" : theme.colors.textSecondary}
+                size={iconSizes.xs}
+                color={globalPeriod.type === "custom" ? "white" : colors.text.secondary}
               />
               {globalPeriod.type === "custom" && (
-                <Text style={[styles.periodButtonText, { color: "white", fontSize: 12 }]}>Custom</Text>
+                <RNText style={[styles.calendarButtonText, { color: "white" }]}>Custom</RNText>
               )}
             </TouchableOpacity>
           </View>
@@ -356,87 +432,96 @@ export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardPro
 
         {/* Nutrition Rings */}
         <View style={styles.nutritionSection}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{analytics.macronutrients}</Text>
+          <RNText style={[styles.sectionTitle, { color: colors.text.primary }]}>
+            {analytics.macronutrients}
+          </RNText>
           <View style={styles.nutritionRings}>
-            {renderProgressRing(analytics.protein, mockStats.protein.current, mockStats.protein.target, "#FF6B35", "g")}
-            {renderProgressRing(analytics.carbs, mockStats.carbs.current, mockStats.carbs.target, "#4ECDC4", "g")}
-            {renderProgressRing(analytics.fat, mockStats.fat.current, mockStats.fat.target, "#45B7D1", "g")}
+            <ProgressRing
+              label={analytics.protein}
+              current={mockStats.protein.current}
+              target={mockStats.protein.target}
+              color={nutritionColors.protein}
+              unit="g"
+            />
+            <ProgressRing
+              label={analytics.carbs}
+              current={mockStats.carbs.current}
+              target={mockStats.carbs.target}
+              color={nutritionColors.carbs}
+              unit="g"
+            />
+            <ProgressRing
+              label={analytics.fat}
+              current={mockStats.fat.current}
+              target={mockStats.fat.target}
+              color={nutritionColors.fat}
+              unit="g"
+            />
           </View>
         </View>
 
         {/* Eating Pattern */}
         <View style={styles.patternSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={{ ...styles.sectionTitle, marginBottom: 4, color: theme.colors.text }}>
-              {analytics.eatingPattern}
-            </Text>
-            {/* <TouchableOpacity>
-              <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>{analytics.seeAll}</Text>
-            </TouchableOpacity> */}
-          </View>
+          <RNText style={[styles.sectionTitle, { color: colors.text.primary }]}>
+            {analytics.eatingPattern}
+          </RNText>
         </View>
 
         {/* Meal Character */}
         <View style={styles.characterSection}>
-          <View style={[styles.characterCard, { backgroundColor: theme.colors.surface }]}>
-            <Text style={styles.characterEmoji}>🌟</Text>
+          <View style={[styles.characterCard, { backgroundColor: colors.bg.elevated }]}>
+            <RNText style={styles.characterEmoji}>🌟</RNText>
             <View style={styles.characterInfo}>
-              <Text style={[styles.characterTitle, { color: theme.colors.text }]}>{analytics.balancedExplorer}</Text>
-              <Text style={[styles.characterDescription, { color: theme.colors.textSecondary }]}>
+              <RNText style={[styles.characterTitle, { color: colors.text.primary }]}>
+                {analytics.balancedExplorer}
+              </RNText>
+              <RNText style={[styles.characterDescription, { color: colors.text.secondary }]}>
                 {analytics.balancedExplorerDesc}
-              </Text>
+              </RNText>
             </View>
-            <View style={[styles.characterLevel, { backgroundColor: theme.colors.primary }]}>
-              <Text style={[styles.levelText, { color: theme.colors.text }]}>Lv.7</Text>
+            <View style={[styles.characterLevel, { backgroundColor: colors.interactive.primary }]}>
+              <RNText style={[styles.levelText, { color: colors.text.inverse }]}>Lv.7</RNText>
             </View>
           </View>
 
-          <View style={[styles.diversityScore, { backgroundColor: theme.colors.surface }]}>
-            <Text style={[styles.diversityLabel, { color: theme.colors.textSecondary }]}>
+          <View style={[styles.diversityScore, { backgroundColor: colors.bg.elevated }]}>
+            <RNText style={[styles.diversityLabel, { color: colors.text.secondary }]}>
               {analytics.mealDiversityScore}
-            </Text>
-            <Text style={[styles.diversityValue, { color: theme.colors.text }]}>82/100</Text>
-            <Text style={[styles.diversityTip, { color: theme.colors.secondary }]}>{analytics.diversityTip}</Text>
+            </RNText>
+            <RNText style={[styles.diversityValue, { color: colors.text.primary }]}>82/100</RNText>
+            <RNText style={[styles.diversityTip, { color: colors.interactive.secondary }]}>
+              {analytics.diversityTip}
+            </RNText>
           </View>
         </View>
 
         {/* Achievements */}
         <View style={styles.achievementsSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={{ ...styles.sectionTitle, marginBottom: 4, color: theme.colors.text }}>
-              {analytics.achievements}
-            </Text>
-            {/* <TouchableOpacity>
-              <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>{analytics.viewAll}</Text>
-            </TouchableOpacity> */}
-          </View>
-
-          {mockAchievements.map(renderAchievement)}
+          <RNText style={[styles.sectionTitle, { color: colors.text.primary }]}>
+            {analytics.achievements}
+          </RNText>
+          {mockAchievements.map(achievement => (
+            <AchievementCard key={achievement.id} achievement={achievement} />
+          ))}
         </View>
 
         {/* Weekly Insights */}
         <View style={styles.insightsSection}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Weekly Insights</Text>
-
-          <View style={[styles.insightCard, { backgroundColor: theme.colors.surface }]}>
-            <Ionicons name="trending-up" size={24} color={theme.colors.secondary} />
-            <View style={styles.insightContent}>
-              <Text style={[styles.insightTitle, { color: theme.colors.text }]}>Protein intake improved</Text>
-              <Text style={[styles.insightDescription, { color: theme.colors.textSecondary }]}>
-                You hit your protein goal 5 out of 7 days this week!
-              </Text>
-            </View>
-          </View>
-
-          <View style={[styles.insightCard, { backgroundColor: theme.colors.surface }]}>
-            <Ionicons name="restaurant" size={24} color={theme.colors.primary} />
-            <View style={styles.insightContent}>
-              <Text style={[styles.insightTitle, { color: theme.colors.text }]}>New favorite: Mediterranean</Text>
-              <Text style={[styles.insightDescription, { color: theme.colors.textSecondary }]}>
-                You&apos;ve logged 4 Mediterranean meals this week.
-              </Text>
-            </View>
-          </View>
+          <RNText style={[styles.sectionTitle, { color: colors.text.primary }]}>
+            Weekly Insights
+          </RNText>
+          <InsightCard
+            icon="trending-up"
+            iconColor={colors.interactive.secondary}
+            title="Protein intake improved"
+            description="You hit your protein goal 5 out of 7 days this week!"
+          />
+          <InsightCard
+            icon="restaurant"
+            iconColor={colors.interactive.primary}
+            title="New favorite: Mediterranean"
+            description="You've logged 4 Mediterranean meals this week."
+          />
         </View>
       </ScrollView>
 
@@ -444,46 +529,53 @@ export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardPro
       <BottomSheet
         visible={showCalendarModal}
         onClose={() => setShowCalendarModal(false)}
-        backgroundColor={theme.colors.background}
         height="80%"
       >
-        <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
-          <Text style={[styles.calendarModalTitle, { color: theme.colors.text }]}>Select Period</Text>
+        <View style={[styles.modalHeader, { borderBottomColor: colors.border.default }]}>
+          <RNText style={[styles.calendarModalTitle, { color: colors.text.primary }]}>
+            Select Period
+          </RNText>
           <TouchableOpacity onPress={() => setShowCalendarModal(false)}>
-            <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
+            <Ionicons name="close" size={iconSizes.md} color={colors.text.secondary} />
           </TouchableOpacity>
         </View>
 
         {/* Quick Presets */}
-        <View style={[styles.presetsContainer, { borderBottomColor: theme.colors.border }]}>
-          <Text style={[styles.presetsTitle, { color: theme.colors.text }]}>Quick Select</Text>
+        <View style={[styles.presetsContainer, { borderBottomColor: colors.border.default }]}>
+          <RNText style={[styles.presetsTitle, { color: colors.text.primary }]}>Quick Select</RNText>
           <View style={styles.presetsGrid}>
             <TouchableOpacity
-              style={[styles.presetButton, { backgroundColor: theme.colors.surface }]}
+              style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
               onPress={() => {
                 handlePeriodChange("day");
                 setShowCalendarModal(false);
               }}
             >
-              <Text style={[styles.presetButtonText, { color: theme.colors.textSecondary }]}>Today</Text>
+              <RNText style={[styles.presetButtonText, { color: colors.text.secondary }]}>
+                Today
+              </RNText>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.presetButton, { backgroundColor: theme.colors.surface }]}
+              style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
               onPress={() => {
                 handlePeriodChange("week");
                 setShowCalendarModal(false);
               }}
             >
-              <Text style={[styles.presetButtonText, { color: theme.colors.textSecondary }]}>This Week</Text>
+              <RNText style={[styles.presetButtonText, { color: colors.text.secondary }]}>
+                This Week
+              </RNText>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.presetButton, { backgroundColor: theme.colors.surface }]}
+              style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
               onPress={() => {
                 handlePeriodChange("month");
                 setShowCalendarModal(false);
               }}
             >
-              <Text style={[styles.presetButtonText, { color: theme.colors.textSecondary }]}>This Month</Text>
+              <RNText style={[styles.presetButtonText, { color: colors.text.secondary }]}>
+                This Month
+              </RNText>
             </TouchableOpacity>
           </View>
         </View>
@@ -495,33 +587,35 @@ export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardPro
             markingType={"period"}
             markedDates={calendarRange.markedDates}
             theme={{
-              backgroundColor: theme.colors.surface,
-              calendarBackground: theme.colors.surface,
-              textSectionTitleColor: theme.colors.text,
-              selectedDayBackgroundColor: theme.colors.primary,
+              backgroundColor: colors.bg.elevated,
+              calendarBackground: colors.bg.elevated,
+              textSectionTitleColor: colors.text.primary,
+              selectedDayBackgroundColor: colors.interactive.primary,
               selectedDayTextColor: "white",
-              todayTextColor: theme.colors.primary,
-              dayTextColor: theme.colors.text,
-              textDisabledColor: theme.colors.textSecondary,
-              dotColor: theme.colors.primary,
+              todayTextColor: colors.interactive.primary,
+              dayTextColor: colors.text.primary,
+              textDisabledColor: colors.text.secondary,
+              dotColor: colors.interactive.primary,
               selectedDotColor: "white",
-              arrowColor: theme.colors.primary,
-              disabledArrowColor: theme.colors.textSecondary,
-              monthTextColor: theme.colors.text,
-              indicatorColor: "#FF6B35",
-              textDayFontWeight: "400",
-              textMonthFontWeight: "600",
-              textDayHeaderFontWeight: "500",
-              textDayFontSize: 16,
-              textMonthFontSize: 18,
-              textDayHeaderFontSize: 14,
+              arrowColor: colors.interactive.primary,
+              disabledArrowColor: colors.text.secondary,
+              monthTextColor: colors.text.primary,
+              indicatorColor: colors.interactive.primary,
+              textDayFontWeight: tokens.typography.fontWeight.normal,
+              textMonthFontWeight: tokens.typography.fontWeight.semibold,
+              textDayHeaderFontWeight: tokens.typography.fontWeight.medium,
+              textDayFontSize: tokens.typography.fontSize.body,
+              textMonthFontSize: tokens.typography.fontSize.h4,
+              textDayHeaderFontSize: tokens.typography.fontSize.bodySmall,
             }}
           />
 
           {(calendarRange.startDate || calendarRange.endDate) && (
             <TouchableOpacity style={styles.clearCustomButton} onPress={() => clearDateRange()}>
-              <Ionicons name="trash-outline" size={16} color={theme.colors.textSecondary} />
-              <Text style={[styles.clearCustomButtonText, { color: theme.colors.primary }]}>Clear Selection</Text>
+              <Ionicons name="trash-outline" size={iconSizes.xs} color={colors.text.secondary} />
+              <RNText style={[styles.clearCustomButtonText, { color: colors.interactive.primary }]}>
+                Clear Selection
+              </RNText>
             </TouchableOpacity>
           )}
         </View>
@@ -529,6 +623,10 @@ export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardPro
     </View>
   );
 }
+
+// =============================================================================
+// STATIC STYLES (non-themed)
+// =============================================================================
 
 const styles = StyleSheet.create({
   container: {
@@ -539,162 +637,60 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingHorizontal: tokens.spacing.layout.sm,
+    paddingBottom: tokens.spacing.component.lg,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: tokens.typography.fontSize.h4,
+    fontWeight: tokens.typography.fontWeight.semibold,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: tokens.spacing.component.lg,
   },
   periodSelector: {
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 20,
+    borderRadius: tokens.radius.lg,
+    padding: tokens.spacing.component.xs,
+    marginBottom: tokens.spacing.layout.sm,
   },
   periodButtonsRow: {
     flexDirection: "row",
   },
   periodButton: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: tokens.spacing.component.sm,
     alignItems: "center",
-    borderRadius: 8,
-  },
-  periodButtonActive: {
-    // backgroundColor handled inline with theme
+    borderRadius: tokens.radius.sm,
   },
   periodButtonText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  periodButtonTextActive: {
-    // color handled inline with theme
+    fontSize: tokens.typography.fontSize.bodySmall,
+    fontWeight: tokens.typography.fontWeight.medium,
   },
   calendarButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: tokens.spacing.component.xs,
+    flex: 1,
+    paddingVertical: tokens.spacing.component.sm,
+    borderRadius: tokens.radius.sm,
   },
-  // Modal styles
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  calendarModalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  presetsContainer: {
-    padding: 20,
-    borderBottomWidth: 1,
-  },
-  presetsTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 16,
-  },
-  presetsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  presetButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    minWidth: 80,
-  },
-  presetButtonText: {
-    fontSize: 14,
-    fontWeight: "500",
-    textAlign: "center",
-  },
-  calendarContainer: {
-    padding: 20,
-  },
-  clearCustomButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 20,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  clearCustomButtonText: {
-    fontSize: 14,
-  },
-  summaryCard: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-  },
-  summaryHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  summaryDate: {
-    fontSize: 14,
-  },
-  calorieOverview: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  calorieMain: {
-    alignItems: "flex-start",
-  },
-  calorieValue: {
-    fontSize: 32,
-    fontWeight: "bold",
-  },
-  calorieLabel: {
-    fontSize: 14,
-  },
-  calorieRemaining: {
-    alignItems: "flex-end",
-  },
-  remainingValue: {
-    fontSize: 24,
-    fontWeight: "600",
-  },
-  remainingLabel: {
-    fontSize: 14,
-  },
-  calorieBar: {
-    height: 8,
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  calorieBarFill: {
-    height: "100%",
-  },
-  nutritionSection: {
-    marginBottom: 24,
+  calendarButtonText: {
+    fontSize: tokens.typography.fontSize.caption,
+    fontWeight: tokens.typography.fontWeight.medium,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 16,
+    fontSize: tokens.typography.fontSize.h4,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    marginBottom: tokens.spacing.component.lg,
+  },
+  nutritionSection: {
+    marginBottom: tokens.spacing.layout.md,
   },
   nutritionRings: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 8,
+    paddingVertical: tokens.spacing.component.sm,
   },
   progressRingContainer: {
     alignItems: "center",
@@ -708,154 +704,257 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   progressValue: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: tokens.typography.fontSize.body,
+    fontWeight: tokens.typography.fontWeight.bold,
   },
   progressUnit: {
-    fontSize: 10,
+    fontSize: tokens.typography.fontSize.caption,
   },
   progressLabel: {
-    fontSize: 12,
-    fontWeight: "500",
-    marginTop: 8,
+    fontSize: tokens.typography.fontSize.caption,
+    fontWeight: tokens.typography.fontWeight.medium,
+    marginTop: tokens.spacing.component.sm,
   },
   progressTarget: {
-    fontSize: 10,
-    marginTop: 2,
+    fontSize: tokens.typography.fontSize.caption,
+    marginTop: tokens.spacing.component.xs,
   },
   patternSection: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  seeAllText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  heatmapContainer: {
-    height: 180,
-    borderRadius: 12,
-    padding: 16,
-    paddingBottom: 20,
+    marginBottom: tokens.spacing.layout.md,
   },
   characterSection: {
-    marginBottom: 24,
+    marginBottom: tokens.spacing.layout.md,
   },
   characterCard: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: tokens.radius.lg,
+    padding: tokens.spacing.component.lg,
+    marginBottom: tokens.spacing.component.md,
   },
   characterEmoji: {
     fontSize: 40,
-    marginRight: 16,
+    marginRight: tokens.spacing.component.lg,
   },
   characterInfo: {
     flex: 1,
   },
   characterTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
+    fontSize: tokens.typography.fontSize.body,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    marginBottom: tokens.spacing.component.xs,
   },
   characterDescription: {
-    fontSize: 14,
+    fontSize: tokens.typography.fontSize.bodySmall,
   },
   characterLevel: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: tokens.spacing.component.md,
+    paddingVertical: tokens.spacing.component.sm,
+    borderRadius: tokens.radius.lg,
   },
   levelText: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: tokens.typography.fontSize.caption,
+    fontWeight: tokens.typography.fontWeight.semibold,
   },
   diversityScore: {
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: tokens.radius.lg,
+    padding: tokens.spacing.component.lg,
   },
   diversityLabel: {
-    fontSize: 14,
-    marginBottom: 4,
+    fontSize: tokens.typography.fontSize.bodySmall,
+    marginBottom: tokens.spacing.component.xs,
   },
   diversityValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 8,
+    fontSize: tokens.typography.fontSize.h2,
+    fontWeight: tokens.typography.fontWeight.bold,
+    marginBottom: tokens.spacing.component.sm,
   },
   diversityTip: {
-    fontSize: 12,
+    fontSize: tokens.typography.fontSize.caption,
     fontStyle: "italic",
   },
   achievementsSection: {
-    marginBottom: 24,
+    marginBottom: tokens.spacing.layout.md,
   },
   achievementCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: tokens.radius.lg,
+    padding: tokens.spacing.component.lg,
+    marginBottom: tokens.spacing.component.md,
   },
   achievementHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: tokens.spacing.component.md,
   },
   achievementEmoji: {
     fontSize: 24,
-    marginRight: 12,
+    marginRight: tokens.spacing.component.md,
   },
   achievementInfo: {
     flex: 1,
   },
   achievementTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 2,
+    fontSize: tokens.typography.fontSize.body,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    marginBottom: tokens.spacing.component.xs,
   },
   achievementDescription: {
-    fontSize: 12,
+    fontSize: tokens.typography.fontSize.caption,
   },
   achievementProgress: {
     alignItems: "flex-end",
   },
   achievementProgressText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: tokens.typography.fontSize.bodySmall,
+    fontWeight: tokens.typography.fontWeight.semibold,
   },
   achievementBar: {
     height: 4,
-    borderRadius: 2,
+    borderRadius: tokens.radius.sm,
     overflow: "hidden",
   },
   achievementBarFill: {
     height: "100%",
   },
   insightsSection: {
-    marginBottom: 24,
+    marginBottom: tokens.spacing.layout.md,
   },
   insightCard: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: tokens.radius.lg,
+    padding: tokens.spacing.component.lg,
+    marginBottom: tokens.spacing.component.md,
   },
   insightContent: {
     flex: 1,
-    marginLeft: 16,
+    marginLeft: tokens.spacing.component.lg,
   },
   insightTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
+    fontSize: tokens.typography.fontSize.body,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    marginBottom: tokens.spacing.component.xs,
   },
   insightDescription: {
-    fontSize: 14,
+    fontSize: tokens.typography.fontSize.bodySmall,
+  },
+  // Modal styles
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: tokens.spacing.layout.sm,
+    paddingVertical: tokens.spacing.component.lg,
+    borderBottomWidth: tokens.borderWidth.default,
+  },
+  calendarModalTitle: {
+    fontSize: tokens.typography.fontSize.h4,
+    fontWeight: tokens.typography.fontWeight.semibold,
+  },
+  presetsContainer: {
+    padding: tokens.spacing.layout.sm,
+    borderBottomWidth: tokens.borderWidth.default,
+  },
+  presetsTitle: {
+    fontSize: tokens.typography.fontSize.body,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    marginBottom: tokens.spacing.component.lg,
+  },
+  presetsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: tokens.spacing.component.md,
+  },
+  presetButton: {
+    paddingHorizontal: tokens.spacing.component.lg,
+    paddingVertical: tokens.spacing.component.md,
+    borderRadius: tokens.radius.sm,
+    minWidth: 80,
+  },
+  presetButtonText: {
+    fontSize: tokens.typography.fontSize.bodySmall,
+    fontWeight: tokens.typography.fontWeight.medium,
+    textAlign: "center",
+  },
+  calendarContainer: {
+    padding: tokens.spacing.layout.sm,
+  },
+  clearCustomButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: tokens.spacing.layout.sm,
+    paddingVertical: tokens.spacing.component.md,
+    gap: tokens.spacing.component.sm,
+  },
+  clearCustomButtonText: {
+    fontSize: tokens.typography.fontSize.bodySmall,
   },
 });
+
+// =============================================================================
+// THEMED STYLES
+// =============================================================================
+
+const periodButtonStyles = createStyles((colors) => ({
+  active: {
+    backgroundColor: colors.interactive.primary,
+  },
+  inactive: {
+    backgroundColor: "transparent" as const,
+  },
+  activeText: {
+    color: colors.text.inverse,
+  },
+  inactiveText: {
+    color: colors.text.secondary,
+  },
+}));
+
+const progressRingStyles = createStyles((colors) => ({
+  value: {
+    color: colors.text.primary,
+  },
+  unit: {
+    color: colors.text.secondary,
+  },
+  label: {
+    color: colors.text.primary,
+  },
+  target: {
+    color: colors.text.secondary,
+  },
+}));
+
+const achievementCardStyles = createStyles((colors) => ({
+  card: {
+    backgroundColor: colors.bg.elevated,
+  },
+  title: {
+    color: colors.text.primary,
+  },
+  description: {
+    color: colors.text.secondary,
+  },
+  progressText: {
+    color: colors.interactive.primary,
+  },
+  bar: {
+    backgroundColor: colors.border.subtle,
+  },
+  barFill: {
+    backgroundColor: colors.interactive.primary,
+  },
+}));
+
+const insightCardStyles = createStyles((colors) => ({
+  card: {
+    backgroundColor: colors.bg.elevated,
+  },
+  title: {
+    color: colors.text.primary,
+  },
+  description: {
+    color: colors.text.secondary,
+  },
+}));

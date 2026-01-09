@@ -514,37 +514,27 @@ if (!product) notFound();
 
 ---
 
-## 9. File Structure (Domain-First)
+## 9. Project Structure
 
 ```
-app/
-├── (routes)/
-│   ├── (marketing)/
-│   │   ├── page.tsx
-│   │   └── about/page.tsx
-│   ├── (shop)/
-│   │   ├── products/page.tsx
-│   │   └── cart/page.tsx
-│   └── (dashboard)/
-│       └── dashboard/page.tsx
-├── domains/
-│   ├── user/
-│   │   ├── components/
-│   │   │   ├── UserProfile.tsx
-│   │   │   └── UserEditForm.tsx
-│   │   ├── actions/
-│   │   │   ├── queries.ts
-│   │   │   └── mutations.ts
-│   │   └── hooks/
-│   │       └── useUserPreferences.ts
-│   ├── product/
-│   └── cart/
-├── components/ui/
-├── stores/             # Zustand stores
-├── lib/
-│   ├── db.ts
-│   └── auth.ts
-└── layout.tsx
+app/                 # Next.js App Router (file-based routing)
+src/
+├── providers/       # App infrastructure (QueryClient, Theme)
+├── design-system/   # UI system (tokens, headless hooks, styled components)
+├── domains/         # Feature modules (fractal structure)
+│   └── user/        # Example domain
+│       ├── actions/ # Server Actions (mutations, form handlers)
+│       ├── components/
+│       ├── hooks/
+│       ├── store/
+│       └── types/
+├── components/      # Shared components (Header, Footer)
+├── lib/             # Independent modules (db, auth, logger)
+├── constants/       # App constants
+├── utils/           # Shared utilities
+├── hooks/           # Shared custom hooks
+├── store/           # Zustand store
+└── types/           # Shared types
 ```
 
 ---

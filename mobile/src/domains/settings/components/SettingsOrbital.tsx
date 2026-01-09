@@ -1,12 +1,14 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { Card } from "@/components/ui/Card";
-import { useAuthStore } from "@/domains/auth/stores/authStore";
-import { useSettingsStore } from "@/domains/settings/stores/settingsStore";
-import { useSettingsI18n } from "@/lib/i18n";
-import { useTheme } from "@/lib/theme";
+import React from 'react';
+import { View, ScrollView, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { createStyles, useStyles, useTheme } from '@/design-system/theme';
+import { Box, Text, HStack, VStack } from '@/design-system/styled';
+import { Card } from '@/design-system/styled';
+import { tokens } from '@/design-system/tokens';
+import { useAuthStore } from '@/domains/auth/stores/authStore';
+import { useSettingsStore } from '@/domains/settings/stores/settingsStore';
+import { useSettingsI18n } from '@/lib/i18n';
 
 interface SettingsOrbitalProps {
   onNavigate: (section: string) => void;
@@ -22,354 +24,417 @@ interface QuickSetting {
 }
 
 export default function SettingsOrbital({ onNavigate }: SettingsOrbitalProps) {
-  const { theme } = useTheme();
+  const s = useStyles(styles);
+  const { colors } = useTheme();
   const { user, logout } = useAuthStore();
   const isAuthenticated = !!user?.isLoggedIn;
   const { display, notifications } = useSettingsStore();
   const settings = useSettingsI18n();
 
   const handleSettingsPress = () => {
-    router.push("/settings");
+    router.push('/settings');
   };
 
   const quickSettings: QuickSetting[] = [
     // Only show Account option for authenticated users
-    ...(isAuthenticated ? [{
-      id: "account",
-      title: "Account",
-      icon: "person-outline" as keyof typeof Ionicons.glyphMap,
-      value: user?.username || "Signed in",
-      onPress: () => router.push("/settings/account"),
-    }] : []),
+    ...(isAuthenticated
+      ? [
+          {
+            id: 'account',
+            title: 'Account',
+            icon: 'person-outline' as keyof typeof Ionicons.glyphMap,
+            value: user?.username || 'Signed in',
+            onPress: () => router.push('/settings/account'),
+          },
+        ]
+      : []),
     {
-      id: "theme",
+      id: 'theme',
       title: settings.display.theme.title,
-      icon: "color-palette-outline",
+      icon: 'color-palette-outline',
       value:
-        display.theme === "system"
+        display.theme === 'system'
           ? settings.display.theme.system
-          : display.theme === "dark"
+          : display.theme === 'dark'
           ? settings.display.theme.dark
           : settings.display.theme.light,
-      onPress: () => router.push("/settings/display"),
+      onPress: () => router.push('/settings/display'),
     },
     {
-      id: "notifications",
+      id: 'notifications',
       title: settings.notifications.title,
-      icon: "notifications-outline",
-      value: notifications.mealReminders ? "Yes" : "No",
-      onPress: () => router.push("/settings/notifications"),
+      icon: 'notifications-outline',
+      value: notifications.enabled ? 'Yes' : 'No',
+      onPress: () => router.push('/settings/notifications'),
     },
     {
-      id: "language",
+      id: 'language',
       title: settings.language.title,
-      icon: "language-outline",
-      value: display.language === "ko" ? "한국어" : "English",
-      onPress: () => router.push("/settings/display"),
+      icon: 'language-outline',
+      value: display.language === 'ko' ? '한국어' : 'English',
+      onPress: () => router.push('/settings/display'),
     },
   ];
 
   const renderQuickSetting = (setting: QuickSetting) => (
-    <Card key={setting.id} style={[styles.quickSettingCard, { backgroundColor: theme.colors.surface }]}>
-      <TouchableOpacity style={styles.quickSettingContent} onPress={setting.onPress} activeOpacity={0.7}>
-        <View style={styles.quickSettingLeft}>
-          <View style={styles.quickSettingIcon}>
-            <Ionicons name={setting.icon} size={20} color={theme.colors.primary} />
+    <Card key={setting.id} variant="filled" style={s.quickSettingCard}>
+      <TouchableOpacity
+        style={s.quickSettingContent}
+        onPress={setting.onPress}
+        activeOpacity={0.7}
+      >
+        <View style={s.quickSettingLeft}>
+          <View style={s.quickSettingIcon}>
+            <Ionicons
+              name={setting.icon}
+              size={tokens.size.icon.sm}
+              color={colors.interactive.primary}
+            />
           </View>
-          <Text style={[styles.quickSettingTitle, { color: theme.colors.text }]}>{setting.title}</Text>
+          <Text style={s.quickSettingTitle}>{setting.title}</Text>
         </View>
-        <View style={styles.quickSettingRight}>
-          <Text style={[styles.quickSettingValue, { color: theme.colors.textSecondary }]}>{setting.value}</Text>
-          <Ionicons name="chevron-forward" size={16} color={theme.colors.textSecondary} />
+        <View style={s.quickSettingRight}>
+          <Text style={s.quickSettingValue}>{setting.value}</Text>
+          <Ionicons
+            name="chevron-forward"
+            size={tokens.size.icon.xs}
+            color={colors.text.secondary}
+          />
         </View>
       </TouchableOpacity>
     </Card>
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={s.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => onNavigate("camera")}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => onNavigate('camera')}>
+          <Ionicons
+            name="arrow-back"
+            size={tokens.size.icon.md}
+            color={colors.text.primary}
+          />
         </TouchableOpacity>
 
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Settings</Text>
+        <Text style={s.headerTitle}>Settings</Text>
 
-        <View style={{ width: 24 }} />
+        <View style={{ width: tokens.size.icon.md }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.content} showsVerticalScrollIndicator={false}>
         {/* Authenticated User Profile OR Sign-in Incentive Banner */}
         {isAuthenticated ? (
-          <Card style={[styles.profileCard, { backgroundColor: theme.colors.surface }]}>
+          <Card variant="filled" style={s.profileCard}>
             <TouchableOpacity
-              style={styles.profileContent}
-              onPress={() => router.push("/settings/account")}
+              style={s.profileContent}
+              onPress={() => router.push('/settings/account')}
               activeOpacity={0.7}
             >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{user?.username?.charAt(0).toUpperCase() || "U"}</Text>
-              </View>
-              <View style={styles.profileInfo}>
-                <Text style={[styles.profileName, { color: theme.colors.text }]}>{user?.username || "User"}</Text>
-                <Text style={[styles.profileEmail, { color: theme.colors.textSecondary }]}>
-                  {user?.email || "Signed in"}
+              <View style={s.avatar}>
+                <Text style={s.avatarText}>
+                  {user?.username?.charAt(0).toUpperCase() || 'U'}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+              <View style={s.profileInfo}>
+                <Text style={s.profileName}>
+                  {user?.username || 'User'}
+                </Text>
+                <Text style={s.profileEmail}>
+                  {user?.email || 'Signed in'}
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={tokens.size.icon.sm}
+                color={colors.text.secondary}
+              />
             </TouchableOpacity>
           </Card>
         ) : (
-          <Card style={[styles.signInBanner, { backgroundColor: theme.colors.primary + "10", borderColor: theme.colors.primary + "20" }]}>
+          <Card variant="outline" style={s.signInBanner}>
             <TouchableOpacity
-              style={styles.signInBannerContent}
-              onPress={() => router.push("/auth")}
+              style={s.signInBannerContent}
+              onPress={() => router.push('/auth')}
               activeOpacity={0.7}
             >
-              <View style={styles.signInBannerLeft}>
-                <View style={[styles.signInIcon, { backgroundColor: theme.colors.primary + "20" }]}>
-                  <Ionicons name="log-in-outline" size={20} color={theme.colors.primary} />
+              <View style={s.signInBannerLeft}>
+                <View style={s.signInIcon}>
+                  <Ionicons
+                    name="log-in-outline"
+                    size={tokens.size.icon.sm}
+                    color={colors.interactive.primary}
+                  />
                 </View>
-                <View style={styles.signInTextContainer}>
-                  <Text style={[styles.signInTitle, { color: theme.colors.text }]}>Sign in to unlock full features</Text>
-                  <Text style={[styles.signInDescription, { color: theme.colors.textSecondary }]}>
+                <View style={s.signInTextContainer}>
+                  <Text style={s.signInTitle}>
+                    Sign in to unlock full features
+                  </Text>
+                  <Text style={s.signInDescription}>
                     Sync your meals across devices and track your progress
                   </Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
+              <Ionicons
+                name="chevron-forward"
+                size={tokens.size.icon.xs}
+                color={colors.interactive.primary}
+              />
             </TouchableOpacity>
           </Card>
         )}
 
         {/* Quick Settings */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Quick Settings</Text>
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Quick Settings</Text>
           {quickSettings.map(renderQuickSetting)}
         </View>
 
         {/* Main Settings Categories */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>All Settings</Text>
-          <Card style={[styles.allSettingsCard, { backgroundColor: theme.colors.surface }]}>
-            <TouchableOpacity style={styles.allSettingsContent} onPress={handleSettingsPress} activeOpacity={0.7}>
-              <View style={styles.allSettingsLeft}>
-                <View style={styles.allSettingsIcon}>
-                  <Ionicons name="settings-outline" size={24} color={theme.colors.primary} />
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>All Settings</Text>
+          <Card variant="filled" style={s.allSettingsCard}>
+            <TouchableOpacity
+              style={s.allSettingsContent}
+              onPress={handleSettingsPress}
+              activeOpacity={0.7}
+            >
+              <View style={s.allSettingsLeft}>
+                <View style={s.allSettingsIcon}>
+                  <Ionicons
+                    name="settings-outline"
+                    size={tokens.size.icon.md}
+                    color={colors.interactive.primary}
+                  />
                 </View>
                 <View>
-                  <Text style={[styles.allSettingsTitle, { color: theme.colors.text }]}>All Settings</Text>
-                  <Text style={[styles.allSettingsDescription, { color: theme.colors.textSecondary }]}>
+                  <Text style={s.allSettingsTitle}>All Settings</Text>
+                  <Text style={s.allSettingsDescription}>
                     Manage all app preferences
                   </Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+              <Ionicons
+                name="chevron-forward"
+                size={tokens.size.icon.sm}
+                color={colors.text.secondary}
+              />
             </TouchableOpacity>
           </Card>
         </View>
 
         {/* App Info */}
-        <View style={styles.appInfo}>
-          <Text style={[styles.appName, { color: theme.colors.text }]}>Meal Log</Text>
-          <Text style={[styles.appVersion, { color: theme.colors.textSecondary }]}>Version 1.0.0</Text>
-          <Text style={[styles.buildInfo, { color: theme.colors.textSecondary }]}>Build 1</Text>
+        <View style={s.appInfo}>
+          <Text style={s.appName}>Meal Log</Text>
+          <Text style={s.appVersion}>Version 1.0.0</Text>
+          <Text style={s.buildInfo}>Build 1</Text>
         </View>
       </ScrollView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+// =============================================================================
+// STYLES
+// =============================================================================
+
+const styles = createStyles((colors) => ({
   container: {
     flex: 1,
+    backgroundColor: colors.bg.primary,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
     paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingHorizontal: tokens.spacing.component.xl,
+    paddingBottom: tokens.spacing.component.lg,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: tokens.typography.fontSize.h4,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    color: colors.text.primary,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: tokens.spacing.component.lg,
   },
   profileCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    marginBottom: 24,
+    marginBottom: tokens.spacing.layout.md,
     padding: 0,
   },
   profileContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 20,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    padding: tokens.spacing.component.xl,
   },
   avatar: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#FF6B35",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
+    backgroundColor: colors.interactive.primary,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginRight: tokens.spacing.component.lg,
   },
   avatarText: {
-    color: "white",
-    fontSize: 20,
-    fontWeight: "600",
+    color: colors.text.inverse,
+    fontSize: tokens.typography.fontSize.h3,
+    fontWeight: tokens.typography.fontWeight.semibold,
   },
   profileInfo: {
     flex: 1,
   },
   profileName: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 4,
+    fontSize: tokens.typography.fontSize.h4,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    marginBottom: tokens.spacing.component.xs,
+    color: colors.text.primary,
   },
   profileEmail: {
-    color: "rgba(255, 255, 255, 0.7)",
-    fontSize: 14,
+    fontSize: tokens.typography.fontSize.bodySmall,
+    color: colors.text.secondary,
   },
   section: {
-    marginBottom: 32,
+    marginBottom: tokens.spacing.layout.lg,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 16,
+    fontSize: tokens.typography.fontSize.h4,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    marginBottom: tokens.spacing.component.lg,
+    color: colors.text.primary,
   },
   quickSettingCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    marginBottom: 8,
+    marginBottom: tokens.spacing.component.sm,
     padding: 0,
   },
   quickSettingContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    padding: tokens.spacing.component.lg,
   },
   quickSettingLeft: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     flex: 1,
   },
   quickSettingIcon: {
     width: 36,
     height: 36,
-    borderRadius: 8,
-    backgroundColor: "rgba(255, 107, 53, 0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
+    borderRadius: tokens.radius.sm,
+    backgroundColor: colors.interactive.primary + '20',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginRight: tokens.spacing.component.md,
   },
   quickSettingTitle: {
-    fontSize: 16,
-    fontWeight: "500",
+    fontSize: tokens.typography.fontSize.body,
+    fontWeight: tokens.typography.fontWeight.medium,
+    color: colors.text.primary,
   },
   quickSettingRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: tokens.spacing.component.sm,
   },
   quickSettingValue: {
-    color: "rgba(255, 255, 255, 0.7)",
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: tokens.typography.fontSize.bodySmall,
+    fontWeight: tokens.typography.fontWeight.medium,
+    color: colors.text.secondary,
   },
   allSettingsCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
     padding: 0,
   },
   allSettingsContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 20,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    padding: tokens.spacing.component.xl,
   },
   allSettingsLeft: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     flex: 1,
   },
   allSettingsIcon: {
     width: 48,
     height: 48,
-    borderRadius: 12,
-    backgroundColor: "rgba(255, 107, 53, 0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
+    borderRadius: tokens.radius.md,
+    backgroundColor: colors.interactive.primary + '20',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginRight: tokens.spacing.component.lg,
   },
   allSettingsTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 4,
+    fontSize: tokens.typography.fontSize.h4,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    marginBottom: tokens.spacing.component.xs,
+    color: colors.text.primary,
   },
   allSettingsDescription: {
-    color: "rgba(255, 255, 255, 0.7)",
-    fontSize: 14,
+    fontSize: tokens.typography.fontSize.bodySmall,
+    color: colors.text.secondary,
   },
   appInfo: {
-    alignItems: "center",
-    paddingVertical: 32,
+    alignItems: 'center' as const,
+    paddingVertical: tokens.spacing.layout.lg,
   },
   appName: {
-    fontSize: 12,
-    fontWeight: "600",
-    marginBottom: 4,
+    fontSize: tokens.typography.fontSize.caption,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    marginBottom: tokens.spacing.component.xs,
+    color: colors.text.primary,
   },
   appVersion: {
-    color: "rgba(255, 255, 255, 0.7)",
-    fontSize: 10,
+    fontSize: tokens.typography.fontSize.caption,
     marginBottom: 2,
+    color: colors.text.secondary,
   },
   buildInfo: {
-    color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 10,
+    fontSize: tokens.typography.fontSize.caption,
+    color: colors.text.tertiary,
   },
-  // Sign In Banner Styles
   signInBanner: {
-    marginBottom: 24,
+    marginBottom: tokens.spacing.layout.md,
     padding: 0,
     borderWidth: 1,
+    borderColor: colors.interactive.primary + '20',
+    backgroundColor: colors.interactive.primary + '10',
   },
   signInBannerContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    padding: tokens.spacing.component.lg,
   },
   signInBannerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     flex: 1,
   },
   signInIcon: {
     width: 32,
     height: 32,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
+    borderRadius: tokens.radius.sm,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginRight: tokens.spacing.component.md,
+    backgroundColor: colors.interactive.primary + '20',
   },
   signInTextContainer: {
     flex: 1,
   },
   signInTitle: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: tokens.typography.fontSize.bodySmall,
+    fontWeight: tokens.typography.fontWeight.semibold,
     marginBottom: 2,
+    color: colors.text.primary,
   },
   signInDescription: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: tokens.typography.fontSize.caption,
+    lineHeight: tokens.typography.fontSize.caption * tokens.typography.lineHeight.body,
+    color: colors.text.secondary,
   },
-});
+}));

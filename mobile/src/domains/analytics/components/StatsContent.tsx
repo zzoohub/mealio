@@ -1,92 +1,125 @@
+/**
+ * StatsContent - Period statistics display component
+ *
+ * Displays calorie summary and progress for a given time period.
+ * Supports toggling between total and daily average views.
+ *
+ * @example
+ * ```tsx
+ * <StatsContent stats={periodStats} onNavigate={handleNavigate} />
+ * ```
+ */
+
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { useTheme } from "@/lib/theme";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useAnalyticsI18n } from "@/lib/i18n";
 import { useAnalyticsStore, PeriodStats } from "../stores/analyticsStore";
+import { createStyles, useStyles } from "@/design-system/theme";
+import { tokens } from "@/design-system/tokens";
+
+// =============================================================================
+// TYPES
+// =============================================================================
 
 interface StatsContentProps {
   stats: PeriodStats;
   onNavigate: (section: string) => void;
 }
 
+// =============================================================================
+// SUB-COMPONENTS
+// =============================================================================
+
+interface ToggleButtonProps {
+  label: string;
+  isActive: boolean;
+  onPress: () => void;
+}
+
+function ToggleButton({ label, isActive, onPress }: ToggleButtonProps) {
+  const s = useStyles(toggleButtonStyles);
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.toggleButton,
+        isActive ? s.active : s.inactive,
+      ]}
+      onPress={onPress}
+    >
+      <Text
+        style={[
+          styles.toggleText,
+          isActive ? s.activeText : s.inactiveText,
+        ]}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
+
 export function StatsContent({ stats, onNavigate }: StatsContentProps) {
-  const { theme } = useTheme();
+  const s = useStyles(statsContentStyles);
   const analytics = useAnalyticsI18n();
   const { globalPeriod, metricsDisplayType, setMetricsDisplayType } = useAnalyticsStore();
 
+  const remaining = Math.max(0, stats.calories.target - stats.calories.current);
+  const progressPercentage = Math.min((stats.calories.current / stats.calories.target) * 100, 100);
+
   return (
-    <View style={[styles.summaryCard, { backgroundColor: theme.colors.surface }]}>
+    <View style={[styles.summaryCard, s.summaryCard]}>
       <View style={styles.summaryHeader}>
-        <Text style={[styles.summaryTitle, { color: theme.colors.text }]}>
+        <Text style={[styles.summaryTitle, s.summaryTitle]}>
           {globalPeriod.type === "day" ? analytics.todaySummary : "Period Summary"}
         </Text>
         {globalPeriod.type !== "day" && (
-          <View style={[styles.inlineToggleButtons, { backgroundColor: theme.colors.background }]}>
-            <TouchableOpacity
-              style={[
-                styles.inlineToggleButton,
-                metricsDisplayType === "total" && { backgroundColor: theme.colors.primary },
-              ]}
+          <View style={[styles.toggleContainer, s.toggleContainer]}>
+            <ToggleButton
+              label="Total"
+              isActive={metricsDisplayType === "total"}
               onPress={() => setMetricsDisplayType("total")}
-            >
-              <Text
-                style={[
-                  styles.inlineToggleText,
-                  { color: theme.colors.textSecondary },
-                  metricsDisplayType === "total" && { color: "white" },
-                ]}
-              >
-                Total
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.inlineToggleButton,
-                metricsDisplayType === "dailyAverage" && { backgroundColor: theme.colors.primary },
-              ]}
+            />
+            <ToggleButton
+              label="Avg"
+              isActive={metricsDisplayType === "dailyAverage"}
               onPress={() => setMetricsDisplayType("dailyAverage")}
-            >
-              <Text
-                style={[
-                  styles.inlineToggleText,
-                  { color: theme.colors.textSecondary },
-                  metricsDisplayType === "dailyAverage" && { color: "white" },
-                ]}
-              >
-                Avg
-              </Text>
-            </TouchableOpacity>
+            />
           </View>
         )}
       </View>
 
-      <Text style={[styles.summaryDate, { color: theme.colors.textSecondary }]}>{stats.periodLabel}</Text>
+      <Text style={[styles.summaryDate, s.summaryDate]}>{stats.periodLabel}</Text>
 
       <View style={styles.calorieOverview}>
         <View style={styles.calorieMain}>
-          <Text style={[styles.calorieValue, { color: theme.colors.text }]}>{Math.round(stats.calories.current)}</Text>
-          <Text style={[styles.calorieLabel, { color: theme.colors.textSecondary }]}>
+          <Text style={[styles.calorieValue, s.calorieValue]}>
+            {Math.round(stats.calories.current)}
+          </Text>
+          <Text style={[styles.calorieLabel, s.calorieLabel]}>
             {stats.metricsType === "dailyAverage" ? "avg calories/day" : "calories consumed"}
           </Text>
         </View>
         <View style={styles.calorieRemaining}>
-          <Text style={[styles.remainingValue, { color: theme.colors.primary }]}>
-            {Math.round(Math.max(0, stats.calories.target - stats.calories.current))}
+          <Text style={[styles.remainingValue, s.remainingValue]}>
+            {Math.round(remaining)}
           </Text>
-          <Text style={[styles.remainingLabel, { color: theme.colors.textSecondary }]}>
+          <Text style={[styles.remainingLabel, s.remainingLabel]}>
             {stats.metricsType === "dailyAverage" ? "avg remaining" : analytics.remaining}
           </Text>
         </View>
       </View>
 
-      <View style={[styles.calorieBar, { backgroundColor: theme.colors.border + "40" }]}>
+      <View style={[styles.progressBar, s.progressBar]}>
         <View
           style={[
-            styles.calorieBarFill,
-            {
-              width: `${Math.min((stats.calories.current / stats.calories.target) * 100, 100)}%`,
-              backgroundColor: theme.colors.primary,
-            },
+            styles.progressFill,
+            s.progressFill,
+            { width: `${progressPercentage}%` as any },
           ]}
         />
       </View>
@@ -94,73 +127,131 @@ export function StatsContent({ stats, onNavigate }: StatsContentProps) {
   );
 }
 
+// =============================================================================
+// STATIC STYLES (non-themed)
+// =============================================================================
+
 const styles = StyleSheet.create({
   summaryCard: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
+    borderRadius: tokens.radius.xl,
+    padding: tokens.spacing.layout.sm,
+    marginBottom: tokens.spacing.layout.sm,
   },
   summaryHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: tokens.spacing.component.xs,
   },
   summaryTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: tokens.typography.fontSize.h4,
+    fontWeight: tokens.typography.fontWeight.semibold,
   },
   summaryDate: {
-    fontSize: 14,
-    marginBottom: 16,
+    fontSize: tokens.typography.fontSize.bodySmall,
+    marginBottom: tokens.spacing.component.lg,
   },
-  inlineToggleButtons: {
+  toggleContainer: {
     flexDirection: "row",
-    borderRadius: 6,
-    padding: 1,
+    borderRadius: tokens.radius.sm,
+    padding: 2,
   },
-  inlineToggleButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+  toggleButton: {
+    paddingHorizontal: tokens.spacing.component.sm,
+    paddingVertical: tokens.spacing.component.xs,
+    borderRadius: tokens.radius.sm,
     minWidth: 36,
     alignItems: "center",
   },
-  inlineToggleText: {
-    fontSize: 10,
-    fontWeight: "500",
+  toggleText: {
+    fontSize: tokens.typography.fontSize.caption,
+    fontWeight: tokens.typography.fontWeight.medium,
   },
   calorieOverview: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: tokens.spacing.component.lg,
   },
   calorieMain: {
     alignItems: "flex-start",
   },
   calorieValue: {
-    fontSize: 32,
-    fontWeight: "bold",
+    fontSize: tokens.typography.fontSize.display,
+    fontWeight: tokens.typography.fontWeight.bold,
   },
   calorieLabel: {
-    fontSize: 14,
+    fontSize: tokens.typography.fontSize.bodySmall,
   },
   calorieRemaining: {
     alignItems: "flex-end",
   },
   remainingValue: {
-    fontSize: 24,
-    fontWeight: "600",
+    fontSize: tokens.typography.fontSize.h2,
+    fontWeight: tokens.typography.fontWeight.semibold,
   },
   remainingLabel: {
-    fontSize: 14,
+    fontSize: tokens.typography.fontSize.bodySmall,
   },
-  calorieBar: {
+  progressBar: {
     height: 8,
-    borderRadius: 4,
+    borderRadius: tokens.radius.sm,
     overflow: "hidden",
   },
-  calorieBarFill: {
+  progressFill: {
     height: "100%",
   },
 });
+
+export default StatsContent;
+
+// =============================================================================
+// THEMED STYLES
+// =============================================================================
+
+const toggleButtonStyles = createStyles((colors) => ({
+  active: {
+    backgroundColor: colors.interactive.primary,
+  },
+  inactive: {
+    backgroundColor: "transparent" as const,
+  },
+  activeText: {
+    color: colors.text.inverse,
+  },
+  inactiveText: {
+    color: colors.text.secondary,
+  },
+}));
+
+const statsContentStyles = createStyles((colors) => ({
+  summaryCard: {
+    backgroundColor: colors.bg.elevated,
+  },
+  summaryTitle: {
+    color: colors.text.primary,
+  },
+  summaryDate: {
+    color: colors.text.secondary,
+  },
+  toggleContainer: {
+    backgroundColor: colors.bg.primary,
+  },
+  calorieValue: {
+    color: colors.text.primary,
+  },
+  calorieLabel: {
+    color: colors.text.secondary,
+  },
+  remainingValue: {
+    color: colors.interactive.primary,
+  },
+  remainingLabel: {
+    color: colors.text.secondary,
+  },
+  progressBar: {
+    backgroundColor: colors.border.subtle,
+  },
+  progressFill: {
+    backgroundColor: colors.interactive.primary,
+  },
+}));

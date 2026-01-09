@@ -17,7 +17,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Meal, MealHistoryFilter, mealStorageUtils, generateMockMeals, mealSortingUtils } from "@/domains/diary";
 import { useDiaryI18n } from "@/lib/i18n";
-import { useTheme } from "@/lib/theme";
+import { useTheme } from "@/design-system/theme";
 import { useAnalyticsStore as useTimeContext, SortMethod } from "@/domains/analytics";
 import { getCachedData } from "@/lib/performance";
 
@@ -27,7 +27,7 @@ interface MealSection {
 }
 
 export default function DiaryHistory() {
-  const { theme } = useTheme();
+  const { colors } = useTheme();
   const router = useRouter();
   const diary = useDiaryI18n();
   const { globalPeriod, setGlobalPeriod, sortMethod, setSortMethod } = useTimeContext();
@@ -188,7 +188,7 @@ export default function DiaryHistory() {
   const MealItem = React.memo(function MealItem({ meal }: { meal: Meal }) {
     return (
       <TouchableOpacity
-        style={[styles.mealItem, { backgroundColor: theme.colors.surface }]}
+        style={[styles.mealItem, { backgroundColor: colors.bg.secondary }]}
         onPress={() => handleMealPress(meal)}
         activeOpacity={0.7}
       >
@@ -197,15 +197,15 @@ export default function DiaryHistory() {
           {meal.photoUri ? (
             <Image source={{ uri: meal.photoUri }} style={styles.mealPhoto} />
           ) : (
-            <View style={[styles.placeholderPhoto, { backgroundColor: theme.colors.border }]}>
-              <Ionicons name="camera" size={20} color={theme.colors.textSecondary} />
+            <View style={[styles.placeholderPhoto, { backgroundColor: colors.border.default }]}>
+              <Ionicons name="camera" size={20} color={colors.text.secondary} />
             </View>
           )}
 
           {/* Verification badge */}
           {meal.isVerified && (
             <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark-circle" size={12} color={theme.colors.secondary} />
+              <Ionicons name="checkmark-circle" size={12} color={colors.interactive.secondary} />
             </View>
           )}
         </View>
@@ -215,22 +215,22 @@ export default function DiaryHistory() {
           <View style={styles.mealHeader}>
             <View style={styles.mealTitleRow}>
               <Text style={styles.mealEmoji}>{getMealTypeIcon(meal.mealType)}</Text>
-              <Text style={[styles.mealName, { color: theme.colors.text }]} numberOfLines={1}>
+              <Text style={[styles.mealName, { color: colors.text.primary }]} numberOfLines={1}>
                 {meal.name}
               </Text>
-              <Text style={[styles.mealTime, { color: theme.colors.textSecondary }]}>{formatTime(meal.timestamp)}</Text>
+              <Text style={[styles.mealTime, { color: colors.text.secondary }]}>{formatTime(meal.timestamp)}</Text>
             </View>
 
             {/* AI Insights Preview */}
             {meal.aiAnalysis?.insights && (
               <View style={styles.insightsPreview}>
                 <View style={styles.healthScore}>
-                  <Ionicons name="fitness" size={12} color={theme.colors.secondary} />
-                  <Text style={[styles.healthScoreText, { color: theme.colors.secondary }]}>
+                  <Ionicons name="fitness" size={12} color={colors.interactive.secondary} />
+                  <Text style={[styles.healthScoreText, { color: colors.interactive.secondary }]}>
                     {meal.aiAnalysis.insights.healthScore}/100
                   </Text>
                 </View>
-                <Text style={[styles.nutritionBalance, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                <Text style={[styles.nutritionBalance, { color: colors.text.secondary }]} numberOfLines={1}>
                   {meal.aiAnalysis.insights.nutritionBalance}
                 </Text>
               </View>
@@ -240,26 +240,26 @@ export default function DiaryHistory() {
           {/* Nutrition Summary */}
           <View style={styles.nutritionRow}>
             <View style={styles.nutritionItem}>
-              <Text style={[styles.nutritionValue, { color: theme.colors.primary }]}>{meal.nutrition.calories}</Text>
-              <Text style={[styles.nutritionLabel, { color: theme.colors.textSecondary }]}>cal</Text>
+              <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>{meal.nutrition.calories}</Text>
+              <Text style={[styles.nutritionLabel, { color: colors.text.secondary }]}>cal</Text>
             </View>
             <View style={styles.nutritionItem}>
-              <Text style={[styles.nutritionValue, { color: theme.colors.primary }]}>{meal.nutrition.protein}g</Text>
-              <Text style={[styles.nutritionLabel, { color: theme.colors.textSecondary }]}>protein</Text>
+              <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>{meal.nutrition.protein}g</Text>
+              <Text style={[styles.nutritionLabel, { color: colors.text.secondary }]}>protein</Text>
             </View>
             <View style={styles.nutritionItem}>
-              <Text style={[styles.nutritionValue, { color: theme.colors.primary }]}>{meal.nutrition.carbs}g</Text>
-              <Text style={[styles.nutritionLabel, { color: theme.colors.textSecondary }]}>carbs</Text>
+              <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>{meal.nutrition.carbs}g</Text>
+              <Text style={[styles.nutritionLabel, { color: colors.text.secondary }]}>carbs</Text>
             </View>
             <View style={styles.nutritionItem}>
-              <Text style={[styles.nutritionValue, { color: theme.colors.primary }]}>{meal.nutrition.fat}g</Text>
-              <Text style={[styles.nutritionLabel, { color: theme.colors.textSecondary }]}>fat</Text>
+              <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>{meal.nutrition.fat}g</Text>
+              <Text style={[styles.nutritionLabel, { color: colors.text.secondary }]}>fat</Text>
             </View>
           </View>
 
           {/* Ingredients Preview */}
           <View style={styles.ingredientsPreview}>
-            <Text style={[styles.ingredientsText, { color: theme.colors.textSecondary }]} numberOfLines={2}>
+            <Text style={[styles.ingredientsText, { color: colors.text.secondary }]} numberOfLines={2}>
               {meal.ingredients.join(", ")}
             </Text>
           </View>
@@ -267,8 +267,8 @@ export default function DiaryHistory() {
           {/* AI Recommendations */}
           {meal.aiAnalysis?.insights?.recommendations && meal.aiAnalysis.insights.recommendations.length > 0 && (
             <View style={styles.recommendationPreview}>
-              <Ionicons name="bulb" size={12} color={theme.colors.warning} />
-              <Text style={[styles.recommendationText, { color: theme.colors.warning }]} numberOfLines={1}>
+              <Ionicons name="bulb" size={12} color={colors.status.warning} />
+              <Text style={[styles.recommendationText, { color: colors.status.warning }]} numberOfLines={1}>
                 {meal.aiAnalysis.insights.recommendations[0]}
               </Text>
             </View>
@@ -277,7 +277,7 @@ export default function DiaryHistory() {
 
         {/* Edit Arrow */}
         <View style={styles.editArrow}>
-          <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+          <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
         </View>
       </TouchableOpacity>
     );
@@ -286,9 +286,9 @@ export default function DiaryHistory() {
   const renderMealItem = ({ item: meal }: { item: Meal }) => <MealItem meal={meal} />;
 
   const renderSectionHeader = ({ section }: { section: MealSection }) => (
-    <View style={[styles.sectionHeader, { backgroundColor: theme.colors.background }]}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{section.title}</Text>
-      <Text style={[styles.sectionCount, { color: theme.colors.textSecondary }]}>
+    <View style={[styles.sectionHeader, { backgroundColor: colors.bg.primary }]}>
+      <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{section.title}</Text>
+      <Text style={[styles.sectionCount, { color: colors.text.secondary }]}>
         {section.data.length} {diary.stat("meals")}
       </Text>
     </View>
@@ -330,8 +330,8 @@ export default function DiaryHistory() {
     if (!isLoadingMore) return null;
     return (
       <View style={styles.loadingMoreContainer}>
-        <ActivityIndicator size="small" color={theme.colors.primary} />
-        <Text style={[styles.loadingMoreText, { color: theme.colors.textSecondary }]}>{diary.loadMore}</Text>
+        <ActivityIndicator size="small" color={colors.interactive.primary} />
+        <Text style={[styles.loadingMoreText, { color: colors.text.secondary }]}>{diary.loadMore}</Text>
       </View>
     );
   };
@@ -345,7 +345,7 @@ export default function DiaryHistory() {
       if (dateString) {
         markedDates[dateString] = {
           startingDay: true,
-          color: theme.colors.primary,
+          color: colors.interactive.primary,
           textColor: "white",
         };
       }
@@ -357,18 +357,18 @@ export default function DiaryHistory() {
         markedDates[startString] = {
           startingDay: true,
           endingDay: true,
-          color: theme.colors.primary,
+          color: colors.interactive.primary,
           textColor: "white",
         };
       } else if (startString && endString) {
         markedDates[startString] = {
           startingDay: true,
-          color: theme.colors.primary,
+          color: colors.interactive.primary,
           textColor: "white",
         };
         markedDates[endString] = {
           endingDay: true,
-          color: theme.colors.primary,
+          color: colors.interactive.primary,
           textColor: "white",
         };
 
@@ -380,8 +380,8 @@ export default function DiaryHistory() {
           const dateString = currentDate.toISOString().split("T")[0];
           if (dateString) {
             markedDates[dateString] = {
-              color: theme.colors.primary + "40",
-              textColor: theme.colors.text,
+              color: colors.interactive.primary + "40",
+              textColor: colors.text.primary,
             };
           }
           currentDate.setDate(currentDate.getDate() + 1);
@@ -455,37 +455,37 @@ export default function DiaryHistory() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg.primary }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{diary.diaryHistory}</Text>
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{diary.diaryHistory}</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity onPress={() => setShowSortModal(true)} style={styles.headerButton}>
-            <Ionicons name="funnel" size={20} color={theme.colors.text} />
+            <Ionicons name="funnel" size={20} color={colors.text.primary} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setShowDateRangeModal(true)} style={styles.headerButton}>
-            <Ionicons name="calendar" size={20} color={theme.colors.text} />
+            <Ionicons name="calendar" size={20} color={colors.text.primary} />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <View style={[styles.searchBar, { backgroundColor: theme.colors.surface }]}>
-          <Ionicons name="search" size={20} color={theme.colors.textSecondary} />
+        <View style={[styles.searchBar, { backgroundColor: colors.bg.secondary }]}>
+          <Ionicons name="search" size={20} color={colors.text.secondary} />
           <TextInput
-            style={[styles.searchInput, { color: theme.colors.text }]}
+            style={[styles.searchInput, { color: colors.text.primary }]}
             placeholder={diary.searchPlaceholder}
-            placeholderTextColor={theme.colors.textSecondary}
+            placeholderTextColor={colors.text.secondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Ionicons name="close-circle" size={20} color={theme.colors.textSecondary} />
+              <Ionicons name="close-circle" size={20} color={colors.text.secondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -495,36 +495,36 @@ export default function DiaryHistory() {
       <View style={styles.filterBar}>
         {/* Sort Indicator */}
         <TouchableOpacity
-          style={[styles.filterButton, { backgroundColor: theme.colors.surface }]}
+          style={[styles.filterButton, { backgroundColor: colors.bg.secondary }]}
           onPress={() => setShowSortModal(true)}
         >
           <Ionicons
             name={mealSortingUtils.getSortMetadata(sortMethod).icon as any}
             size={16}
-            color={theme.colors.primary}
+            color={colors.interactive.primary}
           />
-          <Text style={[styles.filterText, { color: theme.colors.text }]}>
+          <Text style={[styles.filterText, { color: colors.text.primary }]}>
             {mealSortingUtils.getSortMetadata(sortMethod).label}
           </Text>
         </TouchableOpacity>
 
         {/* Date Range Filter */}
         <TouchableOpacity
-          style={[styles.filterButton, { backgroundColor: theme.colors.surface, flex: 1 }]}
+          style={[styles.filterButton, { backgroundColor: colors.bg.secondary, flex: 1 }]}
           onPress={() => setShowDateRangeModal(true)}
         >
-          <Ionicons name="calendar-outline" size={16} color={theme.colors.primary} />
-          <Text style={[styles.filterText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+          <Ionicons name="calendar-outline" size={16} color={colors.interactive.primary} />
+          <Text style={[styles.filterText, { color: colors.text.secondary }]} numberOfLines={1}>
             {formatDateRange()}
           </Text>
         </TouchableOpacity>
 
         {(globalPeriod.startDate || globalPeriod.endDate || globalPeriod.type === "custom") && (
           <TouchableOpacity
-            style={[styles.clearButton, { backgroundColor: theme.colors.surface }]}
+            style={[styles.clearButton, { backgroundColor: colors.bg.secondary }]}
             onPress={clearDateRange}
           >
-            <Ionicons name="close" size={16} color={theme.colors.textSecondary} />
+            <Ionicons name="close" size={16} color={colors.text.secondary} />
           </TouchableOpacity>
         )}
       </View>
@@ -532,14 +532,14 @@ export default function DiaryHistory() {
       {/* Content */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={[styles.loadingText, { color: theme.colors.text }]}>Loading your meals...</Text>
+          <ActivityIndicator size="large" color={colors.interactive.primary} />
+          <Text style={[styles.loadingText, { color: colors.text.primary }]}>Loading your meals...</Text>
         </View>
       ) : sortedSections.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="restaurant-outline" size={64} color={theme.colors.textSecondary} />
-          <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{diary.noMealsFound}</Text>
-          <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
+          <Ionicons name="restaurant-outline" size={64} color={colors.text.secondary} />
+          <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>{diary.noMealsFound}</Text>
+          <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
             {searchQuery ? "Try adjusting your search" : "Start logging meals to see your history here!"}
           </Text>
           <TouchableOpacity style={styles.addMealButton} onPress={() => router.push("/")}>
@@ -571,11 +571,11 @@ export default function DiaryHistory() {
         onRequestClose={() => setShowSortModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.sortModal, { backgroundColor: theme.colors.background }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
-              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Sort By</Text>
+          <View style={[styles.sortModal, { backgroundColor: colors.bg.primary }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border.default }]}>
+              <Text style={[styles.modalTitle, { color: colors.text.primary }]}>Sort By</Text>
               <TouchableOpacity onPress={() => setShowSortModal(false)}>
-                <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
+                <Ionicons name="close" size={24} color={colors.text.secondary} />
               </TouchableOpacity>
             </View>
 
@@ -586,7 +586,7 @@ export default function DiaryHistory() {
                 <TouchableOpacity
                   style={[
                     styles.sortOption,
-                    sortMethod === item.key && { backgroundColor: theme.colors.primary + "20" },
+                    sortMethod === item.key && { backgroundColor: colors.interactive.primary + "20" },
                   ]}
                   onPress={() => handleSortMethodSelect(item.key)}
                 >
@@ -594,25 +594,25 @@ export default function DiaryHistory() {
                     <Ionicons
                       name={item.icon as any}
                       size={20}
-                      color={sortMethod === item.key ? theme.colors.primary : theme.colors.textSecondary}
+                      color={sortMethod === item.key ? colors.interactive.primary : colors.text.secondary}
                     />
                     <View style={styles.sortOptionText}>
                       <Text
                         style={[
                           styles.sortOptionLabel,
-                          { color: sortMethod === item.key ? theme.colors.primary : theme.colors.text },
+                          { color: sortMethod === item.key ? colors.interactive.primary : colors.text.primary },
                         ]}
                       >
                         {item.label}
                       </Text>
                       {item.description && (
-                        <Text style={[styles.sortOptionDescription, { color: theme.colors.textSecondary }]}>
+                        <Text style={[styles.sortOptionDescription, { color: colors.text.secondary }]}>
                           {item.description}
                         </Text>
                       )}
                     </View>
                   </View>
-                  {sortMethod === item.key && <Ionicons name="checkmark" size={20} color={theme.colors.primary} />}
+                  {sortMethod === item.key && <Ionicons name="checkmark" size={20} color={colors.interactive.primary} />}
                 </TouchableOpacity>
               )}
               style={styles.sortOptionsList}
@@ -629,70 +629,70 @@ export default function DiaryHistory() {
         onRequestClose={() => setShowDateRangeModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.dateRangeModal, { backgroundColor: theme.colors.background }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
-              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Select Date Range</Text>
+          <View style={[styles.dateRangeModal, { backgroundColor: colors.bg.primary }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border.default }]}>
+              <Text style={[styles.modalTitle, { color: colors.text.primary }]}>Select Date Range</Text>
               <TouchableOpacity onPress={() => setShowDateRangeModal(false)}>
-                <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
+                <Ionicons name="close" size={24} color={colors.text.secondary} />
               </TouchableOpacity>
             </View>
 
             {/* Quick Presets */}
-            <View style={[styles.presetsContainer, { borderBottomColor: theme.colors.border }]}>
-              <Text style={[styles.presetsTitle, { color: theme.colors.text }]}>Quick Select</Text>
+            <View style={[styles.presetsContainer, { borderBottomColor: colors.border.default }]}>
+              <Text style={[styles.presetsTitle, { color: colors.text.primary }]}>Quick Select</Text>
               <View style={styles.presetsGrid}>
                 <TouchableOpacity
-                  style={[styles.presetButton, { backgroundColor: theme.colors.surface }]}
+                  style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
                   onPress={() => {
                     clearDateRange();
                     setShowDateRangeModal(false);
                   }}
                 >
-                  <Text style={[styles.presetButtonText, { color: theme.colors.textSecondary }]}>All Time</Text>
+                  <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>All Time</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.presetButton, { backgroundColor: theme.colors.surface }]}
+                  style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
                   onPress={() => {
                     setDateRangePreset(1);
                     setShowDateRangeModal(false);
                   }}
                 >
-                  <Text style={[styles.presetButtonText, { color: theme.colors.textSecondary }]}>Today</Text>
+                  <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>Today</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.presetButton, { backgroundColor: theme.colors.surface }]}
+                  style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
                   onPress={() => {
                     setDateRangePreset(7);
                     setShowDateRangeModal(false);
                   }}
                 >
-                  <Text style={[styles.presetButtonText, { color: theme.colors.textSecondary }]}>Last 7 Days</Text>
+                  <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>Last 7 Days</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.presetButton, { backgroundColor: theme.colors.surface }]}
+                  style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
                   onPress={() => {
                     setDateRangePreset(30);
                     setShowDateRangeModal(false);
                   }}
                 >
-                  <Text style={[styles.presetButtonText, { color: theme.colors.textSecondary }]}>Last 30 Days</Text>
+                  <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>Last 30 Days</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.presetButton, { backgroundColor: theme.colors.surface }]}
+                  style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
                   onPress={() => {
                     setDateRangePreset(90);
                     setShowDateRangeModal(false);
                   }}
                 >
-                  <Text style={[styles.presetButtonText, { color: theme.colors.textSecondary }]}>Last 3 Months</Text>
+                  <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>Last 3 Months</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* Calendar */}
             <View style={styles.calendarContainer}>
-              <Text style={[styles.calendarTitle, { color: theme.colors.text }]}>Select Date Range</Text>
-              <Text style={[styles.calendarInstructions, { color: theme.colors.textSecondary }]}>
+              <Text style={[styles.calendarTitle, { color: colors.text.primary }]}>Select Date Range</Text>
+              <Text style={[styles.calendarInstructions, { color: colors.text.secondary }]}>
                 Tap to select start date, tap again to select end date
               </Text>
 
@@ -701,19 +701,19 @@ export default function DiaryHistory() {
                 markingType={"period"}
                 markedDates={calendarRange.markedDates}
                 theme={{
-                  backgroundColor: theme.colors.surface,
-                  calendarBackground: theme.colors.surface,
-                  textSectionTitleColor: theme.colors.text,
-                  selectedDayBackgroundColor: theme.colors.primary,
+                  backgroundColor: colors.bg.secondary,
+                  calendarBackground: colors.bg.secondary,
+                  textSectionTitleColor: colors.text.primary,
+                  selectedDayBackgroundColor: colors.interactive.primary,
                   selectedDayTextColor: "white",
-                  todayTextColor: theme.colors.primary,
-                  dayTextColor: theme.colors.text,
-                  textDisabledColor: theme.colors.textSecondary,
-                  dotColor: theme.colors.primary,
+                  todayTextColor: colors.interactive.primary,
+                  dayTextColor: colors.text.primary,
+                  textDisabledColor: colors.text.secondary,
+                  dotColor: colors.interactive.primary,
                   selectedDotColor: "white",
-                  arrowColor: theme.colors.primary,
-                  disabledArrowColor: theme.colors.textSecondary,
-                  monthTextColor: theme.colors.text,
+                  arrowColor: colors.interactive.primary,
+                  disabledArrowColor: colors.text.secondary,
+                  monthTextColor: colors.text.primary,
                   indicatorColor: "#FF6B35",
                   textDayFontWeight: "400",
                   textMonthFontWeight: "600",
@@ -726,8 +726,8 @@ export default function DiaryHistory() {
 
               {(calendarRange.startDate || calendarRange.endDate) && (
                 <TouchableOpacity style={styles.clearCustomButton} onPress={() => clearDateRange()}>
-                  <Ionicons name="trash-outline" size={16} color={theme.colors.textSecondary} />
-                  <Text style={[styles.clearCustomButtonText, { color: theme.colors.primary }]}>Clear Selection</Text>
+                  <Ionicons name="trash-outline" size={16} color={colors.text.secondary} />
+                  <Text style={[styles.clearCustomButtonText, { color: colors.interactive.primary }]}>Clear Selection</Text>
                 </TouchableOpacity>
               )}
             </View>

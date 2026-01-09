@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { STORAGE_KEYS, ERROR_MESSAGES } from "@/constants";
-import type { User, PhoneAuthFormData, VerificationFormData, UserPreferences } from "@/types";
+import type { User, PhoneAuthFormData, VerificationFormData } from "../types";
+import type { UserPreferences } from "@/domains/settings/types";
 import { networkUtils } from "../hooks/useNetworkConnection";
 import { storage } from "@/lib/storage";
 
@@ -388,7 +389,11 @@ useAuthStore.subscribe(
   user => {
     if (user) {
       // Auto-save user data when it changes
-      storage.set(STORAGE_KEYS.USER_DATA, user).catch(error => console.error("Failed to auto-save user data:", error));
+      try {
+        storage.set(STORAGE_KEYS.USER_DATA, user);
+      } catch (error) {
+        console.error("Failed to auto-save user data:", error);
+      }
     }
   },
 );

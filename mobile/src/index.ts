@@ -32,20 +32,9 @@ export type { UserPreferences } from "./domains/settings/types";
 export { CAMERA_SETTINGS, APP_CONFIG, API_CONFIG, STORAGE_KEYS, QUERY_KEYS, MUTATION_KEYS } from "./constants";
 
 // Design System
-export {
-  tokens,
-  lightTheme,
-  darkTheme,
-  createSpacing,
-  createElevation,
-  textStyles,
-  componentStyles,
-} from "./styles/tokens";
-export type { Theme } from "./styles/tokens";
+export * from "./design-system";
 
 // Components (organized by category)
-export { Button } from "./components/ui/Button";
-export { Card } from "./components/ui/Card";
 export { LoadingState, ErrorState } from "./components";
 
 // Domains (feature-based exports)

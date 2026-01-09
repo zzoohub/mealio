@@ -1,12 +1,33 @@
+/**
+ * StatsSuspenseWrapper - Suspense boundary for stats loading
+ *
+ * Wraps the stats query component with Suspense to show a skeleton
+ * loader while data is being fetched. Also handles prefetching of
+ * other periods for smooth transitions.
+ *
+ * @example
+ * ```tsx
+ * <StatsSuspenseWrapper onNavigate={handleNavigate} />
+ * ```
+ */
+
 import React, { Suspense, useEffect } from "react";
 import { useStatsQuery, usePrefetchStats } from "../hooks/useStatsQuery";
 import { StatsSkeleton } from "@/components/SkeletonLoader";
 import { useAnalyticsStore, TimePeriod } from "../stores/analyticsStore";
 import { StatsContent } from "./StatsContent";
 
+// =============================================================================
+// TYPES
+// =============================================================================
+
 interface StatsSuspenseWrapperProps {
   onNavigate: (section: string) => void;
 }
+
+// =============================================================================
+// INNER QUERY COMPONENT
+// =============================================================================
 
 function StatsQueryComponent({ onNavigate }: StatsSuspenseWrapperProps) {
   const { globalPeriod, metricsDisplayType } = useAnalyticsStore();
@@ -16,7 +37,11 @@ function StatsQueryComponent({ onNavigate }: StatsSuspenseWrapperProps) {
   // Prefetch other periods for smooth transitions
   useEffect(() => {
     const prefetchOtherPeriods = async () => {
-      const periodsToPreload: TimePeriod[] = [{ type: "day" }, { type: "week" }, { type: "month" }];
+      const periodsToPreload: TimePeriod[] = [
+        { type: "day" },
+        { type: "week" },
+        { type: "month" },
+      ];
 
       // Prefetch other periods and metric types in background
       for (const period of periodsToPreload) {
@@ -36,6 +61,10 @@ function StatsQueryComponent({ onNavigate }: StatsSuspenseWrapperProps) {
   return <StatsContent stats={currentStats} onNavigate={onNavigate} />;
 }
 
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
+
 export function StatsSuspenseWrapper({ onNavigate }: StatsSuspenseWrapperProps) {
   return (
     <Suspense fallback={<StatsSkeleton />}>
@@ -43,3 +72,5 @@ export function StatsSuspenseWrapper({ onNavigate }: StatsSuspenseWrapperProps) 
     </Suspense>
   );
 }
+
+export default StatsSuspenseWrapper;

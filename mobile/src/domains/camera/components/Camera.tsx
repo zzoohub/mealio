@@ -6,8 +6,8 @@ import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useCameraI18n } from "@/lib/i18n";
-import { useTheme } from "@/lib/theme";
-import { useOverlayHelpers } from "@/components/Overlay";
+import { useTheme } from "@/design-system/theme";
+import { useOverlayHelpers } from "@/providers/overlay";
 
 const MAX_PHOTOS = 10;
 
@@ -17,7 +17,7 @@ interface CameraProps {
 }
 
 export default function Camera({ onNavigate }: CameraProps) {
-  const { theme } = useTheme();
+  const { colors } = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
   const [flashMode, setFlashMode] = useState<FlashMode>("off");
   const [isCapturing, setIsCapturing] = useState(false);
@@ -142,20 +142,20 @@ export default function Camera({ onNavigate }: CameraProps) {
 
   if (!permission) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.loadingText, { color: theme.colors.text }]}>{t.preparing}</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.bg.primary }]}>
+        <Text style={[styles.loadingText, { color: colors.text.primary }]}>{t.preparing}</Text>
       </View>
     );
   }
 
   if (!permission.granted) {
     return (
-      <View style={[styles.permissionContainer, { backgroundColor: theme.colors.background }]}>
-        <Ionicons name="camera-outline" size={80} color={theme.colors.primary} />
-        <Text style={[styles.permissionTitle, { color: theme.colors.text }]}>{t.permissions.title}</Text>
-        <Text style={[styles.permissionMessage, { color: theme.colors.textSecondary }]}>{t.permissions.message}</Text>
+      <View style={[styles.permissionContainer, { backgroundColor: colors.bg.primary }]}>
+        <Ionicons name="camera-outline" size={80} color={colors.interactive.primary} />
+        <Text style={[styles.permissionTitle, { color: colors.text.primary }]}>{t.permissions.title}</Text>
+        <Text style={[styles.permissionMessage, { color: colors.text.secondary }]}>{t.permissions.message}</Text>
         <TouchableOpacity
-          style={[styles.permissionButton, { backgroundColor: theme.colors.primary }]}
+          style={[styles.permissionButton, { backgroundColor: colors.interactive.primary }]}
           onPress={requestPermission}
         >
           <Text style={styles.permissionButtonText}>{t.welcome.enableCamera}</Text>
