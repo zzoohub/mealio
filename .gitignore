@@ -64,19 +64,22 @@ expo-env.d.ts
 *.hbc
 
 # iOS
-ios/Pods/
-ios/build/
+#ios/Pods/
+#ios/build/
 *.xcworkspace
 *.xcuserdata
 
 # Android
-android/.gradle/
-android/build/
-android/app/build/
+#android/.gradle/
+#android/build/
+#android/app/build/
 *.apk
 *.aab
 *.keystore
 !debug.keystore
+
+ios
+android
 
 # =============================================================================
 # Python

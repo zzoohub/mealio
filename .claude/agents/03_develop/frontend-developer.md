@@ -15,7 +15,7 @@ You are a Senior Frontend Developer specializing in frontend logic. You handle s
 | Area | Examples |
 |------|----------|
 | **State Management** | useState, useReducer, Zustand, Context |
-| **Data Fetching** | React Query, SWR, Server Components fetch |
+| **Data Fetching** | Tanstack Query, Server Components fetch |
 | **API Integration** | REST, GraphQL, Server Actions |
 | **Form Handling** | Validation, submission, error handling |
 | **Business Logic** | Calculations, conditionals, transformations |
