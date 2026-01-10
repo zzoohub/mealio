@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useTheme } from "@/design-system/theme";
 import { Card } from "@/design-system/styled";
@@ -6,6 +6,7 @@ import { SettingsItem, SettingsSection, SelectionModal, SettingsLayout } from "@
 import { useSettingsScreen } from "@/domains/settings/hooks/useSettingsScreen";
 import { useSettingsI18n } from "@/lib/i18n";
 import { tokens } from "@/design-system/tokens";
+import { useOverlayHelpers } from "@/providers/overlay";
 
 // =============================================================================
 // MAIN COMPONENT (Composition Pattern)
@@ -14,6 +15,7 @@ import { tokens } from "@/design-system/tokens";
 export default function SettingsScreen() {
   const { colors } = useTheme();
   const settings = useSettingsI18n();
+  const { bottomSheet } = useOverlayHelpers();
 
   const {
     user,
@@ -22,17 +24,44 @@ export default function SettingsScreen() {
     notifications,
     isLoading,
     authLoading,
-    selection,
     themeOptions,
     languageOptions,
     getDisplayValue,
-    openSelection,
-    closeSelection,
     handleSelectionChange,
     handleLogout,
     handleDeleteAccount,
     updateNotifications,
   } = useSettingsScreen();
+
+  // Open theme selection modal via overlay
+  const handleOpenThemeSelection = useCallback(() => {
+    bottomSheet(({ close }) => (
+      <SelectionModal
+        title="Choose Theme"
+        options={themeOptions}
+        selectedValue={display.theme}
+        onSelect={(value) => {
+          handleSelectionChange(value, "theme");
+        }}
+        onClose={close}
+      />
+    ));
+  }, [bottomSheet, themeOptions, display.theme, handleSelectionChange]);
+
+  // Open language selection modal via overlay
+  const handleOpenLanguageSelection = useCallback(() => {
+    bottomSheet(({ close }) => (
+      <SelectionModal
+        title={settings.display.language.select}
+        options={languageOptions}
+        selectedValue={display.language}
+        onSelect={(value) => {
+          handleSelectionChange(value, "language");
+        }}
+        onClose={close}
+      />
+    ));
+  }, [bottomSheet, languageOptions, display.language, handleSelectionChange, settings.display.language.select]);
 
   return (
     <SettingsLayout title={settings.title}>
@@ -61,7 +90,7 @@ export default function SettingsScreen() {
           icon="color-palette-outline"
           type="select"
           value={getDisplayValue("theme")}
-          onPress={() => openSelection("theme")}
+          onPress={handleOpenThemeSelection}
           disabled={isLoading}
           variant="grouped"
         />
@@ -71,7 +100,7 @@ export default function SettingsScreen() {
           icon="language-outline"
           type="select"
           value={getDisplayValue("language")}
-          onPress={() => openSelection("language")}
+          onPress={handleOpenLanguageSelection}
           disabled={isLoading}
           variant="grouped"
         />
@@ -118,16 +147,6 @@ export default function SettingsScreen() {
       <View style={styles.appInfo}>
         <Text style={[styles.appVersion, { color: colors.text.secondary }]}>Version 1.0.0</Text>
       </View>
-
-      {/* Selection Modal */}
-      <SelectionModal
-        visible={selection.visible}
-        title={selection.type === "theme" ? "Choose Theme" : settings.display.language.select}
-        options={selection.type === "theme" ? themeOptions : languageOptions}
-        selectedValue={selection.type === "theme" ? display.theme : display.language}
-        onSelect={handleSelectionChange}
-        onClose={closeSelection}
-      />
     </SettingsLayout>
   );
 }

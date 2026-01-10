@@ -2,6 +2,7 @@ import React, { useCallback } from "react";
 import { useOverlayController } from "./OverlayProvider";
 import { Toast, ToastProps, ToastType, ToastPosition } from "./Toast";
 import { ConfirmDialog, ConfirmDialogProps } from "./ConfirmDialog";
+import { BottomSheet } from "@/design-system/styled";
 
 // Toast options
 export interface ToastOptions {
@@ -22,6 +23,21 @@ export interface ConfirmOptions {
   cancelText?: string;
   confirmVariant?: "default" | "destructive";
 }
+
+// BottomSheet options
+export interface BottomSheetOptions {
+  height?: number | "auto";
+}
+
+// Modal element type for custom modals
+export type ModalElement = React.FC<{
+  isOpen: boolean;
+  close: () => void;
+  exit: () => void;
+}>;
+
+// BottomSheet content renderer
+export type BottomSheetContent = (props: { close: () => void }) => React.ReactNode;
 
 export function useOverlayHelpers() {
   const controller = useOverlayController();
@@ -99,6 +115,24 @@ export function useOverlayHelpers() {
     [controller]
   );
 
+  // BottomSheet helper
+  const bottomSheet = useCallback(
+    (content: BottomSheetContent, options?: BottomSheetOptions) => {
+      const id = controller.open(({ isOpen, close, exit }) => (
+        <BottomSheet
+          visible={isOpen}
+          onClose={close}
+          height={options?.height ?? "auto"}
+          onDismiss={exit}
+        >
+          {content({ close })}
+        </BottomSheet>
+      ));
+      return id;
+    },
+    [controller]
+  );
+
   // Raw open for custom overlays
   const open = controller.open;
   const close = controller.close;
@@ -109,6 +143,7 @@ export function useOverlayHelpers() {
     toast,
     confirm,
     alert,
+    bottomSheet,
     open,
     close,
     exit,

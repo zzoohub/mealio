@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
 import { useSettingsStore, type DisplaySettings, type NotificationSettings } from "../stores/settingsStore";
 import { useAuthStore } from "@/domains/auth/stores/authStore";
@@ -9,12 +9,7 @@ import type { User } from "@/domains/auth/types";
 // TYPES (Interface-First Design)
 // =============================================================================
 
-type SelectionType = "theme" | "language" | null;
-
-interface SelectionState {
-  type: SelectionType;
-  visible: boolean;
-}
+type SelectionType = "theme" | "language";
 
 interface SelectionOption {
   value: string;
@@ -33,8 +28,7 @@ export interface UseSettingsScreenReturn {
   isLoading: boolean;
   authLoading: boolean;
 
-  // Selection modal state
-  selection: SelectionState;
+  // Selection options
   themeOptions: SelectionOption[];
   languageOptions: SelectionOption[];
 
@@ -42,9 +36,7 @@ export interface UseSettingsScreenReturn {
   getDisplayValue: (key: "theme" | "language") => string;
 
   // Actions
-  openSelection: (type: SelectionType) => void;
-  closeSelection: () => void;
-  handleSelectionChange: (value: string) => Promise<void>;
+  handleSelectionChange: (value: string, type: SelectionType) => Promise<void>;
   handleLogout: () => void;
   handleDeleteAccount: () => void;
   updateNotifications: (updates: Partial<NotificationSettings>) => Promise<void>;
@@ -63,9 +55,6 @@ export function useSettingsScreen(): UseSettingsScreenReturn {
 
   // Derived state
   const isAuthenticated = !!user?.isLoggedIn;
-
-  // Selection modal state
-  const [selection, setSelection] = useState<SelectionState>({ type: null, visible: false });
 
   // Options
   const themeOptions = useMemo<SelectionOption[]>(
@@ -97,27 +86,17 @@ export function useSettingsScreen(): UseSettingsScreenReturn {
     [display, themeOptions, languageOptions]
   );
 
-  // Selection modal actions
-  const openSelection = useCallback((type: SelectionType) => {
-    setSelection({ type, visible: true });
-  }, []);
-
-  const closeSelection = useCallback(() => {
-    setSelection({ type: null, visible: false });
-  }, []);
-
+  // Handle selection change
   const handleSelectionChange = useCallback(
-    async (value: string) => {
-      if (!selection.type) return;
-
-      if (selection.type === "theme") {
+    async (value: string, type: SelectionType) => {
+      if (type === "theme") {
         await updateDisplay({ theme: value as "light" | "dark" | "system" });
-      } else if (selection.type === "language") {
+      } else if (type === "language") {
         await updateDisplay({ language: value as SupportedLanguage });
         await changeLanguage(value as SupportedLanguage);
       }
     },
-    [selection.type, updateDisplay]
+    [updateDisplay]
   );
 
   // Account actions
@@ -167,8 +146,7 @@ export function useSettingsScreen(): UseSettingsScreenReturn {
     isLoading,
     authLoading,
 
-    // Selection modal state
-    selection,
+    // Selection options
     themeOptions,
     languageOptions,
 
@@ -176,8 +154,6 @@ export function useSettingsScreen(): UseSettingsScreenReturn {
     getDisplayValue,
 
     // Actions
-    openSelection,
-    closeSelection,
     handleSelectionChange,
     handleLogout,
     handleDeleteAccount,

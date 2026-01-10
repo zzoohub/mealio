@@ -30,7 +30,13 @@ export { OverlayProvider, useOverlay, useOverlayController } from "./OverlayProv
 
 // Helper Hooks
 export { useOverlayHelpers } from "./useOverlayHelpers";
-export type { ToastOptions, ConfirmOptions } from "./useOverlayHelpers";
+export type {
+  ToastOptions,
+  ConfirmOptions,
+  BottomSheetOptions,
+  BottomSheetContent,
+  ModalElement,
+} from "./useOverlayHelpers";
 
 // UI Components (for direct use)
 export { Toast } from "./Toast";

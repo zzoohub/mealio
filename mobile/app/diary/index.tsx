@@ -1,14 +1,15 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Calendar } from "react-native-calendars";
+import * as ImagePicker from "expo-image-picker";
 import { Entry, useDiaryPage, WeekDaySelector, EntryFeedItem } from "@/domains/diary";
-import { formatDateToString } from "@/domains/diary/utils/dateUtils";
+import { formatDateToString, isSameDay } from "@/domains/diary/utils/dateUtils";
 import { useDiaryI18n } from "@/lib/i18n";
 import { useTheme } from "@/design-system/theme";
 import { tokens } from "@/design-system/tokens";
-import { BottomSheet } from "@/design-system/styled";
+import { useOverlayHelpers } from "@/providers/overlay";
 
 // =============================================================================
 // MAIN COMPONENT
@@ -18,6 +19,7 @@ export default function DiaryPage() {
   const { colors } = useTheme();
   const router = useRouter();
   const diary = useDiaryI18n();
+  const { bottomSheet } = useOverlayHelpers();
 
   // Use the extracted hook for all state and logic
   const {
@@ -26,8 +28,6 @@ export default function DiaryPage() {
     today,
     entries,
     isLoading,
-    showCalendarModal,
-    setShowCalendarModal,
     markedDates,
     selectDate,
     handleCalendarDayPress,
@@ -36,11 +36,78 @@ export default function DiaryPage() {
   } = useDiaryPage(colors.interactive.primary);
 
   // =============================================================================
+  // COMPUTED
+  // =============================================================================
+
+  const isToday = isSameDay(selectedDate, today);
+
+  // =============================================================================
   // HANDLERS
   // =============================================================================
 
   const handleEntryPress = (entry: Entry) => {
     router.push(`/diary/${entry.id}`);
+  };
+
+  const handleOpenCalendar = useCallback(() => {
+    bottomSheet(({ close }) => (
+      <>
+        <View style={[styles.modalHeader, { borderBottomColor: colors.border.default }]}>
+          <TouchableOpacity onPress={close} style={styles.modalCloseButton}>
+            <Ionicons name="close" size={24} color={colors.text.secondary} />
+          </TouchableOpacity>
+          <Text style={[styles.modalTitle, { color: colors.text.primary }]}>{diary.selectDate}</Text>
+          <View style={styles.modalCloseButton} />
+        </View>
+
+        <View style={styles.calendarContainer}>
+          <Calendar
+            current={formatDateToString(selectedDate)}
+            onDayPress={(day: { dateString: string }) => {
+              handleCalendarDayPress(day);
+              close();
+            }}
+            markedDates={markedDates}
+            theme={{
+              backgroundColor: colors.bg.secondary,
+              calendarBackground: colors.bg.secondary,
+              textSectionTitleColor: colors.text.secondary,
+              selectedDayBackgroundColor: colors.interactive.primary,
+              selectedDayTextColor: "white",
+              todayTextColor: colors.interactive.primary,
+              dayTextColor: colors.text.primary,
+              textDisabledColor: colors.text.secondary + "60",
+              dotColor: colors.interactive.primary,
+              selectedDotColor: "white",
+              arrowColor: colors.interactive.primary,
+              disabledArrowColor: colors.text.secondary,
+              monthTextColor: colors.text.primary,
+              indicatorColor: colors.interactive.primary,
+              textDayFontWeight: "400",
+              textMonthFontWeight: "600",
+              textDayHeaderFontWeight: "500",
+              textDayFontSize: tokens.typography.fontSize.body,
+              textMonthFontSize: tokens.typography.fontSize.h4,
+              textDayHeaderFontSize: tokens.typography.fontSize.bodySmall,
+            }}
+          />
+        </View>
+      </>
+    ));
+  }, [bottomSheet, colors, diary.selectDate, selectedDate, markedDates, handleCalendarDayPress]);
+
+  const handleLoadFromAlbum = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      selectionLimit: 10,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      // TODO: Navigate to processing flow with selected photos
+      router.push("/");
+    }
   };
 
   // =============================================================================
@@ -55,7 +122,7 @@ export default function DiaryPage() {
           <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.headerTitleContainer} onPress={() => setShowCalendarModal(true)}>
+        <TouchableOpacity style={styles.headerTitleContainer} onPress={handleOpenCalendar}>
           <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{formattedMonthYear}</Text>
           <Ionicons name="chevron-down" size={18} color={colors.text.secondary} />
         </TouchableOpacity>
@@ -91,13 +158,30 @@ export default function DiaryPage() {
                 weekday: "long",
               })}
             </Text>
-            <TouchableOpacity
-              style={[styles.addMealButton, { backgroundColor: colors.interactive.primary }]}
-              onPress={() => router.push("/")}
-            >
-              <Ionicons name="camera" size={20} color="white" />
-              <Text style={styles.addMealButtonText}>{diary.recordMeal}</Text>
-            </TouchableOpacity>
+            {isToday ? (
+              <>
+                <TouchableOpacity
+                  style={[styles.addMealButton, { backgroundColor: colors.interactive.primary }]}
+                  onPress={() => router.push("/")}
+                >
+                  <Ionicons name="camera" size={20} color="white" />
+                  <Text style={styles.addMealButtonText}>{diary.recordMeal}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleLoadFromAlbum} style={styles.secondaryLink}>
+                  <Text style={[styles.secondaryLinkText, { color: colors.text.secondary }]}>
+                    {diary.orSelectFromPhotos}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity
+                style={[styles.addMealButton, { backgroundColor: colors.interactive.primary }]}
+                onPress={handleLoadFromAlbum}
+              >
+                <Ionicons name="images-outline" size={20} color="white" />
+                <Text style={styles.addMealButtonText}>{diary.loadFromAlbum}</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
           <ScrollView style={styles.contentScroll} showsVerticalScrollIndicator={false}>
@@ -109,46 +193,16 @@ export default function DiaryPage() {
         )}
       </View>
 
-      {/* Calendar Modal */}
-      <BottomSheet visible={showCalendarModal} onClose={() => setShowCalendarModal(false)} height="auto">
-        <View style={[styles.modalHeader, { borderBottomColor: colors.border.default }]}>
-          <TouchableOpacity onPress={() => setShowCalendarModal(false)} style={styles.modalCloseButton}>
-            <Ionicons name="close" size={24} color={colors.text.secondary} />
-          </TouchableOpacity>
-          <Text style={[styles.modalTitle, { color: colors.text.primary }]}>{diary.selectDate}</Text>
-          <View style={styles.modalCloseButton} />
-        </View>
-
-        <View style={styles.calendarContainer}>
-          <Calendar
-            current={formatDateToString(selectedDate)}
-            onDayPress={handleCalendarDayPress}
-            markedDates={markedDates}
-            theme={{
-              backgroundColor: colors.bg.secondary,
-              calendarBackground: colors.bg.secondary,
-              textSectionTitleColor: colors.text.secondary,
-              selectedDayBackgroundColor: colors.interactive.primary,
-              selectedDayTextColor: "white",
-              todayTextColor: colors.interactive.primary,
-              dayTextColor: colors.text.primary,
-              textDisabledColor: colors.text.secondary + "60",
-              dotColor: colors.interactive.primary,
-              selectedDotColor: "white",
-              arrowColor: colors.interactive.primary,
-              disabledArrowColor: colors.text.secondary,
-              monthTextColor: colors.text.primary,
-              indicatorColor: colors.interactive.primary,
-              textDayFontWeight: "400",
-              textMonthFontWeight: "600",
-              textDayHeaderFontWeight: "500",
-              textDayFontSize: tokens.typography.fontSize.body,
-              textMonthFontSize: tokens.typography.fontSize.h4,
-              textDayHeaderFontSize: tokens.typography.fontSize.bodySmall,
-            }}
-          />
-        </View>
-      </BottomSheet>
+      {/* FAB - show when entries exist */}
+      {!isLoading && entries.length > 0 && (
+        <TouchableOpacity
+          style={[styles.fab, { backgroundColor: colors.interactive.primary }]}
+          onPress={isToday ? () => router.push("/") : handleLoadFromAlbum}
+          activeOpacity={0.8}
+        >
+          <Ionicons name={isToday ? "camera" : "images-outline"} size={22} color="white" />
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 }
@@ -224,6 +278,12 @@ const styles = StyleSheet.create({
     fontSize: tokens.typography.fontSize.body,
     fontWeight: tokens.typography.fontWeight.semibold,
   },
+  secondaryLink: {
+    paddingVertical: tokens.spacing.component.sm,
+  },
+  secondaryLinkText: {
+    fontSize: tokens.typography.fontSize.bodySmall,
+  },
   contentScroll: {
     flex: 1,
   },
@@ -251,5 +311,20 @@ const styles = StyleSheet.create({
     padding: tokens.spacing.component.md,
     paddingBottom: tokens.spacing.layout.xl,
     minHeight: 370,
+  },
+  fab: {
+    position: "absolute",
+    bottom: tokens.spacing.layout.lg,
+    right: tokens.spacing.layout.md,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
   },
 });

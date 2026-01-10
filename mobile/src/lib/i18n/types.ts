@@ -92,6 +92,8 @@ export interface DiaryTranslations {
   older: string;
   diary: string;
   recordMeal: string;
+  loadFromAlbum: string;
+  orSelectFromPhotos: string;
   goToToday: string;
   selectDate: string;
 }

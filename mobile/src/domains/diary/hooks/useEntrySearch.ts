@@ -46,12 +46,6 @@ export interface UseEntrySearchReturn {
   setDateRangePreset: (days: number) => void;
   clearDateRange: () => void;
 
-  // Modal Controls
-  showSortModal: boolean;
-  setShowSortModal: (show: boolean) => void;
-  showDateRangeModal: boolean;
-  setShowDateRangeModal: (show: boolean) => void;
-
   // Actions
   loadMore: () => Promise<void>;
   refetch: () => Promise<void>;
@@ -100,10 +94,6 @@ export function useEntrySearch(): UseEntrySearchReturn {
   // Search/Filter
   const [searchQuery, setSearchQuery] = useState("");
   const [mockDataGenerated, setMockDataGenerated] = useState(false);
-
-  // Modal state
-  const [showSortModal, setShowSortModal] = useState(false);
-  const [showDateRangeModal, setShowDateRangeModal] = useState(false);
 
   // Calendar state
   const [calendarRange, setCalendarRange] = useState<CalendarRangeState>({
@@ -382,7 +372,6 @@ export function useEntrySearch(): UseEntrySearchReturn {
   const handleSortMethodSelect = useCallback(
     (method: SortMethod) => {
       setSortMethod(method);
-      setShowSortModal(false);
     },
     [setSortMethod]
   );
@@ -417,12 +406,6 @@ export function useEntrySearch(): UseEntrySearchReturn {
     handleDayPress,
     setDateRangePreset,
     clearDateRange,
-
-    // Modal Controls
-    showSortModal,
-    setShowSortModal,
-    showDateRangeModal,
-    setShowDateRangeModal,
 
     // Actions
     loadMore,

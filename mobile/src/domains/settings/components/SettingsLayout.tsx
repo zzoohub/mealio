@@ -1,11 +1,11 @@
-import React from 'react';
-import { SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
-import { Stack, router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { createStyles, useStyles, useTheme } from '@/design-system/theme';
-import { Box, Text, HStack } from '@/design-system/styled';
-import { tokens } from '@/design-system/tokens';
-import * as Haptics from 'expo-haptics';
+import React from "react";
+import { SafeAreaView, ScrollView, TouchableOpacity } from "react-native";
+import { Stack, router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { createStyles, useStyles, useTheme } from "@/design-system/theme";
+import { Box, Text, HStack } from "@/design-system/styled";
+import { tokens } from "@/design-system/tokens";
+import * as Haptics from "expo-haptics";
 
 interface SettingsLayoutProps {
   title: string;
@@ -13,11 +13,7 @@ interface SettingsLayoutProps {
   showBackButton?: boolean;
 }
 
-export function SettingsLayout({
-  title,
-  children,
-  showBackButton = true,
-}: SettingsLayoutProps) {
+export function SettingsLayout({ title, children, showBackButton = true }: SettingsLayoutProps) {
   const s = useStyles(styles);
   const { colors } = useTheme();
 
@@ -25,7 +21,7 @@ export function SettingsLayout({
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (error) {
-      console.warn('Haptics feedback failed:', error);
+      console.warn("Haptics feedback failed:", error);
     }
     router.back();
   };
@@ -46,11 +42,7 @@ export function SettingsLayout({
             onPress={handleBack}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons
-              name="arrow-back"
-              size={tokens.size.icon.md}
-              color={colors.text.primary}
-            />
+            <Ionicons name="chevron-back" size={tokens.size.icon.md} color={colors.text.primary} />
           </TouchableOpacity>
         )}
 
@@ -75,14 +67,14 @@ export function SettingsLayout({
 // STYLES
 // =============================================================================
 
-const styles = createStyles((colors) => ({
+const styles = createStyles(colors => ({
   container: {
     flex: 1,
     backgroundColor: colors.bg.primary,
   },
   header: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
     paddingHorizontal: tokens.spacing.component.lg,
     paddingTop: tokens.spacing.component.sm,
     paddingBottom: tokens.spacing.component.lg,
@@ -92,18 +84,18 @@ const styles = createStyles((colors) => ({
   backButton: {
     width: tokens.size.touchTarget.md,
     height: tokens.size.touchTarget.md,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
     marginRight: tokens.spacing.component.sm,
   },
   headerContent: {
     flex: 1,
-    justifyContent: 'center' as const,
+    justifyContent: "center" as const,
   },
   title: {
     fontSize: tokens.typography.fontSize.h4,
     fontWeight: tokens.typography.fontWeight.semibold,
-    textAlign: 'center' as const,
+    textAlign: "center" as const,
     marginRight: tokens.size.touchTarget.md,
     color: colors.text.primary,
   },

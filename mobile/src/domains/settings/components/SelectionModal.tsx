@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Modal, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { createStyles, useStyles, useTheme } from '@/design-system/theme';
-import { Box, Text, VStack } from '@/design-system/styled';
+import { Text } from '@/design-system/styled';
 import { Card, Button } from '@/design-system/styled';
 import { tokens } from '@/design-system/tokens';
 import * as Haptics from 'expo-haptics';
@@ -14,7 +14,6 @@ interface SelectionOption {
 }
 
 interface SelectionModalProps {
-  visible: boolean;
   title: string;
   options: SelectionOption[];
   selectedValue: any;
@@ -23,7 +22,6 @@ interface SelectionModalProps {
 }
 
 export function SelectionModal({
-  visible,
   title,
   options,
   selectedValue,
@@ -83,33 +81,26 @@ export function SelectionModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={handleClose}
-    >
-      <SafeAreaView style={s.container}>
-        <View style={s.header}>
-          <Text style={s.title}>{title}</Text>
-          <TouchableOpacity style={s.closeButton} onPress={handleClose}>
-            <Ionicons
-              name="close"
-              size={tokens.size.icon.sm}
-              color={colors.text.primary}
-            />
-          </TouchableOpacity>
-        </View>
+    <>
+      <View style={s.header}>
+        <Text style={s.title}>{title}</Text>
+        <TouchableOpacity style={s.closeButton} onPress={handleClose}>
+          <Ionicons
+            name="close"
+            size={tokens.size.icon.sm}
+            color={colors.text.primary}
+          />
+        </TouchableOpacity>
+      </View>
 
-        <View style={s.content}>{options.map(renderOption)}</View>
+      <ScrollView style={s.content}>{options.map(renderOption)}</ScrollView>
 
-        <View style={s.footer}>
-          <Button variant="outline" size="lg" onPress={handleClose}>
-            Cancel
-          </Button>
-        </View>
-      </SafeAreaView>
-    </Modal>
+      <View style={s.footer}>
+        <Button variant="outline" size="lg" onPress={handleClose}>
+          Cancel
+        </Button>
+      </View>
+    </>
   );
 }
 
@@ -118,10 +109,6 @@ export function SelectionModal({
 // =============================================================================
 
 const styles = createStyles((colors) => ({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg.primary,
-  },
   header: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
@@ -143,7 +130,7 @@ const styles = createStyles((colors) => ({
     backgroundColor: colors.bg.secondary,
   },
   content: {
-    flex: 1,
+    maxHeight: 400,
     padding: tokens.spacing.component.lg,
     paddingTop: tokens.spacing.component.sm,
   },

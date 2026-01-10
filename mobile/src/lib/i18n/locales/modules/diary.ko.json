@@ -11,6 +11,8 @@
   "older": "이전",
   "diary": "다이어리",
   "recordMeal": "식사 기록하기",
+  "loadFromAlbum": "사진 선택",
+  "orSelectFromPhotos": "또는 사진에서 선택",
   "goToToday": "오늘로 이동",
   "selectDate": "날짜 선택"
 }

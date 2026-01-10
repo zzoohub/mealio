@@ -283,6 +283,8 @@ export const useDiaryI18n = () => {
       goToToday: t("goToToday"),
       selectDate: t("selectDate"),
       recordMeal: t("recordMeal"),
+      loadFromAlbum: t("loadFromAlbum"),
+      orSelectFromPhotos: t("orSelectFromPhotos"),
       stat: (key: string) => t(key as DiaryKeys),
     }),
     [t],

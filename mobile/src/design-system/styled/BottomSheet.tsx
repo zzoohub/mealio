@@ -47,6 +47,8 @@ interface BottomSheetProps extends Omit<ModalProps, 'animationType' | 'transpare
   fadeAnimationDuration?: number;
   /** Whether swipe down to close is enabled (future feature) */
   enableSwipeDown?: boolean;
+  /** Callback after close animation completes (for cleanup) */
+  onDismiss?: () => void;
 }
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -68,6 +70,7 @@ export function BottomSheet({
   dimOpacity = DEFAULT_DIM_OPACITY,
   slideAnimationConfig = DEFAULT_SLIDE_CONFIG,
   fadeAnimationDuration = DEFAULT_FADE_DURATION,
+  onDismiss,
   ...modalProps
 }: BottomSheetProps) {
   const { colors } = useTheme();
@@ -116,9 +119,11 @@ export function BottomSheet({
       ]).start(() => {
         // Hide modal after animation completes
         setModalVisible(false);
+        // Call onDismiss callback for cleanup
+        onDismiss?.();
       });
     }
-  }, [visible]);
+  }, [visible, onDismiss]);
 
   const handleClose = () => {
     // Trigger close animation via parent

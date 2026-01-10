@@ -38,7 +38,6 @@ export interface UseDiarySearchPageReturn {
 
   // Date filter
   datePreset: DatePreset;
-  dateRange: { startDate: Date | null; endDate: Date | null };
   calendarRange: { startDate: Date | null; endDate: Date | null; markedDates: Record<string, any> };
   customDateLabel: string | undefined;
   handleDatePresetChange: (preset: DatePreset) => void;
@@ -51,12 +50,6 @@ export interface UseDiarySearchPageReturn {
   currentSortLabel: string;
   sortOptions: readonly SortOptionConfig[];
   showSortSheet: () => void;
-
-  // Modal
-  showDateRangeModal: boolean;
-  setShowDateRangeModal: (show: boolean) => void;
-  handleCustomDatePress: () => void;
-  handleDateModalClose: () => void;
 
   // Actions
   handleEntryPress: (entry: Entry) => void;
@@ -96,8 +89,6 @@ export function useDiarySearchPage(): UseDiarySearchPageReturn {
     handleDayPress,
     setDateRangePreset,
     clearDateRange,
-    showDateRangeModal,
-    setShowDateRangeModal,
     loadMore,
   } = useEntrySearch();
 
@@ -186,17 +177,6 @@ export function useDiarySearchPage(): UseDiarySearchPageReturn {
     [clearDateRange, setDateRangePreset]
   );
 
-  const handleCustomDatePress = useCallback(() => {
-    setShowDateRangeModal(true);
-  }, [setShowDateRangeModal]);
-
-  const handleDateModalClose = useCallback(() => {
-    setShowDateRangeModal(false);
-    if (dateRange.startDate) {
-      setDatePreset("custom");
-    }
-  }, [setShowDateRangeModal, dateRange.startDate]);
-
   const showSortSheet = useCallback(() => {
     const options = SORT_OPTIONS.map((opt) => opt.label);
 
@@ -270,7 +250,6 @@ export function useDiarySearchPage(): UseDiarySearchPageReturn {
 
     // Date filter
     datePreset,
-    dateRange,
     calendarRange,
     customDateLabel,
     handleDatePresetChange,
@@ -283,12 +262,6 @@ export function useDiarySearchPage(): UseDiarySearchPageReturn {
     currentSortLabel,
     sortOptions: SORT_OPTIONS,
     showSortSheet,
-
-    // Modal
-    showDateRangeModal,
-    setShowDateRangeModal,
-    handleCustomDatePress,
-    handleDateModalClose,
 
     // Actions
     handleEntryPress,

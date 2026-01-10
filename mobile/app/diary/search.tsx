@@ -22,6 +22,7 @@ import {
 } from "@/domains/diary";
 import { useTheme } from "@/design-system/theme";
 import { tokens } from "@/design-system/tokens";
+import { useOverlayHelpers } from "@/providers/overlay";
 
 // =============================================================================
 // CONSTANTS
@@ -38,6 +39,7 @@ const ITEM_SIZE = (SCREEN_WIDTH - GRID_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 
 export default function DiarySearchScreen() {
   const { colors } = useTheme();
+  const { bottomSheet } = useOverlayHelpers();
 
   // Use the extracted hook for all state and logic
   const {
@@ -51,7 +53,6 @@ export default function DiarySearchScreen() {
     setSelectedMealTypes,
     removeMealType,
     datePreset,
-    dateRange,
     calendarRange,
     customDateLabel,
     handleDatePresetChange,
@@ -59,15 +60,30 @@ export default function DiarySearchScreen() {
     setDateRangePreset,
     clearDateRange,
     showSortSheet,
-    showDateRangeModal,
-    setShowDateRangeModal,
-    handleCustomDatePress,
-    handleDateModalClose,
     handleEntryPress,
     handleClearAllFilters,
     loadMore,
     goBack,
   } = useDiarySearchPage();
+
+  // Open date range modal via overlay
+  const handleOpenDateRangeModal = useCallback(() => {
+    bottomSheet(({ close }) => (
+      <EntryDateRangeModal
+        calendarRange={calendarRange}
+        onDayPress={handleDayPress}
+        onPresetSelect={(days) => {
+          setDateRangePreset(days);
+          handleDatePresetChange("custom");
+        }}
+        onClear={() => {
+          clearDateRange();
+          handleDatePresetChange(null);
+        }}
+        onClose={close}
+      />
+    ));
+  }, [bottomSheet, calendarRange, handleDayPress, setDateRangePreset, handleDatePresetChange, clearDateRange]);
 
   // =============================================================================
   // RENDER HELPERS
@@ -156,7 +172,7 @@ export default function DiarySearchScreen() {
         <DateQuickFilters
           selected={datePreset}
           onChange={handleDatePresetChange}
-          onCustomPress={handleCustomDatePress}
+          onCustomPress={handleOpenDateRangeModal}
         />
 
         {/* Active Filters */}
@@ -194,22 +210,6 @@ export default function DiarySearchScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
-
-      {/* Date Range Modal */}
-      <EntryDateRangeModal
-        visible={showDateRangeModal}
-        onClose={handleDateModalClose}
-        calendarRange={calendarRange}
-        onDayPress={handleDayPress}
-        onPresetSelect={(days) => {
-          setDateRangePreset(days);
-          handleDatePresetChange("custom");
-        }}
-        onClear={() => {
-          clearDateRange();
-          handleDatePresetChange(null);
-        }}
-      />
     </SafeAreaView>
   );
 }

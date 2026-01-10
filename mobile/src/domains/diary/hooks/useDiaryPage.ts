@@ -21,10 +21,6 @@ export interface UseDiaryPageReturn {
   isLoading: boolean;
   error: Error | null;
 
-  // Modal state
-  showCalendarModal: boolean;
-  setShowCalendarModal: (show: boolean) => void;
-
   // Derived data
   markedDates: Record<string, { marked: boolean; dotColor: string; selected?: boolean; selectedColor?: string }>;
 
@@ -50,7 +46,6 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [datesWithEntries, setDatesWithEntries] = useState<Set<string>>(new Set());
-  const [showCalendarModal, setShowCalendarModal] = useState(false);
 
   const today = useMemo(() => new Date(), []);
 
@@ -114,7 +109,6 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
   const handleCalendarDayPress = useCallback((day: { dateString: string }) => {
     const selectedDateFromCalendar = new Date(day.dateString + "T12:00:00");
     setSelectedDate(selectedDateFromCalendar);
-    setShowCalendarModal(false);
   }, []);
 
   // =============================================================================
@@ -187,10 +181,6 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
     // States
     isLoading,
     error,
-
-    // Modal state
-    showCalendarModal,
-    setShowCalendarModal,
 
     // Derived data
     markedDates,

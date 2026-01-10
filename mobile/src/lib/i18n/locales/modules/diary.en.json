@@ -11,6 +11,8 @@
   "older": "Older",
   "diary": "Diary",
   "recordMeal": "Record a meal",
+  "loadFromAlbum": "Select from Photos",
+  "orSelectFromPhotos": "or select from photos",
   "goToToday": "Go to Today",
   "selectDate": "Select Date"
 }
