@@ -101,6 +101,10 @@ export interface DiaryTranslations {
 // Settings translations
 export interface SettingsTranslations {
   title: string;
+  account: {
+    signIn: string;
+    signInDescription: string;
+  };
   language: {
     title: string;
     description: string;

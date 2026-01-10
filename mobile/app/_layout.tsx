@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import { Stack, Slot } from "expo-router";
+import { Stack } from "expo-router";
 import { AppProvider } from "@/providers";
 import "react-native-reanimated";
 import "@/lib/i18n";
@@ -28,22 +28,8 @@ export default function RootLayout() {
         <Stack.Screen
           name="auth"
           options={{
-            gestureEnabled: false,
-            animation: "fade",
-          }}
-        />
-
-        <Stack.Screen
-          name="profile"
-          options={{
-            presentation: "modal",
-          }}
-        />
-
-        <Stack.Screen
-          name="challenge-detail"
-          options={{
-            presentation: "modal",
+            gestureEnabled: true,
+            animation: "slide_from_right",
           }}
         />
 
@@ -65,53 +51,6 @@ export default function RootLayout() {
           }}
         />
 
-        <Stack.Screen
-          name="settings/account"
-          options={{
-            animation: "slide_from_right",
-            gestureEnabled: true,
-          }}
-        />
-
-        <Stack.Screen
-          name="settings/display"
-          options={{
-            animation: "slide_from_right",
-            gestureEnabled: true,
-          }}
-        />
-
-        <Stack.Screen
-          name="settings/notifications"
-          options={{
-            animation: "slide_from_right",
-            gestureEnabled: true,
-          }}
-        />
-
-        <Stack.Screen
-          name="settings/privacy"
-          options={{
-            animation: "slide_from_right",
-            gestureEnabled: true,
-          }}
-        />
-
-        <Stack.Screen
-          name="settings/goals"
-          options={{
-            animation: "slide_from_right",
-            gestureEnabled: true,
-          }}
-        />
-
-        <Stack.Screen
-          name="settings/data"
-          options={{
-            animation: "slide_from_right",
-            gestureEnabled: true,
-          }}
-        />
       </Stack>
       <StatusBar style="auto" />
     </AppProvider>

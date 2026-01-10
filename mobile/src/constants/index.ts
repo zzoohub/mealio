@@ -25,8 +25,7 @@ export const STORAGE_KEYS = {
   RECENT_PHOTOS: "recent_photos",
   APP_SETTINGS: "app_settings",
   // Auth
-  PHONE_AUTH_TOKEN: "phone_auth_token",
-  LAST_PHONE_NUMBER: "last_phone_number",
+  GOOGLE_AUTH_TOKEN: "google_auth_token",
   // Settings
   NOTIFICATION_SETTINGS: "notification_settings",
   PRIVACY_SETTINGS: "privacy_settings",
@@ -75,14 +74,9 @@ export const ERROR_MESSAGES = {
   USER_NOT_FOUND: "User not found.",
   EMAIL_ALREADY_EXISTS: "Email address is already registered.",
   USERNAME_ALREADY_EXISTS: "Username is already taken.",
-  // Phone auth errors
-  INVALID_PHONE_NUMBER: "Please enter a valid phone number.",
-  INVALID_VERIFICATION_CODE: "Please enter a valid 6-digit code.",
-  VERIFICATION_CODE_EXPIRED: "Verification code has expired. Please request a new one.",
-  PHONE_ALREADY_EXISTS: "This phone number is already registered.",
-  SMS_SEND_FAILED: "Failed to send verification code. Please try again.",
-  SMS_VERIFICATION_FAILED: "Verification failed. Please check the code and try again.",
-  TOO_MANY_ATTEMPTS: "Too many attempts. Please wait 15 minutes and try again.",
+  // Google auth errors
+  GOOGLE_SIGN_IN_FAILED: "Failed to sign in with Google. Please try again.",
+  GOOGLE_SIGN_IN_CANCELLED: "Sign in was cancelled.",
   // General errors
   CAMERA_PERMISSION_DENIED: "Camera permission is required to take photos.",
   PHOTO_LIBRARY_PERMISSION_DENIED: "Photo library access is required to select photos.",
@@ -99,10 +93,8 @@ export const SUCCESS_MESSAGES = {
   POST_DELETED: "Post deleted successfully!",
   PROFILE_UPDATED: "Profile updated successfully!",
   PASSWORD_CHANGED: "Password changed successfully!",
-  // Phone auth success
-  SMS_SENT: "Verification code sent!",
-  PHONE_VERIFIED: "Phone number verified successfully!",
   LOGIN_SUCCESS: "Welcome back!",
+  LOGOUT_SUCCESS: "You have been logged out.",
 } as const;
 
 // Feature flags (for gradual rollouts)

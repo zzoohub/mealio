@@ -183,6 +183,10 @@ export const useSettingsI18n = () => {
   return useMemo(
     () => ({
       title: t("title"),
+      account: {
+        signIn: t("account.signIn"),
+        signInDescription: t("account.signInDescription"),
+      },
       language: {
         title: t("language.title"),
         description: t("language.description"),

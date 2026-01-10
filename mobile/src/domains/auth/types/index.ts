@@ -1,35 +1,22 @@
-// Auth domain types
+/**
+ * Auth Domain Types
+ *
+ * Simple, focused types for Google OAuth authentication.
+ */
 
 export interface User {
   id: string;
-  username: string;
-  email?: string;
-  phone: string;
-  avatar?: string;
-  isLoggedIn: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// Form types
-export interface LoginFormData {
   email: string;
-  password: string;
+  name: string | null;
+  photo: string | null;
 }
 
-export interface RegisterFormData {
+export interface GoogleUser {
+  id: string;
   email: string;
-  username: string;
-  password: string;
-  confirmPassword: string;
-}
-
-// Phone auth types
-export interface PhoneAuthFormData {
-  phone: string;
-  countryCode: string;
-}
-
-export interface VerificationFormData {
-  code: string;
+  name: string | null;
+  photo: string | null;
+  familyName: string | null;
+  givenName: string | null;
+  idToken: string | null;
 }

@@ -54,7 +54,7 @@ export function useSettingsScreen(): UseSettingsScreenReturn {
   const { display, notifications, updateDisplay, updateNotifications, isLoading } = useSettingsStore();
 
   // Derived state
-  const isAuthenticated = !!user?.isLoggedIn;
+  const isAuthenticated = !!user;
 
   // Options
   const themeOptions = useMemo<SelectionOption[]>(

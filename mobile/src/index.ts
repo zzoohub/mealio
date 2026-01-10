@@ -4,13 +4,7 @@
 export type { PaginatedResponse, ApiResponse, ThemeColors, BaseComponentProps, LoadingStateType } from "./types";
 
 // Domain-specific Types
-export type {
-  User,
-  LoginFormData,
-  RegisterFormData,
-  PhoneAuthFormData,
-  VerificationFormData,
-} from "./domains/auth/types";
+export type { User } from "./domains/auth/types";
 
 export type {
   MealType,

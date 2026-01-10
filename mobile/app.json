@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.mobile"
+      "bundleIdentifier": "com.zzoo.mealio"
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +23,7 @@
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.anonymous.mobile"
+      "package": "com.zzoo.mealio"
     },
     "web": {
       "bundler": "metro",
@@ -53,6 +53,12 @@
         "expo-image-picker",
         {
           "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.1081857794554-vnv9ri4cstrcjdisma33ca1bu5qn6bnm"
         }
       ]
     ],

@@ -1,5 +1,9 @@
 {
   "title": "Settings",
+  "account": {
+    "signIn": "Sign in",
+    "signInDescription": "Sync your meals across devices"
+  },
   "language": {
     "title": "Language",
     "description": "Choose your preferred language",

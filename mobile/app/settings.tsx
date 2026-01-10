@@ -1,19 +1,230 @@
 import React, { useCallback } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { useTheme } from "@/design-system/theme";
-import { Card } from "@/design-system/styled";
-import { SettingsItem, SettingsSection, SelectionModal, SettingsLayout } from "@/domains/settings/components";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useTheme, createStyles, useStyles } from "@/design-system/theme";
+import { Card, Text, HStack, VStack, Toggle } from "@/design-system/styled";
+import { SelectionModal, SettingsLayout } from "@/domains/settings/components";
 import { useSettingsScreen } from "@/domains/settings/hooks/useSettingsScreen";
 import { useSettingsI18n } from "@/lib/i18n";
 import { tokens } from "@/design-system/tokens";
 import { useOverlayHelpers } from "@/providers/overlay";
 
 // =============================================================================
-// MAIN COMPONENT (Composition Pattern)
+// USER PROFILE CARD (Logged In)
+// =============================================================================
+
+interface UserProfileCardProps {
+  name: string;
+  email: string;
+}
+
+function UserProfileCard({ name, email }: UserProfileCardProps) {
+  const s = useStyles(styles);
+  const { colors } = useTheme();
+  const initial = name?.charAt(0).toUpperCase() || "U";
+
+  return (
+    <View style={[s.profileCard, { borderColor: colors.interactive.primary + "40" }]}>
+      <HStack gap="md" align="center" style={s.profileContent}>
+        <LinearGradient
+          colors={[colors.interactive.primary, colors.interactive.secondary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={s.profileAvatar}
+        >
+          <Text variant="body" weight="bold" style={{ color: "#fff" }}>
+            {initial}
+          </Text>
+        </LinearGradient>
+        <VStack gap="xs" style={s.profileTextContainer}>
+          <Text variant="body" weight="semibold">
+            {name || "User"}
+          </Text>
+          <Text variant="caption" color="secondary">
+            {email || "Signed in"}
+          </Text>
+        </VStack>
+        <Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />
+      </HStack>
+    </View>
+  );
+}
+
+// =============================================================================
+// SIGN IN CARD (Logged Out)
+// =============================================================================
+
+interface SignInCardProps {
+  title: string;
+  description: string;
+  onPress: () => void;
+}
+
+function SignInCard({ title, description, onPress }: SignInCardProps) {
+  const s = useStyles(styles);
+  const { colors } = useTheme();
+
+  return (
+    <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
+      <View style={[s.profileCard, { borderColor: colors.interactive.primary + "40" }]}>
+        <HStack gap="md" align="center" style={s.profileContent}>
+          <View style={[s.signInAvatar, { backgroundColor: colors.interactive.primary + "15" }]}>
+            <Ionicons name="person-outline" size={22} color={colors.interactive.primary} />
+          </View>
+          <VStack gap="xs" style={s.profileTextContainer}>
+            <Text variant="body" weight="semibold">
+              {title}
+            </Text>
+            <Text variant="caption" color="secondary">
+              {description}
+            </Text>
+          </VStack>
+          <Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />
+        </HStack>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// =============================================================================
+// SETTINGS ROW COMPONENT
+// =============================================================================
+
+interface SettingsRowProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor?: string;
+  title: string;
+  description?: string;
+  value?: string;
+  type: "select" | "toggle" | "navigation";
+  toggleValue?: boolean;
+  onPress?: () => void;
+  onToggleChange?: (value: boolean) => void;
+  disabled?: boolean;
+  destructive?: boolean;
+  isLast?: boolean;
+}
+
+function SettingsRow({
+  icon,
+  iconColor,
+  title,
+  description,
+  value,
+  type,
+  toggleValue,
+  onPress,
+  onToggleChange,
+  disabled = false,
+  destructive = false,
+  isLast = false,
+}: SettingsRowProps) {
+  const s = useStyles(styles);
+  const { colors } = useTheme();
+
+  const resolvedIconColor = iconColor || colors.interactive.primary;
+  const textColor = destructive ? colors.status.error : colors.text.primary;
+
+  const content = (
+    <View style={[s.rowContainer, !isLast && s.rowBorder]}>
+      <HStack gap="md" align="center" style={s.rowContent}>
+        <View style={[s.rowIconContainer, { backgroundColor: resolvedIconColor + "15" }]}>
+          <Ionicons name={icon} size={20} color={resolvedIconColor} />
+        </View>
+        <VStack gap="xs" style={s.rowTextContainer}>
+          <Text
+            variant="body"
+            weight="medium"
+            style={{ color: textColor, opacity: disabled ? 0.5 : 1 }}
+          >
+            {title}
+          </Text>
+          {description && (
+            <Text variant="caption" color="secondary" style={{ opacity: disabled ? 0.5 : 1 }}>
+              {description}
+            </Text>
+          )}
+        </VStack>
+        {type === "toggle" && onToggleChange && (
+          <Toggle
+            checked={toggleValue ?? false}
+            onChange={onToggleChange}
+            disabled={disabled}
+            size="sm"
+          />
+        )}
+        {type === "select" && (
+          <HStack gap="xs" align="center">
+            <Text variant="bodySmall" color="secondary">
+              {value}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.text.tertiary} />
+          </HStack>
+        )}
+        {type === "navigation" && (
+          <Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />
+        )}
+      </HStack>
+    </View>
+  );
+
+  if (type === "toggle") {
+    return content;
+  }
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={onPress}
+      disabled={disabled}
+      style={{ opacity: disabled ? 0.5 : 1 }}
+    >
+      {content}
+    </TouchableOpacity>
+  );
+}
+
+// =============================================================================
+// SETTINGS GROUP COMPONENT
+// =============================================================================
+
+interface SettingsGroupProps {
+  title?: string;
+  children: React.ReactNode;
+  footer?: string;
+}
+
+function SettingsGroup({ title, children, footer }: SettingsGroupProps) {
+  const s = useStyles(styles);
+
+  return (
+    <VStack gap="sm" style={s.groupContainer}>
+      {title && (
+        <Text variant="caption" color="secondary" uppercase style={s.groupTitle}>
+          {title}
+        </Text>
+      )}
+      <Card variant="filled" style={s.groupCard}>
+        {children}
+      </Card>
+      {footer && (
+        <Text variant="caption" color="tertiary" style={s.groupFooter}>
+          {footer}
+        </Text>
+      )}
+    </VStack>
+  );
+}
+
+// =============================================================================
+// MAIN COMPONENT
 // =============================================================================
 
 export default function SettingsScreen() {
   const { colors } = useTheme();
+  const s = useStyles(styles);
   const settings = useSettingsI18n();
   const { bottomSheet } = useOverlayHelpers();
 
@@ -33,7 +244,6 @@ export default function SettingsScreen() {
     updateNotifications,
   } = useSettingsScreen();
 
-  // Open theme selection modal via overlay
   const handleOpenThemeSelection = useCallback(() => {
     bottomSheet(({ close }) => (
       <SelectionModal
@@ -48,7 +258,6 @@ export default function SettingsScreen() {
     ));
   }, [bottomSheet, themeOptions, display.theme, handleSelectionChange]);
 
-  // Open language selection modal via overlay
   const handleOpenLanguageSelection = useCallback(() => {
     bottomSheet(({ close }) => (
       <SelectionModal
@@ -65,88 +274,85 @@ export default function SettingsScreen() {
 
   return (
     <SettingsLayout title={settings.title}>
-      {/* User Info Card */}
-      {isAuthenticated && (
-        <Card variant="elevated" style={styles.userCard}>
-          <View style={styles.userInfo}>
-            <View style={[styles.avatar, { backgroundColor: colors.interactive.primary }]}>
-              <Text style={styles.avatarText}>{user?.username?.charAt(0).toUpperCase() || "U"}</Text>
-            </View>
-            <View style={styles.userDetails}>
-              <Text style={[styles.username, { color: colors.text.primary }]}>{user?.username || "User"}</Text>
-              <Text style={[styles.email, { color: colors.text.secondary }]}>
-                {user?.email || user?.phone || "Signed in"}
-              </Text>
-            </View>
-          </View>
-        </Card>
+      {/* User Profile / Sign In CTA */}
+      {isAuthenticated ? (
+        <UserProfileCard name={user?.name || ""} email={user?.email || ""} />
+      ) : (
+        <SignInCard
+          title={settings.account.signIn}
+          description={settings.account.signInDescription}
+          onPress={() => router.push("/auth")}
+        />
       )}
 
       {/* Display Settings */}
-      <SettingsSection title={settings.display.title} variant="grouped">
-        <SettingsItem
+      <SettingsGroup title={settings.display.title}>
+        <SettingsRow
+          icon="color-palette-outline"
           title={settings.display.theme.title}
           description={settings.display.theme.description}
-          icon="color-palette-outline"
-          type="select"
           value={getDisplayValue("theme")}
+          type="select"
           onPress={handleOpenThemeSelection}
           disabled={isLoading}
-          variant="grouped"
         />
-        <SettingsItem
+        <SettingsRow
+          icon="language-outline"
           title={settings.language.title}
           description={settings.language.description}
-          icon="language-outline"
-          type="select"
           value={getDisplayValue("language")}
+          type="select"
           onPress={handleOpenLanguageSelection}
           disabled={isLoading}
-          variant="grouped"
+          isLast
         />
-      </SettingsSection>
+      </SettingsGroup>
 
       {/* Notification Settings */}
-      <SettingsSection title={settings.notifications.title} variant="grouped">
-        <SettingsItem
+      <SettingsGroup title={settings.notifications.title}>
+        <SettingsRow
+          icon="notifications-outline"
           title={settings.notifications.title}
           description={settings.notifications.description}
-          icon="notifications-outline"
           type="toggle"
-          value={notifications.enabled}
-          onValueChange={(value) => updateNotifications({ enabled: value })}
-          variant="grouped"
+          toggleValue={notifications.enabled}
+          onToggleChange={(value) => updateNotifications({ enabled: value })}
+          isLast
         />
-      </SettingsSection>
+      </SettingsGroup>
 
-      {/* Account Settings */}
+      {/* Account Settings (Logged In Only) */}
       {isAuthenticated && (
-        <SettingsSection title="Account" variant="grouped">
-          <SettingsItem
+        <SettingsGroup title="Account">
+          <SettingsRow
+            icon="log-out-outline"
+            iconColor={colors.text.secondary}
             title="Sign Out"
             description="Sign out of your account"
-            icon="log-out-outline"
             type="navigation"
             onPress={handleLogout}
             disabled={authLoading}
-            variant="grouped"
           />
-          <SettingsItem
+          <SettingsRow
+            icon="trash-outline"
+            iconColor={colors.status.error}
             title="Delete Account"
             description="Permanently delete your account"
-            icon="trash-outline"
             type="navigation"
             onPress={handleDeleteAccount}
             disabled={authLoading}
-            variant="grouped"
+            destructive
+            isLast
           />
-        </SettingsSection>
+        </SettingsGroup>
       )}
 
       {/* App Version */}
-      <View style={styles.appInfo}>
-        <Text style={[styles.appVersion, { color: colors.text.secondary }]}>Version 1.0.0</Text>
-      </View>
+      <VStack gap="sm" align="center" style={s.appInfo}>
+        <Text variant="caption" color="tertiary">
+          Version 1.0.0
+        </Text>
+      </VStack>
     </SettingsLayout>
   );
 }
@@ -155,44 +361,80 @@ export default function SettingsScreen() {
 // STYLES
 // =============================================================================
 
-const styles = StyleSheet.create({
-  userCard: {
-    marginBottom: tokens.spacing.layout.sm,
-    padding: tokens.spacing.component.lg,
+const styles = createStyles((colors, { elevation }) => ({
+  // Profile Card (Logged In & Logged Out)
+  profileCard: {
+    marginBottom: tokens.spacing.layout.md,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1.5,
+    backgroundColor: colors.bg.secondary,
   },
-  userInfo: {
-    flexDirection: "row",
-    alignItems: "center",
+  profileContent: {
+    paddingVertical: tokens.spacing.component.md,
+    paddingHorizontal: tokens.spacing.component.lg,
   },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: tokens.spacing.component.lg,
+  profileAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   },
-  avatarText: {
-    color: "white",
-    fontSize: tokens.typography.fontSize.h4,
-    fontWeight: tokens.typography.fontWeight.semibold,
+  signInAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   },
-  userDetails: {
+  profileTextContainer: {
     flex: 1,
   },
-  username: {
-    fontSize: tokens.typography.fontSize.h4,
-    fontWeight: tokens.typography.fontWeight.semibold,
+
+  // Settings Group
+  groupContainer: {
+    marginBottom: tokens.spacing.layout.sm,
+  },
+  groupTitle: {
+    marginLeft: tokens.spacing.component.sm,
     marginBottom: tokens.spacing.component.xs,
+    letterSpacing: 0.5,
   },
-  email: {
-    fontSize: tokens.typography.fontSize.bodySmall,
+  groupCard: {
+    borderRadius: tokens.radius.lg,
+    overflow: "hidden" as const,
+    padding: 0,
   },
+  groupFooter: {
+    marginLeft: tokens.spacing.component.sm,
+    marginTop: tokens.spacing.component.xs,
+  },
+
+  // Settings Row
+  rowContainer: {
+    paddingVertical: tokens.spacing.component.md,
+    paddingHorizontal: tokens.spacing.component.lg,
+  },
+  rowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border.divider,
+  },
+  rowContent: {
+    minHeight: tokens.size.touchTarget.md - tokens.spacing.component.md * 2,
+  },
+  rowIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: tokens.radius.md,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  rowTextContainer: {
+    flex: 1,
+  },
+
+  // App Info
   appInfo: {
-    alignItems: "center",
-    paddingVertical: tokens.spacing.component.lg,
+    paddingVertical: tokens.spacing.layout.md,
   },
-  appVersion: {
-    fontSize: tokens.typography.fontSize.caption,
-  },
-});
+}));
