@@ -221,20 +221,18 @@ export default function DiaryHistory() {
               <Text style={[styles.mealTime, { color: colors.text.secondary }]}>{formatTime(meal.timestamp)}</Text>
             </View>
 
-            {/* AI Insights Preview */}
-            {meal.aiAnalysis?.insights && (
-              <View style={styles.insightsPreview}>
-                <View style={styles.healthScore}>
-                  <Ionicons name="fitness" size={12} color={colors.interactive.secondary} />
-                  <Text style={[styles.healthScoreText, { color: colors.interactive.secondary }]}>
-                    {meal.aiAnalysis.insights.healthScore}/100
-                  </Text>
-                </View>
-                <Text style={[styles.nutritionBalance, { color: colors.text.secondary }]} numberOfLines={1}>
-                  {meal.aiAnalysis.insights.nutritionBalance}
+            {/* AI Insights Preview - Always render container, hide content with opacity */}
+            <View style={[styles.insightsPreview, { opacity: meal.aiAnalysis?.insights ? 1 : 0 }]}>
+              <View style={styles.healthScore}>
+                <Ionicons name="fitness" size={12} color={colors.interactive.secondary} />
+                <Text style={[styles.healthScoreText, { color: colors.interactive.secondary }]}>
+                  {meal.aiAnalysis?.insights?.healthScore ?? 0}/100
                 </Text>
               </View>
-            )}
+              <Text style={[styles.nutritionBalance, { color: colors.text.secondary }]} numberOfLines={1}>
+                {meal.aiAnalysis?.insights?.nutritionBalance ?? ""}
+              </Text>
+            </View>
           </View>
 
           {/* Nutrition Summary */}
@@ -264,15 +262,18 @@ export default function DiaryHistory() {
             </Text>
           </View>
 
-          {/* AI Recommendations */}
-          {meal.aiAnalysis?.insights?.recommendations && meal.aiAnalysis.insights.recommendations.length > 0 && (
-            <View style={styles.recommendationPreview}>
-              <Ionicons name="bulb" size={12} color={colors.status.warning} />
-              <Text style={[styles.recommendationText, { color: colors.status.warning }]} numberOfLines={1}>
-                {meal.aiAnalysis.insights.recommendations[0]}
-              </Text>
-            </View>
-          )}
+          {/* AI Recommendations - Always render container with minHeight to prevent layout shift */}
+          <View style={[
+            styles.recommendationPreview,
+            {
+              opacity: meal.aiAnalysis?.insights?.recommendations && meal.aiAnalysis.insights.recommendations.length > 0 ? 1 : 0,
+            }
+          ]}>
+            <Ionicons name="bulb" size={12} color={colors.status.warning} />
+            <Text style={[styles.recommendationText, { color: colors.status.warning }]} numberOfLines={1}>
+              {meal.aiAnalysis?.insights?.recommendations?.[0] ?? ""}
+            </Text>
+          </View>
         </View>
 
         {/* Edit Arrow */}
@@ -529,39 +530,41 @@ export default function DiaryHistory() {
         )}
       </View>
 
-      {/* Content */}
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.interactive.primary} />
-          <Text style={[styles.loadingText, { color: colors.text.primary }]}>Loading your meals...</Text>
-        </View>
-      ) : sortedSections.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="restaurant-outline" size={64} color={colors.text.secondary} />
-          <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>{diary.noMealsFound}</Text>
-          <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
-            {searchQuery ? "Try adjusting your search" : "Start logging meals to see your history here!"}
-          </Text>
-          <TouchableOpacity style={styles.addMealButton} onPress={() => router.push("/")}>
-            <Ionicons name="camera" size={20} color="white" />
-            <Text style={styles.addMealButtonText}>Quick Capture</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <SectionList
-          sections={sortedSections}
-          keyExtractor={(item: Meal) => item.id}
-          renderItem={renderMealItem}
-          renderSectionHeader={renderSectionHeader}
-          ListFooterComponent={renderFooter}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.3}
-          style={styles.mealsList}
-          contentContainerStyle={styles.mealsListContent}
-          showsVerticalScrollIndicator={false}
-          stickySectionHeadersEnabled={false}
-        />
-      )}
+      {/* Content - Wrapper ensures consistent layout between loading/empty/content states */}
+      <View style={styles.contentWrapper}>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.interactive.primary} />
+            <Text style={[styles.loadingText, { color: colors.text.primary }]}>Loading your meals...</Text>
+          </View>
+        ) : sortedSections.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="restaurant-outline" size={64} color={colors.text.secondary} />
+            <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>{diary.noMealsFound}</Text>
+            <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
+              {searchQuery ? "Try adjusting your search" : "Start logging meals to see your history here!"}
+            </Text>
+            <TouchableOpacity style={styles.addMealButton} onPress={() => router.push("/")}>
+              <Ionicons name="camera" size={20} color="white" />
+              <Text style={styles.addMealButtonText}>Quick Capture</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <SectionList
+            sections={sortedSections}
+            keyExtractor={(item: Meal) => item.id}
+            renderItem={renderMealItem}
+            renderSectionHeader={renderSectionHeader}
+            ListFooterComponent={renderFooter}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.3}
+            style={styles.mealsList}
+            contentContainerStyle={styles.mealsListContent}
+            showsVerticalScrollIndicator={false}
+            stickySectionHeadersEnabled={false}
+          />
+        )}
+      </View>
 
       {/* Sort Modal */}
       <Modal
@@ -724,12 +727,18 @@ export default function DiaryHistory() {
                 }}
               />
 
-              {(calendarRange.startDate || calendarRange.endDate) && (
-                <TouchableOpacity style={styles.clearCustomButton} onPress={() => clearDateRange()}>
-                  <Ionicons name="trash-outline" size={16} color={colors.text.secondary} />
-                  <Text style={[styles.clearCustomButtonText, { color: colors.interactive.primary }]}>Clear Selection</Text>
-                </TouchableOpacity>
-              )}
+              {/* Always render button container to prevent layout shift, control visibility with opacity */}
+              <TouchableOpacity
+                style={[
+                  styles.clearCustomButton,
+                  { opacity: (calendarRange.startDate || calendarRange.endDate) ? 1 : 0 }
+                ]}
+                onPress={() => clearDateRange()}
+                disabled={!(calendarRange.startDate || calendarRange.endDate)}
+              >
+                <Ionicons name="trash-outline" size={16} color={colors.text.secondary} />
+                <Text style={[styles.clearCustomButtonText, { color: colors.interactive.primary }]}>Clear Selection</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -740,6 +749,10 @@ export default function DiaryHistory() {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  // Wrapper ensures consistent layout regardless of loading/empty/content state
+  contentWrapper: {
     flex: 1,
   },
   header: {
@@ -902,6 +915,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    minHeight: 18, // Reserve space even when hidden to prevent layout shift
   },
   healthScore: {
     flexDirection: "row",
@@ -945,6 +959,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     paddingTop: 4,
+    minHeight: 20, // Reserve space even when hidden to prevent layout shift
   },
   recommendationText: {
     fontSize: 12,
@@ -1091,6 +1106,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingVertical: 12,
     gap: 8,
+    minHeight: 44, // Reserve space even when hidden to prevent layout shift
   },
   clearCustomButtonText: {
     fontSize: 14,

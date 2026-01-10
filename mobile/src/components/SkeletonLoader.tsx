@@ -57,97 +57,84 @@ export function SkeletonLoader({
   );
 }
 
+/**
+ * StatsSkeleton - Matches the exact layout of StatsContent component
+ *
+ * Layout structure to match:
+ * - summaryCard with padding: tokens.spacing.layout.sm (20px)
+ * - header: title + toggle buttons
+ * - date label
+ * - calorieOverview: main value + remaining value
+ * - progressBar: 8px height
+ */
 export function StatsSkeleton() {
   const { colors } = useTheme();
 
   return (
-    <View style={[styles.summaryCard, { backgroundColor: colors.bg.secondary }]}>
-      {/* Header Skeleton */}
+    <View style={[styles.summaryCard, { backgroundColor: colors.bg.elevated }]}>
+      {/* Header - matches summaryHeader in StatsContent */}
       <View style={styles.headerSkeleton}>
-        <View style={styles.headerLeft}>
-          <SkeletonLoader width={120} height={18} style={{ marginBottom: 4 }} />
-          <SkeletonLoader width={80} height={14} />
-        </View>
+        <SkeletonLoader width={120} height={20} borderRadius={4} />
+        {/* Toggle container */}
         <View style={styles.toggleSkeleton}>
-          <SkeletonLoader width={60} height={24} borderRadius={4} />
+          <SkeletonLoader width={72} height={28} borderRadius={6} />
         </View>
       </View>
 
-      {/* Metrics Type Skeleton */}
-      <View style={styles.metricsTypeSkeleton}>
-        <SkeletonLoader width={100} height={16} />
+      {/* Date label - matches summaryDate */}
+      <SkeletonLoader width={100} height={14} borderRadius={4} style={styles.dateSkeleton} />
+
+      {/* Calorie Overview - matches calorieOverview layout */}
+      <View style={styles.calorieOverviewSkeleton}>
+        {/* Main calorie section */}
+        <View style={styles.calorieMainSkeleton}>
+          <SkeletonLoader width={100} height={40} borderRadius={4} style={{ marginBottom: 4 }} />
+          <SkeletonLoader width={120} height={14} borderRadius={4} />
+        </View>
+        {/* Remaining section */}
+        <View style={styles.calorieRemainingSkeleton}>
+          <SkeletonLoader width={60} height={28} borderRadius={4} style={{ marginBottom: 4 }} />
+          <SkeletonLoader width={80} height={14} borderRadius={4} />
+        </View>
       </View>
 
-      {/* Stats Grid Skeleton */}
-      <View style={styles.statsGrid}>
-        {[...Array(6)].map((_, index) => (
-          <View key={index} style={styles.statItem}>
-            <SkeletonLoader width={60} height={20} style={{ marginBottom: 4 }} />
-            <SkeletonLoader width={40} height={14} style={{ marginBottom: 2 }} />
-            <SkeletonLoader width={50} height={12} />
-          </View>
-        ))}
-      </View>
-
-      {/* Progress Bars Skeleton */}
-      <View style={styles.progressSection}>
-        {[...Array(3)].map((_, index) => (
-          <View key={index} style={styles.progressItem}>
-            <View style={styles.progressHeader}>
-              <SkeletonLoader width={60} height={14} />
-              <SkeletonLoader width={40} height={12} />
-            </View>
-            <SkeletonLoader width="100%" height={6} borderRadius={3} style={{ marginTop: 4 }} />
-          </View>
-        ))}
-      </View>
+      {/* Progress Bar - matches progressBar (8px height) */}
+      <SkeletonLoader width="100%" height={8} borderRadius={4} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Match StatsContent summaryCard styling
   summaryCard: {
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 20,
-    borderRadius: 16,
+    borderRadius: 16, // tokens.radius.xl
+    padding: 20, // tokens.spacing.layout.sm
+    marginBottom: 20, // tokens.spacing.layout.sm
   },
+  // Match summaryHeader layout
   headerSkeleton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  headerLeft: {
-    alignItems: 'center',
+    marginBottom: 4, // tokens.spacing.component.xs
   },
   toggleSkeleton: {
-    // Empty for now
+    // Container for toggle buttons
   },
-  metricsTypeSkeleton: {
-    alignItems: 'center',
-    marginBottom: 20,
+  // Match summaryDate spacing
+  dateSkeleton: {
+    marginBottom: 16, // tokens.spacing.component.lg
   },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  statItem: {
-    width: '30%',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  progressSection: {
-    gap: 16,
-  },
-  progressItem: {
-    // Empty for now
-  },
-  progressHeader: {
+  // Match calorieOverview layout
+  calorieOverviewSkeleton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    marginBottom: 16, // tokens.spacing.component.lg
+  },
+  calorieMainSkeleton: {
+    alignItems: 'flex-start',
+  },
+  calorieRemainingSkeleton: {
+    alignItems: 'flex-end',
   },
 });

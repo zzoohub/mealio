@@ -151,6 +151,10 @@ export function LoginPage() {
 ### States
 - [ ] All visual states defined (default, hover, focus, active, disabled)
 
+### Layout
+- [ ] No layout shift on state change (reserve space for icons, loaders)
+- [ ] Reserve space for dynamic content (icons, badges, validation messages)
+
 ### Accessibility
 - [ ] ARIA attributes correct
 - [ ] Keyboard navigation works

@@ -10,5 +10,7 @@
   "thisMonth": "이번 달",
   "older": "이전",
   "diary": "다이어리",
-  "recordMeal": "식사 기록하기"
+  "recordMeal": "식사 기록하기",
+  "goToToday": "오늘로 이동",
+  "selectDate": "날짜 선택"
 }

@@ -100,11 +100,16 @@ function Header({ onSeeAll }: HeaderProps) {
   );
 }
 
+// Constants for consistent height across all states
+// Card height: image (100) + content padding (12*2) + text lines (~60) = ~184
+// This minHeight ensures loading/empty states match the scrollable content area
+const CONTENT_MIN_HEIGHT = 184;
+
 function LoadingState() {
   return (
     <Box mb="lg">
       <Header />
-      <Box height={100} center>
+      <Box minHeight={CONTENT_MIN_HEIGHT} center>
         <Text variant="bodySmall" color="secondary">
           Loading meals...
         </Text>
@@ -117,7 +122,7 @@ function EmptyState() {
   return (
     <Box mb="lg">
       <Header />
-      <Box height={100} center>
+      <Box minHeight={CONTENT_MIN_HEIGHT} center>
         <Text variant="bodySmall" color="secondary" align="center">
           No meals logged yet. Start by taking a photo of your meal!
         </Text>

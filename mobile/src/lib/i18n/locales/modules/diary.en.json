@@ -10,5 +10,7 @@
   "thisMonth": "This Month",
   "older": "Older",
   "diary": "Diary",
-  "recordMeal": "Record a meal"
+  "recordMeal": "Record a meal",
+  "goToToday": "Go to Today",
+  "selectDate": "Select Date"
 }

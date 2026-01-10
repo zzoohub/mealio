@@ -126,6 +126,8 @@ export interface DiaryTranslations {
   older: string;
   diary: string;
   recordMeal: string;
+  goToToday: string;
+  selectDate: string;
 }
 
 // Settings translations

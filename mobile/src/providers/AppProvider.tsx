@@ -1,5 +1,6 @@
 import { ReactNode, useCallback, useEffect } from "react";
 import { AppState, AppStateStatus } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { I18nextProvider } from "react-i18next";
 import i18n from "@/lib/i18n/config";
@@ -84,20 +85,22 @@ export default function AppProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <ErrorBoundary onError={handleError}>
-      <QueryClientProvider client={queryClient}>
-        <I18nextProvider i18n={i18n}>
-          <ThemeProvider
-            preference={themePreference}
-            onPreferenceChange={handleThemeChange}
-          >
-            <OverlayProvider>
-              <AppInitializer />
-              {children}
-            </OverlayProvider>
-          </ThemeProvider>
-        </I18nextProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary onError={handleError}>
+        <QueryClientProvider client={queryClient}>
+          <I18nextProvider i18n={i18n}>
+            <ThemeProvider
+              preference={themePreference}
+              onPreferenceChange={handleThemeChange}
+            >
+              <OverlayProvider>
+                <AppInitializer />
+                {children}
+              </OverlayProvider>
+            </ThemeProvider>
+          </I18nextProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }

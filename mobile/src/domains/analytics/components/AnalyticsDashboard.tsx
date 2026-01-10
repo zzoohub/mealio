@@ -610,14 +610,20 @@ export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardPro
             }}
           />
 
-          {(calendarRange.startDate || calendarRange.endDate) && (
-            <TouchableOpacity style={styles.clearCustomButton} onPress={() => clearDateRange()}>
-              <Ionicons name="trash-outline" size={iconSizes.xs} color={colors.text.secondary} />
-              <RNText style={[styles.clearCustomButtonText, { color: colors.interactive.primary }]}>
-                Clear Selection
-              </RNText>
-            </TouchableOpacity>
-          )}
+          {/* Always render the button container to prevent layout shift, control visibility with opacity */}
+          <TouchableOpacity
+            style={[
+              styles.clearCustomButton,
+              { opacity: (calendarRange.startDate || calendarRange.endDate) ? 1 : 0 }
+            ]}
+            onPress={() => clearDateRange()}
+            disabled={!(calendarRange.startDate || calendarRange.endDate)}
+          >
+            <Ionicons name="trash-outline" size={iconSizes.xs} color={colors.text.secondary} />
+            <RNText style={[styles.clearCustomButtonText, { color: colors.interactive.primary }]}>
+              Clear Selection
+            </RNText>
+          </TouchableOpacity>
         </View>
       </BottomSheet>
     </View>
@@ -886,6 +892,7 @@ const styles = StyleSheet.create({
     marginTop: tokens.spacing.layout.sm,
     paddingVertical: tokens.spacing.component.md,
     gap: tokens.spacing.component.sm,
+    minHeight: 44, // Reserve space even when hidden to prevent layout shift
   },
   clearCustomButtonText: {
     fontSize: tokens.typography.fontSize.bodySmall,

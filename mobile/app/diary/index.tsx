@@ -12,10 +12,12 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { Calendar } from "react-native-calendars";
 import { Meal, mealStorageUtils } from "@/domains/diary";
 import { useDiaryI18n } from "@/lib/i18n";
 import { useTheme } from "@/design-system/theme";
 import { tokens } from "@/design-system/tokens";
+import { BottomSheet } from "@/design-system/styled";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const FEED_PADDING = 16;
@@ -85,6 +87,13 @@ const getMealTypeLabel = (mealType: string): string => {
   }
 };
 
+const formatDateToString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const DAY_NAMES_KO = ["일", "월", "화", "수", "목", "금", "토"];
 
 export default function DiaryPage() {
@@ -97,6 +106,7 @@ export default function DiaryPage() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [datesWithMeals, setDatesWithMeals] = useState<Set<string>>(new Set());
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
 
   // Initialize week days
   useEffect(() => {
@@ -172,6 +182,13 @@ export default function DiaryPage() {
     console.log("Meal pressed:", meal.id);
   }, []);
 
+  const handleCalendarDayPress = useCallback((day: { dateString: string }) => {
+    const selectedDateFromCalendar = new Date(day.dateString + "T12:00:00");
+    setSelectedDate(selectedDateFromCalendar);
+    updateWeek(selectedDateFromCalendar);
+    setShowCalendarModal(false);
+  }, [updateWeek]);
+
   const today = useMemo(() => new Date(), []);
 
   const dateHasMeals = useCallback((date: Date): boolean => {
@@ -186,6 +203,38 @@ export default function DiaryPage() {
     return middleDate.toLocaleDateString("ko-KR", { month: "long", year: "numeric" });
   }, [weekDays]);
 
+  // Create markedDates for the calendar modal
+  const markedDates = useMemo(() => {
+    const marks: Record<string, { marked: boolean; dotColor: string; selected?: boolean; selectedColor?: string }> = {};
+
+    // Add dots for dates with meals
+    datesWithMeals.forEach(dateStr => {
+      marks[dateStr] = {
+        marked: true,
+        dotColor: colors.interactive.primary,
+      };
+    });
+
+    // Mark selected date
+    const selectedDateStr = formatDateToString(selectedDate);
+    if (marks[selectedDateStr]) {
+      marks[selectedDateStr] = {
+        ...marks[selectedDateStr],
+        selected: true,
+        selectedColor: colors.interactive.primary,
+      };
+    } else {
+      marks[selectedDateStr] = {
+        marked: false,
+        dotColor: colors.interactive.primary,
+        selected: true,
+        selectedColor: colors.interactive.primary,
+      };
+    }
+
+    return marks;
+  }, [datesWithMeals, selectedDate, colors.interactive.primary]);
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg.primary }]}>
       {/* Header */}
@@ -194,9 +243,15 @@ export default function DiaryPage() {
           <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
 
-        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
-          {getFormattedMonthYear}
-        </Text>
+        <TouchableOpacity
+          style={styles.headerTitleContainer}
+          onPress={() => setShowCalendarModal(true)}
+        >
+          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
+            {getFormattedMonthYear}
+          </Text>
+          <Ionicons name="chevron-down" size={18} color={colors.text.secondary} />
+        </TouchableOpacity>
 
         <View style={styles.headerButtons}>
           <TouchableOpacity
@@ -252,14 +307,16 @@ export default function DiaryPage() {
                 >
                   {date.getDate()}
                 </Text>
-                {hasMeals && (
-                  <View
-                    style={[
-                      styles.mealMarker,
-                      { backgroundColor: isSelected ? "white" : colors.interactive.primary },
-                    ]}
-                  />
-                )}
+                {/* Always render dot container to prevent layout shift, use opacity for visibility */}
+                <View
+                  style={[
+                    styles.mealMarker,
+                    {
+                      backgroundColor: isSelected ? "white" : colors.interactive.primary,
+                      opacity: hasMeals ? 1 : 0,
+                    },
+                  ]}
+                />
               </TouchableOpacity>
             );
           })}
@@ -270,107 +327,163 @@ export default function DiaryPage() {
         </TouchableOpacity>
       </View>
 
-      {/* Content */}
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.interactive.primary} />
-        </View>
-      ) : meals.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="restaurant-outline" size={64} color={colors.text.secondary} />
-          <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
-            {diary.noMealsFound}
-          </Text>
-          <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
-            {selectedDate.toLocaleDateString("ko-KR", {
-              month: "long",
-              day: "numeric",
-              weekday: "long"
-            })}
-          </Text>
-          <TouchableOpacity
-            style={[styles.addMealButton, { backgroundColor: colors.interactive.primary }]}
-            onPress={() => router.push("/(main)")}
+      {/* Content - Use flex: 1 container to prevent layout shift between states */}
+      <View style={styles.contentWrapper}>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.interactive.primary} />
+          </View>
+        ) : meals.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="restaurant-outline" size={64} color={colors.text.secondary} />
+            <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
+              {diary.noMealsFound}
+            </Text>
+            <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
+              {selectedDate.toLocaleDateString("ko-KR", {
+                month: "long",
+                day: "numeric",
+                weekday: "long"
+              })}
+            </Text>
+            <TouchableOpacity
+              style={[styles.addMealButton, { backgroundColor: colors.interactive.primary }]}
+              onPress={() => router.push("/(main)")}
+            >
+              <Ionicons name="camera" size={20} color="white" />
+              <Text style={styles.addMealButtonText}>{diary.recordMeal}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <ScrollView
+            style={styles.contentScroll}
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
           >
-            <Ionicons name="camera" size={20} color="white" />
-            <Text style={styles.addMealButtonText}>{diary.recordMeal}</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.contentScroll}
-          contentContainerStyle={styles.contentContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Date Label */}
-          <Text style={[styles.dateLabel, { color: colors.text.primary }]}>
-            {selectedDate.toLocaleDateString("ko-KR", {
-              month: "long",
-              day: "numeric",
-              weekday: "long"
-            })}
-          </Text>
+            {/* Date Label */}
+            <Text style={[styles.dateLabel, { color: colors.text.primary }]}>
+              {selectedDate.toLocaleDateString("ko-KR", {
+                month: "long",
+                day: "numeric",
+                weekday: "long"
+              })}
+            </Text>
 
-          {/* Feed */}
-          <View style={styles.feed}>
-            {meals.map((meal, index) => (
-              <TouchableOpacity
-                key={meal.id}
-                style={styles.feedItem}
-                onPress={() => handleMealPress(meal)}
-                activeOpacity={0.9}
-              >
-                {/* Photo */}
-                <View style={[styles.photoContainer, { backgroundColor: colors.bg.secondary }]}>
-                  {meal.photoUri ? (
-                    <Image
-                      source={{ uri: meal.photoUri }}
-                      style={styles.mealPhoto}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Ionicons name="image-outline" size={48} color={colors.text.secondary} />
-                  )}
-                </View>
-
-                {/* Info */}
-                <View style={styles.mealInfo}>
-                  <Text style={[styles.mealType, { color: colors.text.primary }]}>
-                    {getMealTypeEmoji(meal.mealType)} {getMealTypeLabel(meal.mealType)}
-                  </Text>
-                  <View style={styles.mealMeta}>
-                    <Text style={[styles.mealTime, { color: colors.text.secondary }]}>
-                      {formatTime(meal.timestamp)}
-                    </Text>
-                    {meal.location?.address && (
-                      <>
-                        <Text style={[styles.metaDivider, { color: colors.text.secondary }]}>·</Text>
-                        <Text
-                          style={[styles.mealLocation, { color: colors.text.secondary }]}
-                          numberOfLines={1}
-                        >
-                          {meal.location.restaurantName || meal.location.address.split(",")[0]}
-                        </Text>
-                      </>
+            {/* Feed */}
+            <View style={styles.feed}>
+              {meals.map((meal, index) => (
+                <TouchableOpacity
+                  key={meal.id}
+                  style={styles.feedItem}
+                  onPress={() => handleMealPress(meal)}
+                  activeOpacity={0.9}
+                >
+                  {/* Photo */}
+                  <View style={[styles.photoContainer, { backgroundColor: colors.bg.secondary }]}>
+                    {meal.photoUri ? (
+                      <Image
+                        source={{ uri: meal.photoUri }}
+                        style={styles.mealPhoto}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Ionicons name="image-outline" size={48} color={colors.text.secondary} />
                     )}
                   </View>
-                </View>
 
-                {/* Divider (except for last item) */}
-                {index < meals.length - 1 && (
-                  <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
-      )}
+                  {/* Info */}
+                  <View style={styles.mealInfo}>
+                    <Text style={[styles.mealType, { color: colors.text.primary }]}>
+                      {getMealTypeEmoji(meal.mealType)} {getMealTypeLabel(meal.mealType)}
+                    </Text>
+                    <View style={styles.mealMeta}>
+                      <Text style={[styles.mealTime, { color: colors.text.secondary }]}>
+                        {formatTime(meal.timestamp)}
+                      </Text>
+                      {meal.location?.address && (
+                        <>
+                          <Text style={[styles.metaDivider, { color: colors.text.secondary }]}>·</Text>
+                          <Text
+                            style={[styles.mealLocation, { color: colors.text.secondary }]}
+                            numberOfLines={1}
+                          >
+                            {meal.location.restaurantName || meal.location.address.split(",")[0]}
+                          </Text>
+                        </>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Divider (except for last item) */}
+                  {index < meals.length - 1 && (
+                    <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        )}
+      </View>
+
+      {/* Calendar Modal */}
+      <BottomSheet
+        visible={showCalendarModal}
+        onClose={() => setShowCalendarModal(false)}
+        height="auto"
+      >
+        <View style={[styles.modalHeader, { borderBottomColor: colors.border.default }]}>
+          <TouchableOpacity
+            onPress={() => setShowCalendarModal(false)}
+            style={styles.modalCloseButton}
+          >
+            <Ionicons name="close" size={24} color={colors.text.secondary} />
+          </TouchableOpacity>
+          <Text style={[styles.modalTitle, { color: colors.text.primary }]}>
+            {diary.selectDate}
+          </Text>
+          <View style={styles.modalCloseButton} />
+        </View>
+
+        <View style={styles.calendarContainer}>
+          <Calendar
+            current={formatDateToString(selectedDate)}
+            onDayPress={handleCalendarDayPress}
+            markedDates={markedDates}
+            theme={{
+              backgroundColor: colors.bg.secondary,
+              calendarBackground: colors.bg.secondary,
+              textSectionTitleColor: colors.text.secondary,
+              selectedDayBackgroundColor: colors.interactive.primary,
+              selectedDayTextColor: "white",
+              todayTextColor: colors.interactive.primary,
+              dayTextColor: colors.text.primary,
+              textDisabledColor: colors.text.secondary + "60",
+              dotColor: colors.interactive.primary,
+              selectedDotColor: "white",
+              arrowColor: colors.interactive.primary,
+              disabledArrowColor: colors.text.secondary,
+              monthTextColor: colors.text.primary,
+              indicatorColor: colors.interactive.primary,
+              textDayFontWeight: tokens.typography.fontWeight.normal,
+              textMonthFontWeight: tokens.typography.fontWeight.semibold,
+              textDayHeaderFontWeight: tokens.typography.fontWeight.medium,
+              textDayFontSize: tokens.typography.fontSize.body,
+              textMonthFontSize: tokens.typography.fontSize.h4,
+              textDayHeaderFontSize: tokens.typography.fontSize.bodySmall,
+            }}
+          />
+        </View>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  // Wrapper ensures consistent layout regardless of loading/empty/content state
+  contentWrapper: {
     flex: 1,
   },
   header: {
@@ -385,11 +498,16 @@ const styles = StyleSheet.create({
     padding: 4,
     width: 40,
   },
+  headerTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
-    flex: 1,
-    textAlign: "center",
   },
   headerButtons: {
     flexDirection: "row",
@@ -416,9 +534,9 @@ const styles = StyleSheet.create({
   dayItem: {
     alignItems: "center",
     paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     borderRadius: 12,
-    minWidth: 40,
+    minWidth: 36,
   },
   dayName: {
     fontSize: 12,
@@ -525,5 +643,30 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     marginTop: 12,
+  },
+  // Modal styles
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalCloseButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    flex: 1,
+    textAlign: "center",
+  },
+  calendarContainer: {
+    padding: 16,
+    paddingBottom: 32,
   },
 });
