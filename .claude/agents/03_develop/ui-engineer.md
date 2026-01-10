@@ -116,6 +116,11 @@ export function LoginPage() {
 </Button>
 ```
 
+### Why Pure UI?
+Your output is the **stable interface** between design and logic.
+- Design changes? → Update components, logic untouched
+- Logic changes? → Update hooks, components untouched
+
 ### Tokens = Single Source of Truth
 ```css
 ❌ padding: 14px;

@@ -668,5 +668,8 @@ const styles = StyleSheet.create({
   calendarContainer: {
     padding: 16,
     paddingBottom: 32,
+    // Fixed minHeight to prevent layout shift when month changes
+    // Calendar can show 4-6 weeks; this accommodates 6 weeks + header + day names
+    minHeight: 370,
   },
 });

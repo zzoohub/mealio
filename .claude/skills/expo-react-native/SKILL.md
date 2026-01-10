@@ -1,6 +1,6 @@
 ---
 name: expo-react-native
-description: Expo/React Native patterns including project structure, Expo Router navigation, deep linking, platform-specific code, animations, permissions, and performance. Use when building cross-platform mobile apps with Expo.
+description: Expo/React Native project conventions - structure, headless patterns, design tokens, and library combinations. Use when building cross-platform mobile apps with Expo.
 ---
 
 # Expo & React Native Patterns
@@ -19,22 +19,122 @@ src/
 │       ├── store/
 │       └── types/
 ├── components/      # Shared components (Header, Footer)
-├── lib/             # independent modules (i18n, storage)
+├── lib/             # Independent modules (i18n, storage)
 ├── constants/       # App constants
-├── utils/           # shared utilities
-├── hooks/           # shared custom hooks
-├── store/           # zustand store
+├── utils/           # Shared utilities
+├── hooks/           # Shared custom hooks
+├── store/           # Zustand store
 └── types/           # Shared types
 ```
 
 ---
 
-## Design Tokens Integration
+## Headless Patterns (Logic/View Separation)
 
-Reference `design-system` skill for token architecture:
+### Core Principle
+
+**Separate WHAT (logic) from HOW (presentation).**
 
 ```tsx
-// tokens/index.ts - use tokens, no hardcoded values
+// 1. Logic Layer (Hook) - data and actions only
+const useSelection = <T,>(items: T[]) => {
+  const [selected, setSelected] = useState<Set<T>>(new Set());
+  
+  const toggle = (item: T) => {
+    const next = new Set(selected);
+    next.has(item) ? next.delete(item) : next.add(item);
+    setSelected(next);
+  };
+
+  return {
+    selected: Array.from(selected),
+    isSelected: (item: T) => selected.has(item),
+    toggle,
+  };
+};
+
+// 2. View Layer (Headless Components) - styles only, flexible via children
+const Chip = ({ active, onPress, children }: { 
+  active: boolean; 
+  onPress: () => void; 
+  children: React.ReactNode;
+}) => (
+  <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
+    {children}
+  </Pressable>
+);
+
+// 3. Composition - assembly only (easy to understand at a glance)
+const InterestSelector = () => {
+  const interests = ['React', 'Vue', 'Svelte'];
+  const { isSelected, toggle } = useSelection(interests);
+
+  return (
+    <View style={styles.list}>
+      {interests.map((tech) => (
+        <Chip key={tech} active={isSelected(tech)} onPress={() => toggle(tech)}>
+          <Text>{tech}</Text>
+        </Chip>
+      ))}
+    </View>
+  );
+};
+```
+
+### Real-World Example: Before/After
+
+```tsx
+// ❌ Before: 800-line single file
+const DiaryHistory = () => {
+  const [meals, setMeals] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  // ... 15 more useState
+  
+  useEffect(() => { /* 100 lines */ }, []);
+  // ...
+};
+```
+
+```tsx
+// ✅ After: Main component does composition only
+const DiaryHistory = () => {
+  const { range, setRange, clear, presets } = useDateRange();
+  const { meals, isLoading, loadMore } = useMealHistory({ range });
+  const [sortMethod, setSortMethod] = useState<SortMethod>('date-desc');
+  const { sections } = useSortedMeals(meals, sortMethod);
+
+  return (
+    <Screen>
+      <Header onBack={router.back} title="Diary History" />
+      <FilterBar range={range} onRangeChange={setRange} sortMethod={sortMethod} onSortChange={setSortMethod} />
+      <MealSectionList sections={sections} isLoading={isLoading} onEndReached={loadMore} />
+    </Screen>
+  );
+};
+```
+
+### Interface Guidelines
+
+```tsx
+// ✅ Hook: Clean, predictable return
+const { data, isLoading, error, refetch } = useQuery();
+const { selected, toggle, clear } = useSelection();
+
+// ✅ Component: Headless-friendly props
+type MealListProps = {
+  meals: Meal[];
+  renderItem: (meal: Meal) => ReactNode;
+  onEndReached?: () => void;
+};
+```
+
+---
+
+## Design Tokens
+
+```tsx
+// tokens/index.ts - no hardcoding, always use tokens
 export const tokens = {
   color: {
     bg: { primary: '#ffffff', secondary: '#f9fafb' },
@@ -59,9 +159,7 @@ const styles = StyleSheet.create({
 
 ---
 
-## Navigation (Expo Router)
-
-### Root Layout with Auth Guard
+## Auth Guard Pattern (Expo Router)
 
 ```tsx
 // app/_layout.tsx
@@ -81,111 +179,9 @@ export default function RootLayout() {
 }
 ```
 
-### Tab Layout
-
-```tsx
-// app/(app)/(tabs)/_layout.tsx
-export default function TabLayout() {
-  return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: '#007AFF', headerShown: false }}>
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
-        }}
-      />
-    </Tabs>
-  );
-}
-```
-
-### Navigation Actions
-
-```tsx
-const router = useRouter();
-router.push('/profile/123');
-router.replace('/(app)/home');
-router.back();
-
-<Link href="/profile/123"><Text>Profile</Text></Link>
-<Link href={{ pathname: '/product/[id]', params: { id: '456' } }}>Product</Link>
-```
-
 ---
 
-## Deep Linking
-
-### Configuration (app.json)
-
-```json
-{
-  "expo": {
-    "scheme": "myapp",
-    "android": {
-      "intentFilters": [{ "action": "VIEW", "autoVerify": true, "data": [{ "scheme": "https", "host": "myapp.com", "pathPrefix": "/" }], "category": ["BROWSABLE", "DEFAULT"] }]
-    },
-    "ios": { "associatedDomains": ["applinks:myapp.com"] }
-  }
-}
-```
-
-Expo Router handles URL → Route mapping automatically (`myapp://product/123` → `app/product/[id].tsx`).
-
-For Universal Links, host `apple-app-site-association` (iOS) and `assetlinks.json` (Android) at `/.well-known/`.
-
----
-
-## Platform-Specific Code
-
-```tsx
-import { Platform, StyleSheet } from 'react-native';
-
-// Platform.select for style differences
-const styles = StyleSheet.create({
-  container: {
-    paddingTop: Platform.select({ ios: 20, android: 0 }),
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1 },
-      android: { elevation: 3 },
-    }),
-  },
-});
-
-// Platform-specific files (auto-selected by bundler)
-// Button.tsx (shared), Button.ios.tsx, Button.android.tsx
-```
-
----
-
-## Permissions
-
-All permissions follow the same pattern - request, check status, handle denial:
-
-```tsx
-// Camera example (same pattern for Notifications, Location, etc.)
-import { Camera } from 'expo-camera';
-
-const [permission, setPermission] = useState<boolean | null>(null);
-
-useEffect(() => {
-  Camera.requestCameraPermissionsAsync().then(({ status }) =>
-    setPermission(status === 'granted')
-  );
-}, []);
-
-if (permission === null) return <Loading />;
-if (!permission) return <PermissionDenied onOpenSettings={() => Linking.openSettings()} />;
-return <Camera style={{ flex: 1 }} />;
-```
-
-For push notifications, use `expo-notifications` with `expo-device` (check `Device.isDevice` - tokens don't work on simulators).
-
----
-
-## State Management
-
-### Zustand with MMKV Persist
+## State Persistence (Zustand + MMKV)
 
 ```typescript
 import { create } from 'zustand';
@@ -203,37 +199,13 @@ export const useUserStore = create<UserState>()(
   persist(
     (set) => ({
       user: null,
-      token: null,
       setUser: (user) => set({ user }),
-      logout: () => set({ user: null, token: null }),
+      logout: () => set({ user: null }),
     }),
     { name: 'user-storage', storage: createJSONStorage(() => mmkvStorage) }
   )
 );
 ```
-
-### TanStack Query
-
-```typescript
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 1000 * 60 * 5, gcTime: 1000 * 60 * 60 * 24 } },
-});
-
-// Hooks
-export function useUser() {
-  return useQuery({ queryKey: ['user'], queryFn: fetchUser });
-}
-
-export function useUpdateProfile() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: updateProfile,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['user'] }),
-  });
-}
-```
-
-Use `createSyncStoragePersister` with MMKV for offline query persistence.
 
 ---
 
@@ -250,7 +222,6 @@ const form = useForm({
   onSubmit: async ({ value }) => await login(value),
 });
 
-// Field usage
 <form.Field name="email" children={(field) => (
   <Input
     value={field.state.value}
@@ -259,7 +230,6 @@ const form = useForm({
   />
 )} />
 
-// Submit button with loading state
 <form.Subscribe
   selector={(state) => [state.canSubmit, state.isSubmitting]}
   children={([canSubmit, isSubmitting]) => (
@@ -272,9 +242,7 @@ const form = useForm({
 
 ---
 
-## Animations
-
-### Reanimated + Gesture Handler
+## Animations (Reanimated + Gesture Handler)
 
 ```tsx
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
@@ -303,19 +271,19 @@ function SwipeableCard({ children }: { children: React.ReactNode }) {
 }
 ```
 
-For simple animations, use `Animated.timing` with `useNativeDriver: true`.
-
 ---
 
-## Performance
+## Performance Conventions
 
 ```tsx
-// FlashList for long lists (not FlatList)
+// Use FlashList for long lists (not FlatList)
 import { FlashList } from '@shopify/flash-list';
 <FlashList data={items} renderItem={renderItem} estimatedItemSize={120} />
 
-// Memoize components and callbacks
+// Memoize components
 const ProductCard = memo(function ProductCard({ product, onPress }) { ... });
+
+// Memoize callbacks passed to children
 const handlePress = useCallback((id) => router.push(`/product/${id}`), []);
 
 // Defer heavy work until after navigation
@@ -324,26 +292,11 @@ InteractionManager.runAfterInteractions(() => setIsReady(true));
 
 ---
 
-## Offline Support
-
-```tsx
-import NetInfo from '@react-native-community/netinfo';
-
-export function useOnlineStatus() {
-  const [isOnline, setIsOnline] = useState(true);
-  useEffect(() => NetInfo.addEventListener((state) => setIsOnline(state.isConnected ?? false)), []);
-  return isOnline;
-}
-```
-
----
-
 ## Best Practices
 
-1. **Use design tokens** - Import from `@/tokens`, no hardcoded values
-2. **MMKV over AsyncStorage** - 10x faster for persistence
-3. **FlashList for lists** - Better performance than FlatList
-4. **Platform.select** - Handle iOS/Android differences explicitly
-5. **Memoize callbacks** - Passed to child components
-6. **useNativeDriver: true** - For smooth animations
-7. **Test on physical devices** - Simulators hide real performance
+1. **Interface-first** - Define hook signatures before implementation
+2. **Easy to understand main components** - Composition only, logic goes in hooks
+3. **Use tokens** - No hardcoded values
+4. **MMKV** - Use instead of AsyncStorage (10x faster)
+5. **FlashList** - Use instead of FlatList
+6. **Test on physical devices** - Simulators hide performance issues

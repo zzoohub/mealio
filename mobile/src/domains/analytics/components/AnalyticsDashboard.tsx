@@ -884,6 +884,9 @@ const styles = StyleSheet.create({
   },
   calendarContainer: {
     padding: tokens.spacing.layout.sm,
+    // Fixed minHeight to prevent layout shift when month changes
+    // Calendar can show 4-6 weeks; this accommodates 6 weeks + header + day names
+    minHeight: 370,
   },
   clearCustomButton: {
     flexDirection: "row",

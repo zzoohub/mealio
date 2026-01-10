@@ -1,63 +1,166 @@
 ---
 name: nextjs
-description: Next.js 15+ App Router patterns including Server/Client Components, Streaming, Server Actions, routing, caching, and domain-driven structure. Use when building Next.js applications with App Router.
+description: Next.js 15+ App Router patterns - Server/Client Components, Streaming, Server Actions, and project conventions. Use when building Next.js applications.
 ---
 
 # Next.js App Router Patterns
 
-## 1. Server & Client Components
+## Project Structure
 
-### Server Components (Default)
+```
+app/                 # Next.js App Router (file-based routing)
+src/
+├── providers/       # App infrastructure (QueryClient, Theme)
+├── design-system/   # UI system (tokens, headless hooks, styled components)
+├── domains/         # Feature modules (fractal structure)
+│   └── user/        # Example domain
+│       ├── actions/ # Server Actions
+│       ├── components/
+│       ├── hooks/
+│       └── types/
+├── components/      # Shared components (Header, Footer)
+├── lib/             # Independent modules (db, auth, logger)
+├── hooks/           # Shared custom hooks
+├── store/           # Zustand store
+└── types/           # Shared types
+```
+
+---
+
+## Headless Patterns (Logic/View Separation)
+
+### Core Principle
+
+**Separate WHAT (logic) from HOW (presentation).**
 
 ```tsx
-// app/products/page.tsx - Server Component
-async function ProductsPage() {
-  const products = await db.product.findMany(); // Direct DB access
+// 1. Logic Layer (Hook) - data and actions only
+const useProductFilters = () => {
+  const [filters, setFilters] = useState<Filters>({});
+  
+  return {
+    filters,
+    setFilter: (key: string, value: string) => 
+      setFilters(prev => ({ ...prev, [key]: value })),
+    clear: () => setFilters({}),
+    activeCount: Object.keys(filters).length,
+  };
+};
+
+// 2. View Layer - styles only, receives data via props
+const FilterBar = ({ filters, onChange, onClear, activeCount }: FilterBarProps) => (
+  <div className="flex gap-2">
+    <FilterDropdown value={filters.category} onChange={v => onChange('category', v)} />
+    {activeCount > 0 && <ClearButton onClick={onClear} />}
+  </div>
+);
+
+// 3. Composition - assembly only 
+const ProductsPage = () => {
+  const { filters, setFilter, clear, activeCount } = useProductFilters();
+  
   return (
-    <main>
-      <h1>Products</h1>
-      {products.map(p => <ProductCard key={p.id} product={p} />)}
-    </main>
+    <Page>
+      <FilterBar filters={filters} onChange={setFilter} onClear={clear} activeCount={activeCount} />
+      <Suspense fallback={<ProductsSkeleton />}>
+        <ProductList filters={filters} />
+      </Suspense>
+    </Page>
+  );
+};
+```
+
+### Server Component + Composition
+
+```tsx
+// Server Component with streaming
+export default async function DashboardPage() {
+  return (
+    <Page>
+      <PageHeader title="Dashboard" />
+      
+      <Suspense fallback={<StatsSkeleton />}>
+        <StatsSection />
+      </Suspense>
+      
+      <Suspense fallback={<ChartSkeleton />}>
+        <RevenueChart />
+      </Suspense>
+    </Page>
+  );
+}
+
+// Each section is a focused Server Component
+async function StatsSection() {
+  const stats = await getStats();
+  return <StatsGrid stats={stats} />;
+}
+```
+
+---
+
+## Server & Client Components
+
+### When to Use 'use client'
+
+```
+Need useState, useEffect, onClick? → 'use client'
+Need browser APIs (window, localStorage)? → 'use client'
+Everything else → Server Component (default)
+```
+
+### Composition Pattern
+
+```tsx
+// Server Component fetches data, composes Client Components as leaves
+async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const product = await getProduct(id);
+  
+  return (
+    <div>
+      <h1>{product.name}</h1>
+      <p>{product.description}</p>
+      <AddToCartButton productId={product.id} />  {/* Client leaf */}
+    </div>
   );
 }
 ```
 
-### Client Components ('use client')
-
 ```tsx
-// components/AddToCartButton.tsx
+// Client Component - interactive leaf
 'use client';
 
-import { useState } from 'react';
-
 export function AddToCartButton({ productId }: { productId: string }) {
-  const [isAdding, setIsAdding] = useState(false);
+  const [isPending, setIsPending] = useState(false);
   
   return (
-    <button onClick={async () => {
-      setIsAdding(true);
-      await addToCart(productId);
-      setIsAdding(false);
-    }} disabled={isAdding}>
-      {isAdding ? 'Adding...' : 'Add to Cart'}
+    <button onClick={() => { /* ... */ }} disabled={isPending}>
+      {isPending ? 'Adding...' : 'Add to Cart'}
     </button>
   );
 }
 ```
 
-**When to use 'use client'**: useState/useEffect, onClick/onChange, Browser APIs, custom hooks with state
+---
 
-### Mixing Components
+## Streaming & Suspense
+
+**Don't block on slow data. Stream progressively.**
 
 ```tsx
-// Using Client Component in Server Component
-async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const product = await getProduct(id); // Server
+export default function DashboardPage() {
   return (
     <div>
-      <h1>{product.name}</h1>
-      <AddToCartButton productId={product.id} />
+      <h1>Dashboard</h1>  {/* Renders immediately */}
+      
+      <Suspense fallback={<CardsSkeleton />}>
+        <StatsCards />  {/* Streams when ready */}
+      </Suspense>
+      
+      <Suspense fallback={<ChartSkeleton />}>
+        <RevenueChart />  {/* Streams when ready */}
+      </Suspense>
     </div>
   );
 }
@@ -65,79 +168,43 @@ async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
 
 ---
 
-## 2. State Management
+## State Management
 
 ### Decision Tree
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ What kind of state?                                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Server State (API/DB data)                                 │
-│  └→ Server Component: direct fetch (default)               │
-│  └→ Client Component: TanStack Query                       │
-│                                                             │
-│  Client State                                               │
-│  ├→ Component-local: useState                               │
-│  ├→ Complex local: useReducer                               │
-│  ├→ Global (theme, cart, UI): Zustand                       │
-│  └→ Compound components: Context API                        │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+Server data in Server Component → Direct fetch (no library)
+Server data in Client Component → TanStack Query
+Form input → useState
+Global client (theme, cart) → Zustand + persist
 ```
 
-### Server Component = No State Library Needed
-
-```tsx
-// Server Component - fetch directly
-async function UserProfile({ userId }: { userId: string }) {
-  const user = await db.user.findUnique({ where: { id: userId } });
-  return <div>{user.name}</div>;
-}
-```
-
-### Client Component with TanStack Query
+### TanStack Query (Client Component)
 
 ```tsx
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-
-// Read
-function useUser(id: string) {
+function useProducts(filters: Filters) {
   return useQuery({
-    queryKey: ['user', id],
-    queryFn: () => fetch(`/api/users/${id}`).then(r => r.json()),
+    queryKey: ['products', filters],
+    queryFn: () => fetchProducts(filters),
   });
 }
 
-// Write
-function useUpdateUser() {
+function useCreateProduct() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: UpdateUserInput) => 
-      fetch('/api/users', { method: 'PATCH', body: JSON.stringify(data) }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user'] });
-    },
+    mutationFn: createProduct,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] }),
   });
 }
 ```
 
-### Zustand for Client State
+### Zustand (Client State)
 
 ```tsx
-// stores/cart.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
-interface CartStore {
-  items: CartItem[];
-  addItem: (item: CartItem) => void;
-  removeItem: (id: string) => void;
-  clear: () => void;
-}
 
 export const useCartStore = create<CartStore>()(
   persist(
@@ -145,205 +212,64 @@ export const useCartStore = create<CartStore>()(
       items: [],
       addItem: (item) => set((s) => ({ items: [...s.items, item] })),
       removeItem: (id) => set((s) => ({ items: s.items.filter(i => i.id !== id) })),
-      clear: () => set({ items: [] }),
     }),
     { name: 'cart-storage' }
   )
 );
-
-// Usage in Client Component
-'use client';
-function CartButton() {
-  const items = useCartStore((s) => s.items);
-  return <button>Cart ({items.length})</button>;
-}
-```
-
-### When to Use What
-
-| State Type | Solution | Example |
-|------------|----------|---------|
-| API data (Server Component) | Direct fetch | `await db.user.findMany()` |
-| API data (Client Component) | TanStack Query | `useQuery`, `useMutation` |
-| Form input | `useState` | `const [email, setEmail] = useState('')` |
-| Complex form | `useReducer` | Multi-field validation |
-| Theme, locale | Zustand + persist | `useThemeStore()` |
-| Shopping cart | Zustand + persist | `useCartStore()` |
-| Modal open/close | `useState` or Zustand | Depends on scope |
-| Compound component | Context API | `<Tabs>` internal state |
-
----
-
-## 3. Streaming & Suspense
-
-```tsx
-// app/dashboard/page.tsx
-import { Suspense } from 'react';
-
-export default function DashboardPage() {
-  return (
-    <div>
-      <h1>Dashboard</h1>
-      <Suspense fallback={<StatsSkeleton />}>
-        <StatsCards />
-      </Suspense>
-      <Suspense fallback={<ChartSkeleton />}>
-        <RevenueChart />
-      </Suspense>
-    </div>
-  );
-}
-
-// app/dashboard/loading.tsx - Auto Suspense wrapper
-export default function Loading() {
-  return <DashboardSkeleton />;
-}
-```
-
-### Partial Prerendering (PPR)
-
-```tsx
-// next.config.ts
-export default {
-  experimental: {
-    ppr: true,
-  },
-};
-
-// app/products/page.tsx
-export default function ProductsPage() {
-  return (
-    <div>
-      {/* Static - prerendered */}
-      <h1>Products</h1>
-      <StaticFilters />
-      
-      {/* Dynamic - streams in */}
-      <Suspense fallback={<ProductsSkeleton />}>
-        <ProductList />
-      </Suspense>
-    </div>
-  );
-}
 ```
 
 ---
 
-## 4. Data Fetching & Caching
+## Server Actions
 
-```tsx
-// SSG - Cached (default)
-const data = await fetch(url);
-
-// SSR - No cache
-const data = await fetch(url, { cache: 'no-store' });
-
-// ISR - Revalidate
-const data = await fetch(url, { next: { revalidate: 60 } });
-
-// Tag-based
-const data = await fetch(url, { next: { tags: ['products'] } });
-```
-
-### Data Access Layer
+### Action + Form Pattern
 
 ```typescript
-// lib/data/user.ts
-import { cache } from 'react';
-import { unstable_cache } from 'next/cache';
-
-// Request deduplication
-export const getUser = cache(async (id: string) => {
-  return await db.user.findUnique({ where: { id } });
-});
-
-// Cross-request caching
-export const getCachedUser = unstable_cache(
-  async (id: string) => db.user.findUnique({ where: { id } }),
-  ['user-by-id'],
-  { revalidate: 3600, tags: ['users'] }
-);
-```
-
-### Route Config
-
-```tsx
-export const dynamic = 'force-static';   // SSG
-export const dynamic = 'force-dynamic';  // SSR
-export const revalidate = 3600;          // ISR
-```
-
----
-
-## 5. Server Actions
-
-```typescript
-// app/actions/user.ts
+// app/actions/post.ts
 'use server';
 
-import { revalidatePath, revalidateTag } from 'next/cache';
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
 const schema = z.object({
-  name: z.string().min(1).max(100),
-  email: z.string().email(),
+  title: z.string().min(1).max(100),
+  content: z.string().min(1),
 });
 
-export async function updateUser(userId: string, prevState: any, formData: FormData) {
+export async function createPost(prevState: any, formData: FormData) {
   const result = schema.safeParse({
-    name: formData.get('name'),
-    email: formData.get('email'),
+    title: formData.get('title'),
+    content: formData.get('content'),
   });
   
   if (!result.success) {
     return { error: result.error.errors[0].message };
   }
   
-  await db.user.update({ where: { id: userId }, data: result.data });
-  revalidateTag(`user-${userId}`);
+  await db.post.create({ data: result.data });
+  revalidatePath('/posts');
   return { success: true };
 }
 ```
 
-### Form with Server Action (Next.js 15)
-
 ```tsx
+// Form with useActionState
 'use client';
 
 import { useActionState } from 'react';
 
-export function UserForm({ userId }: { userId: string }) {
-  const [state, dispatch, isPending] = useActionState(
-    updateUser.bind(null, userId),
-    { error: null, success: false }
-  );
+export function PostForm() {
+  const [state, dispatch, isPending] = useActionState(createPost, { error: null });
   
   return (
     <form action={dispatch}>
-      <input name="name" required />
-      <input name="email" type="email" required />
+      <input name="title" required />
+      <textarea name="content" required />
       {state.error && <p className="text-red-500">{state.error}</p>}
       <button type="submit" disabled={isPending}>
-        {isPending ? 'Saving...' : 'Save'}
+        {isPending ? 'Creating...' : 'Create Post'}
       </button>
     </form>
-  );
-}
-```
-
-### useFormStatus (for nested components)
-
-```tsx
-'use client';
-
-import { useFormStatus } from 'react-dom';
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" disabled={pending}>
-      {pending ? 'Saving...' : 'Save'}
-    </button>
   );
 }
 ```
@@ -374,163 +300,33 @@ export function LikeButton({ post }: { post: Post }) {
 
 ---
 
-## 6. Routing Patterns
+## Data Access Layer
 
-### Dynamic Routes (Next.js 15)
+```typescript
+// lib/data/user.ts
+import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 
-```tsx
-// app/products/[id]/page.tsx
-export default async function ProductPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const product = await getProduct(id);
-  return <ProductDetail product={product} />;
-}
+// Request deduplication (same request, same render)
+export const getUser = cache(async (id: string) => {
+  return db.user.findUnique({ where: { id } });
+});
 
-// searchParams is also a Promise
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
-  const { q } = await searchParams;
-  const results = await search(q);
-  return <SearchResults results={results} />;
-}
-
-export async function generateStaticParams() {
-  const products = await getProducts();
-  return products.map((p) => ({ id: p.id }));
-}
-```
-
-### Route Groups
-
-```
-app/
-├── (marketing)/          # Marketing layout
-│   ├── layout.tsx
-│   ├── page.tsx          # /
-│   └── about/page.tsx    # /about
-├── (shop)/               # Shop layout
-│   ├── layout.tsx
-│   └── products/page.tsx # /products
-└── (dashboard)/          # Dashboard layout
-    ├── layout.tsx
-    └── dashboard/page.tsx
-```
-
-### Advanced: Parallel & Intercepting Routes
-
-For complex UI patterns like modals over pages or independent loading states, Next.js supports Parallel Routes (`@folder`) and Intercepting Routes (`(.)`, `(..)`, `(...)`). See [official docs](https://nextjs.org/docs/app/building-your-application/routing/parallel-routes) when needed.
-
----
-
-## 7. Error Handling
-
-```tsx
-// app/dashboard/error.tsx
-'use client';
-
-export default function Error({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
-  return (
-    <div>
-      <h2>Something went wrong!</h2>
-      <button onClick={reset}>Try again</button>
-    </div>
-  );
-}
-
-// app/products/[id]/not-found.tsx
-export default function NotFound() {
-  return <h2>Product Not Found</h2>;
-}
-
-// Trigger notFound
-import { notFound } from 'next/navigation';
-if (!product) notFound();
-```
-
----
-
-## 8. Project Structure
-
-```
-app/                 # Next.js App Router (file-based routing)
-src/
-├── providers/       # App infrastructure (QueryClient, Theme)
-├── design-system/   # UI system (tokens, headless hooks, styled components)
-├── domains/         # Feature modules (fractal structure)
-│   └── user/        # Example domain
-│       ├── actions/ # Server Actions (mutations, form handlers)
-│       ├── components/
-│       ├── hooks/
-│       ├── store/
-│       └── types/
-├── components/      # Shared components (Header, Footer)
-├── lib/             # Independent modules (db, auth, logger)
-├── constants/       # App constants
-├── utils/           # Shared utilities
-├── hooks/           # Shared custom hooks
-├── store/           # Zustand store
-└── types/           # Shared types
-```
-
----
-
-## 9. Image & Metadata
-
-```tsx
-import Image from 'next/image';
-
-<Image
-  src={product.image}
-  alt={product.name}
-  width={300}
-  height={200}
-  priority={false}
-  sizes="(max-width: 768px) 100vw, 300px"
-/>
-```
-
-```tsx
-// app/products/[id]/page.tsx
-import type { Metadata } from 'next';
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
-  const { id } = await params;
-  const product = await getProduct(id);
-  return {
-    title: product.name,
-    description: product.description,
-    openGraph: { images: [product.image] },
-  };
-}
+// Cross-request caching (persists across requests)
+export const getCachedUser = unstable_cache(
+  async (id: string) => db.user.findUnique({ where: { id } }),
+  ['user-by-id'],
+  { revalidate: 3600, tags: ['users'] }
+);
 ```
 
 ---
 
 ## Best Practices
 
-1. **Server Components by default** - 'use client' only when needed
-2. **Direct fetch in Server Components** - No TanStack Query needed
-3. **TanStack Query in Client Components** - For client-side data needs
-4. **Zustand for client state** - Theme, cart, UI preferences
-5. **Server Actions for mutations** - All writes through Server Actions
-6. **useActionState for forms** - Handles pending state automatically
-7. **Await params/searchParams** - They're Promises in Next.js 15
-8. **Streaming with Suspense** - Wrap slow components
-9. **Domain-first structure** - Colocate by feature
+1. **Server Components by default** - 'use client' only for interactivity
+2. **Stream with Suspense** - Don't block on slow data
+3. **Server Actions for mutations** - No API routes for forms
+4. **useActionState for forms** - Handles pending state automatically
+5. **Interface-first** - Define hook signatures before implementation
+6. **Colocate by feature** - Domain-first structure

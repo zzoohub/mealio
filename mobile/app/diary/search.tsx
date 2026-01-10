@@ -238,15 +238,21 @@ export default function DiaryHistory() {
           {/* Nutrition Summary */}
           <View style={styles.nutritionRow}>
             <View style={styles.nutritionItem}>
-              <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>{meal.nutrition.calories}</Text>
+              <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>
+                {meal.nutrition.calories}
+              </Text>
               <Text style={[styles.nutritionLabel, { color: colors.text.secondary }]}>cal</Text>
             </View>
             <View style={styles.nutritionItem}>
-              <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>{meal.nutrition.protein}g</Text>
+              <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>
+                {meal.nutrition.protein}g
+              </Text>
               <Text style={[styles.nutritionLabel, { color: colors.text.secondary }]}>protein</Text>
             </View>
             <View style={styles.nutritionItem}>
-              <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>{meal.nutrition.carbs}g</Text>
+              <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>
+                {meal.nutrition.carbs}g
+              </Text>
               <Text style={[styles.nutritionLabel, { color: colors.text.secondary }]}>carbs</Text>
             </View>
             <View style={styles.nutritionItem}>
@@ -263,12 +269,17 @@ export default function DiaryHistory() {
           </View>
 
           {/* AI Recommendations - Always render container with minHeight to prevent layout shift */}
-          <View style={[
-            styles.recommendationPreview,
-            {
-              opacity: meal.aiAnalysis?.insights?.recommendations && meal.aiAnalysis.insights.recommendations.length > 0 ? 1 : 0,
-            }
-          ]}>
+          <View
+            style={[
+              styles.recommendationPreview,
+              {
+                opacity:
+                  meal.aiAnalysis?.insights?.recommendations && meal.aiAnalysis.insights.recommendations.length > 0
+                    ? 1
+                    : 0,
+              },
+            ]}
+          >
             <Ionicons name="bulb" size={12} color={colors.status.warning} />
             <Text style={[styles.recommendationText, { color: colors.status.warning }]} numberOfLines={1}>
               {meal.aiAnalysis?.insights?.recommendations?.[0] ?? ""}
@@ -615,7 +626,9 @@ export default function DiaryHistory() {
                       )}
                     </View>
                   </View>
-                  {sortMethod === item.key && <Ionicons name="checkmark" size={20} color={colors.interactive.primary} />}
+                  {sortMethod === item.key && (
+                    <Ionicons name="checkmark" size={20} color={colors.interactive.primary} />
+                  )}
                 </TouchableOpacity>
               )}
               style={styles.sortOptionsList}
@@ -731,13 +744,15 @@ export default function DiaryHistory() {
               <TouchableOpacity
                 style={[
                   styles.clearCustomButton,
-                  { opacity: (calendarRange.startDate || calendarRange.endDate) ? 1 : 0 }
+                  { opacity: calendarRange.startDate || calendarRange.endDate ? 1 : 0 },
                 ]}
                 onPress={() => clearDateRange()}
                 disabled={!(calendarRange.startDate || calendarRange.endDate)}
               >
                 <Ionicons name="trash-outline" size={16} color={colors.text.secondary} />
-                <Text style={[styles.clearCustomButtonText, { color: colors.interactive.primary }]}>Clear Selection</Text>
+                <Text style={[styles.clearCustomButtonText, { color: colors.interactive.primary }]}>
+                  Clear Selection
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1088,6 +1103,9 @@ const styles = StyleSheet.create({
   },
   calendarContainer: {
     padding: 20,
+    // Fixed minHeight to prevent layout shift when month changes
+    // Calendar can show 4-6 weeks; this accommodates 6 weeks + header + day names + instructions
+    minHeight: 420,
   },
   calendarTitle: {
     fontSize: 16,
