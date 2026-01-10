@@ -1,28 +1,36 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
+  TextInput,
   ActivityIndicator,
-  SectionList,
+  FlatList,
+  Dimensions,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Entry,
-  useEntrySearch,
-  EntryListItem,
-  EntrySearchBar,
-  EntryFilterChips,
-  EntrySortModal,
+  useDiarySearchPage,
+  MealTypeFilterChips,
+  DateQuickFilters,
+  ActiveFilters,
+  SearchGridItem,
   EntryDateRangeModal,
-  SortedSection,
 } from "@/domains/diary";
-import { useDiaryI18n } from "@/lib/i18n";
 import { useTheme } from "@/design-system/theme";
 import { tokens } from "@/design-system/tokens";
+
+// =============================================================================
+// CONSTANTS
+// =============================================================================
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const GRID_GAP = 1;
+const NUM_COLUMNS = 3;
+const ITEM_SIZE = (SCREEN_WIDTH - GRID_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 
 // =============================================================================
 // MAIN COMPONENT
@@ -30,78 +38,73 @@ import { tokens } from "@/design-system/tokens";
 
 export default function DiarySearchScreen() {
   const { colors } = useTheme();
-  const router = useRouter();
-  const diary = useDiaryI18n();
 
   // Use the extracted hook for all state and logic
   const {
-    sections,
+    filteredEntries,
     isLoading,
     isLoadingMore,
     searchQuery,
     setSearchQuery,
-    sortMethod,
-    sortOptions,
+    clearSearch,
+    selectedMealTypes,
+    setSelectedMealTypes,
+    removeMealType,
+    datePreset,
     dateRange,
     calendarRange,
-    formatDateRange,
+    customDateLabel,
+    handleDatePresetChange,
     handleDayPress,
     setDateRangePreset,
     clearDateRange,
-    showSortModal,
-    setShowSortModal,
+    showSortSheet,
     showDateRangeModal,
     setShowDateRangeModal,
+    handleCustomDatePress,
+    handleDateModalClose,
+    handleEntryPress,
+    handleClearAllFilters,
     loadMore,
-    handleSortMethodSelect,
-  } = useEntrySearch();
-
-  // =============================================================================
-  // HANDLERS
-  // =============================================================================
-
-  const handleEntryPress = (entry: Entry) => {
-    router.push(`/diary/${entry.id}`);
-  };
-
-  const handleQuickCapture = () => {
-    router.push("/");
-  };
+    goBack,
+  } = useDiarySearchPage();
 
   // =============================================================================
   // RENDER HELPERS
   // =============================================================================
 
-  const renderEntryItem = ({ item }: { item: Entry }) => (
-    <EntryListItem entry={item} onPress={handleEntryPress} />
+  const renderItem = useCallback(
+    ({ item }: { item: Entry }) => (
+      <SearchGridItem entry={item} size={ITEM_SIZE} onPress={handleEntryPress} />
+    ),
+    [handleEntryPress]
   );
 
-  const renderSectionHeader = ({ section }: { section: SortedSection }) => (
-    <View style={[styles.sectionHeader, { backgroundColor: colors.bg.primary }]}>
-      <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-        {section.title}
-      </Text>
-      <Text style={[styles.sectionCount, { color: colors.text.secondary }]}>
-        {section.data.length} {diary.stat("meals")}
-      </Text>
-    </View>
-  );
-
-  const renderFooter = () => {
+  const renderFooter = useCallback(() => {
     if (!isLoadingMore) return null;
     return (
-      <View style={styles.loadingMoreContainer}>
+      <View style={styles.loadingMore}>
         <ActivityIndicator size="small" color={colors.interactive.primary} />
-        <Text style={[styles.loadingMoreText, { color: colors.text.secondary }]}>
-          {diary.loadMore}
-        </Text>
       </View>
     );
-  };
+  }, [isLoadingMore, colors.interactive.primary]);
 
-  const showClearButton =
-    Boolean(dateRange.startDate) ||
-    Boolean(dateRange.endDate);
+  const renderEmpty = useCallback(
+    () => (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="search-outline" size={48} color={colors.text.tertiary} />
+        <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
+          검색 결과가 없습니다
+        </Text>
+        <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
+          {searchQuery || selectedMealTypes.length > 0 || datePreset
+            ? "필터를 조정해보세요"
+            : "식사를 기록하면 여기에 표시됩니다"}
+        </Text>
+      </View>
+    ),
+    [colors, searchQuery, selectedMealTypes.length, datePreset]
+  );
 
   // =============================================================================
   // RENDER
@@ -109,109 +112,103 @@ export default function DiarySearchScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg.primary }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+      {/* Search Bar Row */}
+      <View style={styles.searchRow}>
+        <TouchableOpacity
+          onPress={goBack}
+          style={styles.backButton}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
-          {diary.diaryHistory}
-        </Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity
-            onPress={() => setShowSortModal(true)}
-            style={styles.headerButton}
-          >
-            <Ionicons name="funnel" size={20} color={colors.text.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setShowDateRangeModal(true)}
-            style={styles.headerButton}
-          >
-            <Ionicons name="calendar" size={20} color={colors.text.primary} />
-          </TouchableOpacity>
+
+        <View style={[styles.searchBar, { backgroundColor: colors.bg.secondary }]}>
+          <Ionicons name="search" size={18} color={colors.text.tertiary} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text.primary }]}
+            placeholder="검색..."
+            placeholderTextColor={colors.text.tertiary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={clearSearch}>
+              <Ionicons name="close-circle" size={18} color={colors.text.tertiary} />
+            </TouchableOpacity>
+          )}
         </View>
+
+        <TouchableOpacity
+          onPress={showSortSheet}
+          style={styles.iconButton}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="swap-vertical" size={20} color={colors.text.primary} />
+        </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
-      <EntrySearchBar
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        placeholder={diary.searchPlaceholder}
-      />
+      {/* Filters */}
+      <View style={styles.filtersContainer}>
+        {/* Meal Type Filter */}
+        <MealTypeFilterChips selected={selectedMealTypes} onChange={setSelectedMealTypes} />
 
-      {/* Filter Chips */}
-      <EntryFilterChips
-        sortMethod={sortMethod}
-        dateRangeLabel={formatDateRange()}
-        showClearButton={showClearButton}
-        onSortPress={() => setShowSortModal(true)}
-        onDateRangePress={() => setShowDateRangeModal(true)}
-        onClear={clearDateRange}
-      />
+        {/* Date Quick Filters */}
+        <DateQuickFilters
+          selected={datePreset}
+          onChange={handleDatePresetChange}
+          onCustomPress={handleCustomDatePress}
+        />
+
+        {/* Active Filters */}
+        <ActiveFilters
+          searchQuery={searchQuery}
+          mealTypes={selectedMealTypes}
+          datePreset={datePreset}
+          customDateLabel={customDateLabel}
+          onRemoveSearch={clearSearch}
+          onRemoveMealType={removeMealType}
+          onRemoveDate={() => {
+            handleDatePresetChange(null);
+          }}
+          onClearAll={handleClearAllFilters}
+        />
+      </View>
 
       {/* Content */}
-      <View style={styles.contentWrapper}>
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.interactive.primary} />
-            <Text style={[styles.loadingText, { color: colors.text.primary }]}>
-              Loading your meals...
-            </Text>
-          </View>
-        ) : sections.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="restaurant-outline" size={64} color={colors.text.secondary} />
-            <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
-              {diary.noMealsFound}
-            </Text>
-            <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
-              {searchQuery
-                ? "Try adjusting your search"
-                : "Start logging meals to see your history here!"}
-            </Text>
-            <TouchableOpacity
-              style={[styles.addMealButton, { backgroundColor: colors.interactive.primary }]}
-              onPress={handleQuickCapture}
-            >
-              <Ionicons name="camera" size={20} color="white" />
-              <Text style={styles.addMealButtonText}>Quick Capture</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <SectionList
-            sections={sections}
-            keyExtractor={(item: Entry) => item.id}
-            renderItem={renderEntryItem}
-            renderSectionHeader={renderSectionHeader}
-            ListFooterComponent={renderFooter}
-            onEndReached={loadMore}
-            onEndReachedThreshold={0.3}
-            style={styles.mealsList}
-            contentContainerStyle={styles.mealsListContent}
-            showsVerticalScrollIndicator={false}
-            stickySectionHeadersEnabled={false}
-          />
-        )}
-      </View>
-
-      {/* Sort Modal */}
-      <EntrySortModal
-        visible={showSortModal}
-        onClose={() => setShowSortModal(false)}
-        currentSortMethod={sortMethod}
-        sortOptions={sortOptions}
-        onSelect={handleSortMethodSelect}
-      />
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.interactive.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredEntries}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          numColumns={NUM_COLUMNS}
+          columnWrapperStyle={styles.gridRow}
+          contentContainerStyle={styles.gridContent}
+          ListEmptyComponent={renderEmpty}
+          ListFooterComponent={renderFooter}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.3}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       {/* Date Range Modal */}
       <EntryDateRangeModal
         visible={showDateRangeModal}
-        onClose={() => setShowDateRangeModal(false)}
+        onClose={handleDateModalClose}
         calendarRange={calendarRange}
         onDayPress={handleDayPress}
-        onPresetSelect={setDateRangePreset}
-        onClear={clearDateRange}
+        onPresetSelect={(days) => {
+          setDateRangePreset(days);
+          handleDatePresetChange("custom");
+        }}
+        onClear={() => {
+          clearDateRange();
+          handleDatePresetChange(null);
+        }}
       />
     </SafeAreaView>
   );
@@ -225,101 +222,67 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  contentWrapper: {
-    flex: 1,
-  },
-  header: {
+  searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: tokens.spacing.layout.md,
-    paddingTop: tokens.spacing.component.md,
-    paddingBottom: tokens.spacing.component.md,
+    paddingVertical: tokens.spacing.component.sm,
+    gap: tokens.spacing.component.sm,
   },
   backButton: {
     padding: tokens.spacing.component.xs,
   },
-  headerTitle: {
-    fontSize: tokens.typography.fontSize.h4,
-    fontWeight: tokens.typography.fontWeight.semibold,
+  searchBar: {
     flex: 1,
-    textAlign: "center",
-  },
-  headerButtons: {
     flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: tokens.spacing.component.md,
+    paddingVertical: tokens.spacing.component.sm,
+    borderRadius: tokens.radius.md,
     gap: tokens.spacing.component.sm,
   },
-  headerButton: {
-    padding: tokens.spacing.component.sm,
-    borderRadius: tokens.radius.sm,
+  searchInput: {
+    flex: 1,
+    fontSize: tokens.typography.fontSize.body,
+    padding: 0,
+  },
+  iconButton: {
+    padding: tokens.spacing.component.xs,
+  },
+  filtersContainer: {
+    gap: tokens.spacing.component.sm,
+    paddingBottom: tokens.spacing.component.md,
+    paddingTop: tokens.spacing.component.xs,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    gap: tokens.spacing.component.md,
   },
-  loadingText: {
-    fontSize: tokens.typography.fontSize.body,
+  gridContent: {
+    // No horizontal padding - edge-to-edge
+  },
+  gridRow: {
+    gap: GRID_GAP,
+    marginBottom: GRID_GAP,
+  },
+  loadingMore: {
+    paddingVertical: tokens.spacing.layout.md,
+    alignItems: "center",
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: tokens.spacing.layout.xl,
+    paddingHorizontal: tokens.spacing.layout.lg,
+    paddingTop: tokens.spacing.layout.xl * 2,
     gap: tokens.spacing.component.md,
   },
   emptyTitle: {
-    fontSize: tokens.typography.fontSize.h3,
+    fontSize: tokens.typography.fontSize.h4,
     fontWeight: tokens.typography.fontWeight.semibold,
   },
   emptyText: {
     fontSize: tokens.typography.fontSize.body,
     textAlign: "center",
-    lineHeight: tokens.typography.lineHeight.body * tokens.typography.fontSize.body,
-  },
-  addMealButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: tokens.spacing.layout.lg,
-    paddingVertical: tokens.spacing.component.md,
-    borderRadius: tokens.radius.md,
-    gap: tokens.spacing.component.sm,
-    marginTop: tokens.spacing.component.sm,
-  },
-  addMealButtonText: {
-    color: "white",
-    fontSize: tokens.typography.fontSize.body,
-    fontWeight: tokens.typography.fontWeight.semibold,
-  },
-  mealsList: {
-    flex: 1,
-  },
-  mealsListContent: {
-    paddingHorizontal: tokens.spacing.layout.md,
-    paddingBottom: tokens.spacing.layout.md,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: tokens.spacing.component.md,
-  },
-  sectionTitle: {
-    fontSize: tokens.typography.fontSize.h4,
-    fontWeight: tokens.typography.fontWeight.semibold,
-  },
-  sectionCount: {
-    fontSize: tokens.typography.fontSize.bodySmall,
-  },
-  loadingMoreContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: tokens.spacing.layout.md,
-    gap: tokens.spacing.component.sm,
-  },
-  loadingMoreText: {
-    fontSize: tokens.typography.fontSize.bodySmall,
   },
 });

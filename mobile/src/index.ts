@@ -24,8 +24,6 @@ export type {
   EntryFilter,
 } from "./domains/diary";
 
-export type { AnalyticsEvent } from "./domains/analytics/types";
-
 export type { UserPreferences } from "./domains/settings/types";
 
 // Constants
@@ -34,13 +32,7 @@ export { CAMERA_SETTINGS, APP_CONFIG, API_CONFIG, STORAGE_KEYS, QUERY_KEYS, MUTA
 // Design System
 export * from "./design-system";
 
-// Components (organized by category)
-export { LoadingState, ErrorState } from "./components";
-
 // Domains (feature-based exports)
-// Camera moved to orbital components
-// export { TakePicture } from "./domains/posts";  // TODO: Implement posts domain
-// export { usePosts } from "./domains/posts";    // TODO: Implement posts domain
 export { useAuthStore } from "./domains/auth/stores/authStore";
 export { useSettingsStore } from "./domains/settings/stores/settingsStore";
 

@@ -1,13 +1,28 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { Alert } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { EntryDetailPage } from "@/domains/diary/components";
-import { Entry, MealType, Meal, NutritionInfo, entryStorageUtils } from "@/domains/diary";
+import React from "react";
+import { View, ScrollView, useWindowDimensions } from "react-native";
+import { useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { createStyles, useStyles } from "@/design-system/theme";
+import {
+  Entry,
+  MealType,
+  useEntryDetail,
+  EntryDetailHeader,
+  MealHeroImage,
+  AICommentBanner,
+  EntryContextBar,
+  EntryNotesSection,
+  AIAnalysisSection,
+  EntryDeleteButton,
+} from "@/domains/diary";
 
 // =============================================================================
-// MOCK DATA FOR UI TESTING
+// CONSTANTS
 // =============================================================================
 
+const HEADER_HEIGHT = 56;
+
+// Mock data for UI testing (remove when real data is available)
 const MOCK_ENTRY: Entry = {
   id: "mock_entry_1",
   userId: "user_1",
@@ -34,7 +49,7 @@ const MOCK_ENTRY: Entry = {
       estimatedCalories: 485,
       mealCategory: MealType.LUNCH,
       ingredients: ["닭가슴살", "양상추", "방울토마토", "아보카도", "올리브오일", "발사믹"],
-      comment: "단백질 폭탄이네요! 💪 운동 후 먹으면 딱이겠어요.",
+      comment: "단백질 폭탄이네요! 운동 후 먹으면 딱이겠어요.",
       cuisineType: "양식",
       insights: {
         healthScore: 88,
@@ -49,173 +64,120 @@ const MOCK_ENTRY: Entry = {
   updatedAt: new Date(),
 };
 
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
+
 export default function DiaryEntryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+  const s = useStyles(styles);
+  const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
 
-  const [entry, setEntry] = useState<Entry | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(false);
+  const {
+    entry,
+    isLoading,
+    isDeleting,
+    updateMealType,
+    updateNotes,
+    updateRating,
+    updateWouldEatAgain,
+    updateIngredients,
+    updateNutrition,
+    deleteEntry,
+    goBack,
+    openPhotoViewer,
+  } = useEntryDetail({
+    entryId: id,
+    fallbackEntry: MOCK_ENTRY,
+  });
 
-  // Load entry data (fallback to mock data for UI testing)
-  useEffect(() => {
-    const loadEntry = async () => {
-      if (!id) return;
-
-      setLoading(true);
-      try {
-        const entryData = await entryStorageUtils.getEntryById(id);
-        // Use mock data if entry not found (for UI testing)
-        setEntry(entryData || MOCK_ENTRY);
-      } catch (error) {
-        console.error("Failed to load entry:", error);
-        // Fallback to mock data on error
-        setEntry(MOCK_ENTRY);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadEntry();
-  }, [id]);
-
-  // =============================================================================
-  // UPDATE HELPERS
-  // =============================================================================
-
-  const updateEntry = useCallback(
-    async (updates: Partial<Entry>) => {
-      if (!id || !entry) return;
-
-      try {
-        const updatedEntry = await entryStorageUtils.updateEntry(id, updates);
-        setEntry(updatedEntry);
-      } catch (error) {
-        console.error("Failed to update entry:", error);
-      }
-    },
-    [id, entry]
-  );
-
-  // =============================================================================
-  // HANDLERS
-  // =============================================================================
-
-  const handleBackPress = useCallback(() => {
-    router.back();
-  }, [router]);
-
-  const handlePhotoPress = useCallback(() => {
-    // TODO: Open fullscreen photo viewer or change photo
-    console.log("Photo pressed");
-  }, []);
-
-  const handleMealTypeChange = useCallback(
-    (mealType: MealType) => {
-      if (!entry) return;
-      updateEntry({
-        meal: {
-          ...entry.meal,
-          mealType,
-        },
-      });
-    },
-    [entry, updateEntry]
-  );
-
-  const handleNotesChange = useCallback(
-    (notes: string) => {
-      updateEntry({ notes });
-    },
-    [updateEntry]
-  );
-
-  const handleRatingChange = useCallback(
-    (rating: number) => {
-      updateEntry({ rating });
-    },
-    [updateEntry]
-  );
-
-  const handleWouldEatAgainChange = useCallback(
-    (wouldEatAgain: boolean) => {
-      updateEntry({ wouldEatAgain });
-    },
-    [updateEntry]
-  );
-
-  const handleIngredientsChange = useCallback(
-    (ingredients: string[]) => {
-      if (!entry) return;
-      updateEntry({
-        meal: {
-          ...entry.meal,
-          ingredients,
-        },
-      });
-    },
-    [entry, updateEntry]
-  );
-
-  const handleNutritionChange = useCallback(
-    (nutrition: NutritionInfo) => {
-      if (!entry) return;
-      updateEntry({
-        meal: {
-          ...entry.meal,
-          nutrition,
-        },
-      });
-    },
-    [entry, updateEntry]
-  );
-
-  const handleDeletePress = useCallback(() => {
-    Alert.alert(
-      "기록 삭제",
-      "이 식사 기록을 삭제하시겠습니까?",
-      [
-        { text: "취소", style: "cancel" },
-        {
-          text: "삭제",
-          style: "destructive",
-          onPress: async () => {
-            if (!id) return;
-
-            setDeleting(true);
-            try {
-              await entryStorageUtils.deleteEntry(id);
-              router.back();
-            } catch (error) {
-              console.error("Failed to delete entry:", error);
-              Alert.alert("오류", "삭제에 실패했습니다. 다시 시도해주세요.");
-            } finally {
-              setDeleting(false);
-            }
-          },
-        },
-      ]
-    );
-  }, [id, router]);
+  const minContentHeight = screenHeight - insets.top - HEADER_HEIGHT;
+  const isDisabled = isLoading || !entry;
 
   // =============================================================================
   // RENDER
   // =============================================================================
 
   return (
-    <EntryDetailPage
-      entry={entry}
-      loading={loading}
-      deleting={deleting}
-      onBackPress={handleBackPress}
-      onPhotoPress={handlePhotoPress}
-      onMealTypeChange={handleMealTypeChange}
-      onNotesChange={handleNotesChange}
-      onRatingChange={handleRatingChange}
-      onWouldEatAgainChange={handleWouldEatAgainChange}
-      onIngredientsChange={handleIngredientsChange}
-      onNutritionChange={handleNutritionChange}
-      onDeletePress={handleDeletePress}
-    />
+    <View style={[s.container, { paddingTop: insets.top }]}>
+      {/* Header */}
+      <EntryDetailHeader onBackPress={goBack} />
+
+      {/* Scrollable Content */}
+      <ScrollView
+        style={s.scrollView}
+        contentContainerStyle={[s.scrollContent, { minHeight: minContentHeight }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Hero Image */}
+        <MealHeroImage
+          photoUri={entry?.meal.photoUri}
+          loading={isLoading && !entry}
+          onPress={entry?.meal.photoUri ? openPhotoViewer : undefined}
+        />
+
+        {/* AI Comment Banner */}
+        <AICommentBanner comment={entry?.meal.aiAnalysis?.comment} />
+
+        {/* Context Bar */}
+        {entry && (
+          <EntryContextBar
+            mealType={entry.meal.mealType}
+            timestamp={entry.timestamp instanceof Date ? entry.timestamp : new Date(entry.timestamp)}
+            location={entry.location}
+            onMealTypeChange={updateMealType}
+            disabled={isDisabled}
+          />
+        )}
+
+        {/* Notes Section */}
+        <EntryNotesSection
+          notes={entry?.notes}
+          rating={entry?.rating}
+          wouldEatAgain={entry?.wouldEatAgain}
+          onNotesChange={updateNotes}
+          onRatingChange={updateRating}
+          onWouldEatAgainChange={updateWouldEatAgain}
+          disabled={isDisabled}
+        />
+
+        {/* AI Analysis Section */}
+        <AIAnalysisSection
+          ingredients={entry?.meal.ingredients ?? entry?.meal.aiAnalysis?.ingredients}
+          nutrition={entry?.meal.nutrition}
+          onIngredientsChange={updateIngredients}
+          onNutritionChange={updateNutrition}
+          disabled={isDisabled}
+        />
+
+        {/* Spacer */}
+        <View style={s.spacer} />
+
+        {/* Delete Button */}
+        <EntryDeleteButton onPress={deleteEntry} loading={isDeleting} disabled={isDisabled} />
+      </ScrollView>
+    </View>
   );
 }
+
+// =============================================================================
+// STYLES
+// =============================================================================
+
+const styles = createStyles((colors) => ({
+  container: {
+    flex: 1,
+    backgroundColor: colors.bg.primary,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  spacer: {
+    flex: 1,
+  },
+}));

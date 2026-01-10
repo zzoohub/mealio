@@ -21,20 +21,10 @@ export interface PerformanceMetric {
   metadata?: Record<string, any>;
 }
 
-export interface NavigationMetric {
-  from: string;
-  to: string;
-  startTime: number;
-  endTime?: number;
-  duration?: number;
-}
-
 // Bundle types
 export type DomainModules = {
   camera: ComponentType<any>;
   diary: ComponentType<any>;
-  settings: ComponentType<any>;
-  analytics: ComponentType<any>;
 };
 
 // Constants
@@ -46,6 +36,4 @@ export const DEFAULT_CACHE_CONFIG: CacheConfig = {
 export const DOMAIN_IMPORT_MAP = {
   camera: () => import("@/domains/camera/components/Camera"),
   diary: () => import("../../../app/diary/index"),
-  settings: () => import("@/domains/settings/components/SettingsOrbital"),
-  analytics: () => import("@/domains/analytics/components/AnalyticsDashboard"),
 } as const;

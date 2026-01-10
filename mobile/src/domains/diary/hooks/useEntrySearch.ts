@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Entry, EntryFilter } from "../types";
+import { Entry, EntryFilter, SortMethod } from "../types";
 import { entryStorageUtils, generateMockEntries } from "./useEntryStorage";
 import { entrySortingUtils, SortedSection } from "./useEntrySorting";
-import { useAnalyticsStore, SortMethod } from "../../analytics";
 import { getCachedData } from "@/lib/performance";
 
 // =============================================================================
@@ -66,11 +65,23 @@ export interface UseEntrySearchReturn {
 const ITEMS_PER_PAGE = 20;
 
 // =============================================================================
+// TYPES FOR DATE PERIOD
+// =============================================================================
+
+interface DatePeriod {
+  type: "day" | "week" | "month" | "custom";
+  startDate?: Date;
+  endDate?: Date;
+}
+
+// =============================================================================
 // HOOK IMPLEMENTATION
 // =============================================================================
 
 export function useEntrySearch(): UseEntrySearchReturn {
-  const { globalPeriod, setGlobalPeriod, sortMethod, setSortMethod } = useAnalyticsStore();
+  // Date period state (was in analytics store)
+  const [datePeriod, setDatePeriod] = useState<DatePeriod>({ type: "day" });
+  const [sortMethod, setSortMethod] = useState<SortMethod>("date-desc");
 
   // Data state
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -107,10 +118,10 @@ export function useEntrySearch(): UseEntrySearchReturn {
   // Derived date range
   const dateRange: DateRange = useMemo(
     () => ({
-      startDate: globalPeriod.startDate ?? null,
-      endDate: globalPeriod.endDate ?? null,
+      startDate: datePeriod.startDate ?? null,
+      endDate: datePeriod.endDate ?? null,
     }),
-    [globalPeriod.startDate, globalPeriod.endDate]
+    [datePeriod.startDate, datePeriod.endDate]
   );
 
   // =============================================================================
@@ -156,8 +167,8 @@ export function useEntrySearch(): UseEntrySearchReturn {
 
         const filter: EntryFilter = {};
         if (searchQuery) filter.searchQuery = searchQuery;
-        if (globalPeriod.startDate) filter.startDate = globalPeriod.startDate;
-        if (globalPeriod.endDate) filter.endDate = globalPeriod.endDate;
+        if (datePeriod.startDate) filter.startDate = datePeriod.startDate;
+        if (datePeriod.endDate) filter.endDate = datePeriod.endDate;
 
         let loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
 
@@ -198,7 +209,7 @@ export function useEntrySearch(): UseEntrySearchReturn {
     };
 
     loadData();
-  }, [searchQuery, globalPeriod.startDate, globalPeriod.endDate, mockDataGenerated]);
+  }, [searchQuery, datePeriod.startDate, datePeriod.endDate, mockDataGenerated]);
 
   // =============================================================================
   // CALENDAR FUNCTIONS
@@ -259,32 +270,32 @@ export function useEntrySearch(): UseEntrySearchReturn {
       setCalendarRange({ startDate: start, endDate: end, markedDates });
 
       if (start && end) {
-        setGlobalPeriod({ type: "custom", startDate: start, endDate: end });
+        setDatePeriod({ type: "custom", startDate: start, endDate: end });
       } else if (start && !end) {
-        setGlobalPeriod({ type: "custom", startDate: start });
+        setDatePeriod({ type: "custom", startDate: start });
       }
     },
-    [setGlobalPeriod]
+    [setDatePeriod]
   );
 
   const clearDateRange = useCallback(() => {
     setCalendarRange({ startDate: null, endDate: null, markedDates: {} });
-    setGlobalPeriod({ type: "day" });
-  }, [setGlobalPeriod]);
+    setDatePeriod({ type: "day" });
+  }, [setDatePeriod]);
 
   const formatDateRange = useCallback(() => {
-    if (globalPeriod.startDate && globalPeriod.endDate) {
-      return `${globalPeriod.startDate.toLocaleDateString("en-US", {
+    if (datePeriod.startDate && datePeriod.endDate) {
+      return `${datePeriod.startDate.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
-      })} - ${globalPeriod.endDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
-    } else if (globalPeriod.startDate) {
-      return `From ${globalPeriod.startDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
-    } else if (globalPeriod.endDate) {
-      return `Until ${globalPeriod.endDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+      })} - ${datePeriod.endDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+    } else if (datePeriod.startDate) {
+      return `From ${datePeriod.startDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+    } else if (datePeriod.endDate) {
+      return `Until ${datePeriod.endDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
     }
     return "All time";
-  }, [globalPeriod.startDate, globalPeriod.endDate]);
+  }, [datePeriod.startDate, datePeriod.endDate]);
 
   const setDateRangePreset = useCallback(
     (days: number) => {
@@ -294,9 +305,9 @@ export function useEntrySearch(): UseEntrySearchReturn {
 
       // We need colors here - this will be passed from component
       // For now, use a placeholder that component will override
-      setGlobalPeriod({ type: "custom", startDate, endDate });
+      setDatePeriod({ type: "custom", startDate, endDate });
     },
-    [setGlobalPeriod]
+    [setDatePeriod]
   );
 
   const handleDayPress = useCallback(
@@ -311,21 +322,21 @@ export function useEntrySearch(): UseEntrySearchReturn {
           endDate: null,
           markedDates: {},
         });
-        setGlobalPeriod({ type: "custom", startDate: selectedDate });
+        setDatePeriod({ type: "custom", startDate: selectedDate });
       } else if (startDate && !endDate) {
         if (selectedDate >= startDate) {
-          setGlobalPeriod({ type: "custom", startDate, endDate: selectedDate });
+          setDatePeriod({ type: "custom", startDate, endDate: selectedDate });
         } else {
           setCalendarRange({
             startDate: selectedDate,
             endDate: null,
             markedDates: {},
           });
-          setGlobalPeriod({ type: "custom", startDate: selectedDate });
+          setDatePeriod({ type: "custom", startDate: selectedDate });
         }
       }
     },
-    [calendarRange, setGlobalPeriod]
+    [calendarRange, setDatePeriod]
   );
 
   // =============================================================================
@@ -340,8 +351,8 @@ export function useEntrySearch(): UseEntrySearchReturn {
 
       const filter: EntryFilter = {};
       if (searchQuery) filter.searchQuery = searchQuery;
-      if (globalPeriod.startDate) filter.startDate = globalPeriod.startDate;
-      if (globalPeriod.endDate) filter.endDate = globalPeriod.endDate;
+      if (datePeriod.startDate) filter.startDate = datePeriod.startDate;
+      if (datePeriod.endDate) filter.endDate = datePeriod.endDate;
 
       const loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
 
@@ -360,7 +371,7 @@ export function useEntrySearch(): UseEntrySearchReturn {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, hasMore, searchQuery, globalPeriod.startDate, globalPeriod.endDate, page]);
+  }, [isLoadingMore, hasMore, searchQuery, datePeriod.startDate, datePeriod.endDate, page]);
 
   const refetch = useCallback(async () => {
     setPage(1);

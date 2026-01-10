@@ -5,7 +5,6 @@ import type {
   FormattersType,
   NavigationKeys,
   CameraKeys,
-  AnalyticsKeys,
   CommonKeys,
   ErrorKeys,
   SettingsKeys,
@@ -108,7 +107,6 @@ export const useCameraI18n = () => {
       capturingText: t("capturingText"),
       preparing: t("preparing"),
       flip: t("flip"),
-      analytics: t("analytics"),
       recent: t("recent"),
       done: t("done"),
       tapToEdit: t("tapToEdit"),
@@ -175,47 +173,6 @@ export const useErrorI18n = () => {
       storageError: t("storageError"),
     }),
     [t],
-  );
-};
-
-// Analytics hook
-export const useAnalyticsI18n = () => {
-  const { t, format } = useI18n<AnalyticsKeys>("analytics");
-
-  return useMemo(
-    () => ({
-      title: t("title"),
-      todaySummary: t("todaySummary"),
-      caloriesConsumed: t("caloriesConsumed"),
-      remaining: t("remaining"),
-      macronutrients: t("macronutrients"),
-      protein: t("protein"),
-      carbs: t("carbs"),
-      fat: t("fat"),
-      water: t("water"),
-      fiber: t("fiber"),
-      achievements: t("achievements"),
-      weeklyTrends: t("weeklyTrends"),
-      day: t("day"),
-      week: t("week"),
-      month: t("month"),
-      proteinMaster: t("proteinMaster"),
-      proteinMasterDesc: t("proteinMasterDesc"),
-      veggieWarrior: t("veggieWarrior"),
-      veggieWarriorDesc: t("veggieWarriorDesc"),
-      consistencyKing: t("consistencyKing"),
-      consistencyKingDesc: t("consistencyKingDesc"),
-      eatingPattern: t("eatingPattern"),
-      seeAll: t("seeAll"),
-      viewAll: t("viewAll"),
-      balancedExplorer: t("balancedExplorer"),
-      balancedExplorerDesc: t("balancedExplorerDesc"),
-      mealDiversityScore: t("mealDiversityScore"),
-      diversityTip: t("diversityTip"),
-      formatCalories: format.calories,
-      formatNumber: format.number,
-    }),
-    [t, format.calories, format.number],
   );
 };
 

@@ -13,19 +13,10 @@ import { CameraBottomControls } from "./CameraBottomControls";
 import { PhotoStrip } from "./PhotoStrip";
 
 // =============================================================================
-// TYPES
+// MAIN COMPONENT
 // =============================================================================
 
-interface CameraProps {
-  onNavigate: (section: string) => void;
-  isActive: boolean;
-}
-
-// =============================================================================
-// MAIN COMPONENT (Composition Pattern)
-// =============================================================================
-
-export default function Camera({ onNavigate }: CameraProps) {
+export default function Camera() {
   const s = useStyles(cameraStyles);
   const [permission, requestPermission] = useCameraPermissions();
   const router = useRouter();
@@ -77,7 +68,11 @@ export default function Camera({ onNavigate }: CameraProps) {
       <CameraView ref={cameraRef} style={styles.camera} facing="back" flash={flashMode} mode="picture" />
 
       {/* Top Controls */}
-      <CameraTopControls flashIcon={getFlashIcon()} onToggleFlash={toggleFlash} />
+      <CameraTopControls
+        flashIcon={getFlashIcon()}
+        onToggleFlash={toggleFlash}
+        onSettingsPress={() => router.push("/settings")}
+      />
 
       {/* Capture Button */}
       <CaptureButton

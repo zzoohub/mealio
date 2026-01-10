@@ -33,14 +33,6 @@ export default function RootLayout() {
           }}
         />
 
-        {/* Main App with Orbital Navigation */}
-        <Stack.Screen
-          name="(main)"
-          options={{
-            gestureEnabled: false,
-          }}
-        />
-
         <Stack.Screen
           name="profile"
           options={{

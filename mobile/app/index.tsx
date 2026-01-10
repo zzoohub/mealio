@@ -1,6 +1,5 @@
-import { Redirect } from 'expo-router';
+import Camera from "@/domains/camera/components/Camera";
 
-export default function InitialScreen() {
-  // Redirect directly to main app - auth routing logic is handled in the main app
-  return <Redirect href="/(main)" />;
+export default function HomeScreen() {
+  return <Camera />;
 }

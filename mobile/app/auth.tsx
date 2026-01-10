@@ -11,16 +11,16 @@ export default function AuthScreen() {
   useEffect(() => {
     // If user is already authenticated, redirect to main app
     if (isAuthenticated) {
-      router.replace("/(main)");
+      router.replace("/");
     }
   }, [isAuthenticated]);
 
   const handleAuthComplete = () => {
-    router.replace("/(main)");
+    router.replace("/");
   };
 
   const handleAuthCancel = () => {
-    router.replace("/(main)");
+    router.replace("/");
   };
 
   return (

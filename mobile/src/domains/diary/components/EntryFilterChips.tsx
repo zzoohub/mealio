@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/design-system/theme";
 import { tokens } from "@/design-system/tokens";
-import { SortMethod } from "@/domains/analytics";
+import { SortMethod } from "../types";
 import { entrySortingUtils } from "../hooks/useEntrySorting";
 
 // =============================================================================

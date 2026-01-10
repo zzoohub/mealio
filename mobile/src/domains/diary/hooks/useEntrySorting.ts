@@ -1,6 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { Entry } from "../types";
-import { SortMethod } from "../../analytics";
+import { Entry, SortMethod } from "../types";
 
 export interface SortMetadata {
   key: SortMethod;

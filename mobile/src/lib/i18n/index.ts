@@ -30,7 +30,6 @@ export {
   useCameraI18n,
   useCommonI18n,
   useErrorI18n,
-  useAnalyticsI18n,
   useSettingsI18n,
   useDiaryI18n,
 } from "./hooks";
@@ -41,7 +40,6 @@ export type {
   TranslationKey,
   NavigationTranslations,
   CameraTranslations,
-  AnalyticsTranslations,
   CommonTranslations,
   ErrorTranslations,
   SettingsTranslations,

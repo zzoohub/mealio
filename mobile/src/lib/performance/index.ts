@@ -3,8 +3,6 @@ export {
   getCachedData,
   markPerformance,
   measurePerformance,
-  startNavigation,
-  endNavigation,
 } from './runtime';
 
 // Bundling: lazy loading

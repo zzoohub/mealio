@@ -1,22 +1,9 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
-} from "react-native";
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Calendar } from "react-native-calendars";
-import {
-  Entry,
-  useDiaryPage,
-  WeekDaySelector,
-  EntryFeedItem,
-} from "@/domains/diary";
+import { Entry, useDiaryPage, WeekDaySelector, EntryFeedItem } from "@/domains/diary";
 import { formatDateToString } from "@/domains/diary/utils/dateUtils";
 import { useDiaryI18n } from "@/lib/i18n";
 import { useTheme } from "@/design-system/theme";
@@ -35,7 +22,6 @@ export default function DiaryPage() {
   // Use the extracted hook for all state and logic
   const {
     selectedDate,
-    weekDays,
     formattedMonthYear,
     today,
     entries,
@@ -44,9 +30,8 @@ export default function DiaryPage() {
     setShowCalendarModal,
     markedDates,
     selectDate,
-    navigateToPreviousWeek,
-    navigateToNextWeek,
     handleCalendarDayPress,
+    handleVisibleWeekChange,
     dateHasEntries,
   } = useDiaryPage(colors.interactive.primary);
 
@@ -66,44 +51,26 @@ export default function DiaryPage() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg.primary }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerSideButton}>
+          <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.headerTitleContainer}
-          onPress={() => setShowCalendarModal(true)}
-        >
-          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
-            {formattedMonthYear}
-          </Text>
+        <TouchableOpacity style={styles.headerTitleContainer} onPress={() => setShowCalendarModal(true)}>
+          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{formattedMonthYear}</Text>
           <Ionicons name="chevron-down" size={18} color={colors.text.secondary} />
         </TouchableOpacity>
 
-        <View style={styles.headerButtons}>
-          <TouchableOpacity
-            onPress={() => router.push("/diary/search")}
-            style={styles.headerButton}
-          >
-            <Ionicons name="search" size={22} color={colors.text.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => router.push("/settings")}
-            style={styles.headerButton}
-          >
-            <Ionicons name="settings-outline" size={22} color={colors.text.primary} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={() => router.push("/diary/search")} style={styles.headerSideButton}>
+          <Ionicons name="search" size={22} color={colors.text.primary} />
+        </TouchableOpacity>
       </View>
 
       {/* Week Navigation */}
       <WeekDaySelector
-        weekDays={weekDays}
         selectedDate={selectedDate}
         today={today}
         onDateSelect={selectDate}
-        onPreviousWeek={navigateToPreviousWeek}
-        onNextWeek={navigateToNextWeek}
+        onVisibleWeekChange={handleVisibleWeekChange}
         dateHasEntries={dateHasEntries}
       />
 
@@ -116,9 +83,7 @@ export default function DiaryPage() {
         ) : entries.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="restaurant-outline" size={64} color={colors.text.secondary} />
-            <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
-              {diary.noMealsFound}
-            </Text>
+            <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>{diary.noMealsFound}</Text>
             <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
               {selectedDate.toLocaleDateString("ko-KR", {
                 month: "long",
@@ -128,58 +93,29 @@ export default function DiaryPage() {
             </Text>
             <TouchableOpacity
               style={[styles.addMealButton, { backgroundColor: colors.interactive.primary }]}
-              onPress={() => router.push("/(main)")}
+              onPress={() => router.push("/")}
             >
               <Ionicons name="camera" size={20} color="white" />
               <Text style={styles.addMealButtonText}>{diary.recordMeal}</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <ScrollView
-            style={styles.contentScroll}
-            contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Date Label */}
-            <Text style={[styles.dateLabel, { color: colors.text.primary }]}>
-              {selectedDate.toLocaleDateString("ko-KR", {
-                month: "long",
-                day: "numeric",
-                weekday: "long",
-              })}
-            </Text>
-
-            {/* Feed */}
-            <View style={styles.feed}>
-              {entries.map((entry, index) => (
-                <EntryFeedItem
-                  key={entry.id}
-                  entry={entry}
-                  onPress={handleEntryPress}
-                  showDivider={index < entries.length - 1}
-                />
-              ))}
-            </View>
+          <ScrollView style={styles.contentScroll} showsVerticalScrollIndicator={false}>
+            {/* Feed - edge-to-edge */}
+            {entries.map(entry => (
+              <EntryFeedItem key={entry.id} entry={entry} onPress={handleEntryPress} />
+            ))}
           </ScrollView>
         )}
       </View>
 
       {/* Calendar Modal */}
-      <BottomSheet
-        visible={showCalendarModal}
-        onClose={() => setShowCalendarModal(false)}
-        height="auto"
-      >
+      <BottomSheet visible={showCalendarModal} onClose={() => setShowCalendarModal(false)} height="auto">
         <View style={[styles.modalHeader, { borderBottomColor: colors.border.default }]}>
-          <TouchableOpacity
-            onPress={() => setShowCalendarModal(false)}
-            style={styles.modalCloseButton}
-          >
+          <TouchableOpacity onPress={() => setShowCalendarModal(false)} style={styles.modalCloseButton}>
             <Ionicons name="close" size={24} color={colors.text.secondary} />
           </TouchableOpacity>
-          <Text style={[styles.modalTitle, { color: colors.text.primary }]}>
-            {diary.selectDate}
-          </Text>
+          <Text style={[styles.modalTitle, { color: colors.text.primary }]}>{diary.selectDate}</Text>
           <View style={styles.modalCloseButton} />
         </View>
 
@@ -232,31 +168,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: tokens.spacing.component.md,
     paddingTop: tokens.spacing.component.sm,
-    paddingBottom: tokens.spacing.component.md,
+    paddingBottom: tokens.spacing.component.sm,
   },
-  backButton: {
-    padding: tokens.spacing.component.xs,
-    width: 40,
+  headerSideButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitleContainer: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: tokens.spacing.component.xs,
-    paddingVertical: tokens.spacing.component.xs,
-    paddingHorizontal: tokens.spacing.component.sm,
   },
   headerTitle: {
     fontSize: tokens.typography.fontSize.h4,
     fontWeight: tokens.typography.fontWeight.semibold,
-  },
-  headerButtons: {
-    flexDirection: "row",
-    gap: tokens.spacing.component.xs,
-  },
-  headerButton: {
-    padding: tokens.spacing.component.sm,
   },
   loadingContainer: {
     flex: 1,
@@ -296,17 +226,6 @@ const styles = StyleSheet.create({
   },
   contentScroll: {
     flex: 1,
-  },
-  contentContainer: {
-    padding: tokens.spacing.component.md,
-  },
-  dateLabel: {
-    fontSize: tokens.typography.fontSize.body,
-    fontWeight: tokens.typography.fontWeight.semibold,
-    marginBottom: tokens.spacing.layout.md,
-  },
-  feed: {
-    gap: tokens.spacing.layout.lg,
   },
   modalHeader: {
     flexDirection: "row",

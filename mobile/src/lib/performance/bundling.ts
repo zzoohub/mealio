@@ -12,16 +12,6 @@ export function preloadCriticalModules(): void {
     DOMAIN_IMPORT_MAP.camera().catch(() => {});
     loadedModules.add('camera');
   }
-
-  // Preload analytics when idle
-  if ('requestIdleCallback' in globalThis) {
-    (globalThis as any).requestIdleCallback(() => {
-      if (!loadedModules.has('analytics')) {
-        DOMAIN_IMPORT_MAP.analytics().catch(() => {});
-        loadedModules.add('analytics');
-      }
-    }, { timeout: 2000 });
-  }
 }
 
 // Default loading component

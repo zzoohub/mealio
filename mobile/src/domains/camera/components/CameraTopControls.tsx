@@ -10,16 +10,19 @@ import { iconSizes } from "@/design-system/tokens";
 export interface CameraTopControlsProps {
   flashIcon: "flash" | "flash-outline" | "flash-off";
   onToggleFlash: () => void;
+  onSettingsPress: () => void;
 }
 
 // =============================================================================
 // COMPONENT
 // =============================================================================
 
-export function CameraTopControls({ flashIcon, onToggleFlash }: CameraTopControlsProps) {
+export function CameraTopControls({ flashIcon, onToggleFlash, onSettingsPress }: CameraTopControlsProps) {
   return (
     <View style={styles.topControls}>
-      <View style={styles.controlButton} />
+      <TouchableOpacity style={styles.controlButton} onPress={onSettingsPress}>
+        <Ionicons name="settings-outline" size={iconSizes.md} color="white" />
+      </TouchableOpacity>
 
       <TouchableOpacity style={styles.controlButton} onPress={onToggleFlash}>
         <Ionicons name={flashIcon} size={iconSizes.md} color="white" />

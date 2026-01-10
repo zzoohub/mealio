@@ -1,4 +1,3 @@
-export { default as SettingsOrbital } from "./components/SettingsOrbital";
 export { useSettingsStore } from "./stores/settingsStore";
 export { useSettingsScreen } from "./hooks/useSettingsScreen";
 export type {

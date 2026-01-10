@@ -1,4 +1,4 @@
-import type { CacheConfig, CacheEntry, PerformanceMetric, NavigationMetric } from './types';
+import type { CacheConfig, CacheEntry, PerformanceMetric } from './types';
 import { DEFAULT_CACHE_CONFIG } from './types';
 
 // Cache storage
@@ -6,7 +6,6 @@ const cache = new Map<string, CacheEntry<any>>();
 
 // Performance monitoring storage
 const performanceMetrics = new Map<string, PerformanceMetric>();
-const navigationMetrics: NavigationMetric[] = [];
 
 // Cache functions
 function isCacheEntryValid(entry: CacheEntry<any>, ttl: number): boolean {
@@ -73,27 +72,4 @@ export function measurePerformance(name: string): number | undefined {
   }
 
   return duration;
-}
-
-export function startNavigation(from: string, to: string): void {
-  navigationMetrics.push({
-    from,
-    to,
-    startTime: performance.now(),
-  });
-}
-
-export function endNavigation(from: string, to: string): void {
-  const metric = navigationMetrics.find(
-    m => m.from === from && m.to === to && !m.endTime
-  );
-
-  if (metric) {
-    metric.endTime = performance.now();
-    metric.duration = metric.endTime - metric.startTime;
-
-    if (__DEV__) {
-      console.log(`📍 Navigation ${from} → ${to}: ${metric.duration.toFixed(2)}ms`);
-    }
-  }
 }

@@ -10,7 +10,6 @@ import { getWeekDays, isSameDay, formatDateToString } from "../utils/dateUtils";
 export interface UseDiaryPageReturn {
   // Date state
   selectedDate: Date;
-  weekDays: Date[];
   formattedMonthYear: string;
   today: Date;
 
@@ -31,9 +30,8 @@ export interface UseDiaryPageReturn {
 
   // Actions
   selectDate: (date: Date) => void;
-  navigateToPreviousWeek: () => void;
-  navigateToNextWeek: () => void;
   handleCalendarDayPress: (day: { dateString: string }) => void;
+  handleVisibleWeekChange: (days: Date[]) => void;
 
   // Utilities
   dateHasEntries: (date: Date) => boolean;
@@ -47,7 +45,7 @@ export interface UseDiaryPageReturn {
 export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
   // State
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [weekDays, setWeekDays] = useState<Date[]>([]);
+  const [visibleWeekDays, setVisibleWeekDays] = useState<Date[]>(() => getWeekDays(new Date()));
   const [entries, setEntries] = useState<Entry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -56,14 +54,9 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
 
   const today = useMemo(() => new Date(), []);
 
-  // Initialize week days
-  useEffect(() => {
-    setWeekDays(getWeekDays(selectedDate));
-  }, []);
-
-  // Update week when navigating
-  const updateWeek = useCallback((date: Date) => {
-    setWeekDays(getWeekDays(date));
+  // Handle visible week change from WeekDaySelector swipe
+  const handleVisibleWeekChange = useCallback((days: Date[]) => {
+    setVisibleWeekDays(days);
   }, []);
 
   // Load all entries to determine markers
@@ -118,29 +111,11 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
     setSelectedDate(date);
   }, []);
 
-  const navigateToPreviousWeek = useCallback(() => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() - 7);
-    setSelectedDate(newDate);
-    updateWeek(newDate);
-  }, [selectedDate, updateWeek]);
-
-  const navigateToNextWeek = useCallback(() => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + 7);
-    setSelectedDate(newDate);
-    updateWeek(newDate);
-  }, [selectedDate, updateWeek]);
-
-  const handleCalendarDayPress = useCallback(
-    (day: { dateString: string }) => {
-      const selectedDateFromCalendar = new Date(day.dateString + "T12:00:00");
-      setSelectedDate(selectedDateFromCalendar);
-      updateWeek(selectedDateFromCalendar);
-      setShowCalendarModal(false);
-    },
-    [updateWeek]
-  );
+  const handleCalendarDayPress = useCallback((day: { dateString: string }) => {
+    const selectedDateFromCalendar = new Date(day.dateString + "T12:00:00");
+    setSelectedDate(selectedDateFromCalendar);
+    setShowCalendarModal(false);
+  }, []);
 
   // =============================================================================
   // DERIVED DATA
@@ -155,11 +130,11 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
   );
 
   const formattedMonthYear = useMemo(() => {
-    if (weekDays.length === 0) return "";
-    const middleDate = weekDays[3];
+    if (visibleWeekDays.length === 0) return "";
+    const middleDate = visibleWeekDays[3];
     if (!middleDate) return "";
     return middleDate.toLocaleDateString("ko-KR", { month: "long", year: "numeric" });
-  }, [weekDays]);
+  }, [visibleWeekDays]);
 
   const markedDates = useMemo(() => {
     const marks: Record<
@@ -202,7 +177,6 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
   return {
     // Date state
     selectedDate,
-    weekDays,
     formattedMonthYear,
     today,
 
@@ -223,9 +197,8 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
 
     // Actions
     selectDate,
-    navigateToPreviousWeek,
-    navigateToNextWeek,
     handleCalendarDayPress,
+    handleVisibleWeekChange,
 
     // Utilities
     dateHasEntries,

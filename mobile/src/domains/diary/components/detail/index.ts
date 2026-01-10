@@ -1,13 +1,9 @@
 /**
  * Diary Detail Components
  *
- * Pure UI components for the diary entry page.
+ * Pure UI components for the diary entry detail page.
  * All components are stateless and receive data through props.
  */
-
-// Main page component
-export { EntryDetailPage } from './EntryDetailPage';
-export type { EntryDetailPageProps } from './EntryDetailPage';
 
 // Entry-level components
 export { EntryDetailHeader } from './EntryDetailHeader';
@@ -18,9 +14,6 @@ export type { EntryContextBarProps } from './EntryContextBar';
 
 export { EntryNotesSection } from './EntryNotesSection';
 export type { EntryNotesSectionProps } from './EntryNotesSection';
-
-export { EntryFeedbackRow } from './EntryFeedbackRow';
-export type { EntryFeedbackRowProps } from './EntryFeedbackRow';
 
 export { EntryDeleteButton } from './EntryDeleteButton';
 export type { EntryDeleteButtonProps } from './EntryDeleteButton';

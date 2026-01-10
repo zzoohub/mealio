@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Modal, FlatList, StyleSheet } from "react
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/design-system/theme";
 import { tokens } from "@/design-system/tokens";
-import { SortMethod } from "@/domains/analytics";
+import { SortMethod } from "../types";
 import { SortMetadata } from "../hooks/useEntrySorting";
 
 // =============================================================================

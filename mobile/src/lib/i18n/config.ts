@@ -16,7 +16,6 @@ const loadTranslations = async (language: string): Promise<TranslationResources>
         return {
           navigation: await import("./locales/modules/navigation.ko.json").then(m => m.default),
           camera: await import("./locales/modules/camera.ko.json").then(m => m.default),
-          analytics: await import("./locales/modules/analytics.ko.json").then(m => m.default),
           common: await import("./locales/modules/common.ko.json").then(m => m.default),
           errors: await import("./locales/modules/errors.ko.json").then(m => m.default),
           settings: await import("./locales/modules/settings.ko.json").then(m => m.default),
@@ -26,7 +25,6 @@ const loadTranslations = async (language: string): Promise<TranslationResources>
         return {
           navigation: await import("./locales/modules/navigation.en.json").then(m => m.default),
           camera: await import("./locales/modules/camera.en.json").then(m => m.default),
-          analytics: await import("./locales/modules/analytics.en.json").then(m => m.default),
           common: await import("./locales/modules/common.en.json").then(m => m.default),
           errors: await import("./locales/modules/errors.en.json").then(m => m.default),
           settings: await import("./locales/modules/settings.en.json").then(m => m.default),

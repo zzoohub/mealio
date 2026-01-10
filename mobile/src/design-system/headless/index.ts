@@ -66,23 +66,6 @@ export {
 } from './useInput';
 
 // ============================================================================
-// Dialog (Modal)
-// ============================================================================
-
-export {
-  useDialog,
-  default as useDialogDefault,
-  type UseDialogProps,
-  type UseDialogReturn,
-  type DialogProps,
-  type TriggerProps,
-  type TitleProps,
-  type DescriptionProps,
-  type CloseProps,
-  type DialogState,
-} from './useDialog';
-
-// ============================================================================
 // Checkbox
 // ============================================================================
 

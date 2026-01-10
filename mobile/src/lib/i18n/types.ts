@@ -7,7 +7,6 @@
 export interface TranslationResources {
   navigation: NavigationTranslations;
   camera: CameraTranslations;
-  analytics: AnalyticsTranslations;
   common: CommonTranslations;
   errors: ErrorTranslations;
   settings: SettingsTranslations;
@@ -28,7 +27,6 @@ export interface CameraTranslations {
   capturingText: string;
   preparing: string;
   flip: string;
-  analytics: string;
   recent: string;
   done: string;
   tapToEdit: string;
@@ -52,38 +50,6 @@ export interface CameraTranslations {
     error: string;
     errorMessage: string;
   };
-}
-
-// Analytics translations
-export interface AnalyticsTranslations {
-  title: string;
-  todaySummary: string;
-  caloriesConsumed: string;
-  remaining: string;
-  macronutrients: string;
-  protein: string;
-  carbs: string;
-  fat: string;
-  water: string;
-  fiber: string;
-  achievements: string;
-  weeklyTrends: string;
-  day: string;
-  week: string;
-  month: string;
-  proteinMaster: string;
-  proteinMasterDesc: string;
-  veggieWarrior: string;
-  veggieWarriorDesc: string;
-  consistencyKing: string;
-  consistencyKingDesc: string;
-  eatingPattern: string;
-  seeAll: string;
-  viewAll: string;
-  balancedExplorer: string;
-  balancedExplorerDesc: string;
-  mealDiversityScore: string;
-  diversityTip: string;
 }
 
 // Common translations
@@ -215,7 +181,6 @@ export interface SettingsTranslations {
 export type TranslationKey =
   | `navigation.${keyof NavigationTranslations}`
   | `camera.${KeyPath<CameraTranslations>}`
-  | `analytics.${KeyPath<AnalyticsTranslations>}`
   | `common.${keyof CommonTranslations}`
   | `errors.${keyof ErrorTranslations}`
   | `settings.${KeyPath<SettingsTranslations>}`
@@ -231,7 +196,6 @@ type KeyPath<T> = T extends object
 // Domain-specific key types for type safety in hooks
 export type NavigationKeys = keyof NavigationTranslations;
 export type CameraKeys = KeyPath<CameraTranslations>;
-export type AnalyticsKeys = KeyPath<AnalyticsTranslations>;
 export type CommonKeys = keyof CommonTranslations;
 export type ErrorKeys = keyof ErrorTranslations;
 export type SettingsKeys = KeyPath<SettingsTranslations>;

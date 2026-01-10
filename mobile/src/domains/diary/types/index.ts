@@ -89,6 +89,22 @@ export interface Entry {
 }
 
 // =============================================================================
+// SORTING
+// =============================================================================
+
+export type SortMethod =
+  | "date-desc"
+  | "date-asc"
+  | "calories-desc"
+  | "calories-asc"
+  | "protein-desc"
+  | "protein-asc"
+  | "health-score-desc"
+  | "health-score-asc"
+  | "nutrition-density-desc"
+  | "nutrition-density-asc";
+
+// =============================================================================
 // FILTERS & STATISTICS
 // =============================================================================
 
