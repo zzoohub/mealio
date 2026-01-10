@@ -1,121 +1,57 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, Alert } from "react-native";
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { useTheme } from "@/design-system/theme";
 import { Card } from "@/design-system/styled";
 import { SettingsItem, SettingsSection, SelectionModal, SettingsLayout } from "@/domains/settings/components";
-import { useSettingsStore } from "@/domains/settings/stores/settingsStore";
-import { useAuthStore } from "@/domains/auth/stores/authStore";
-import { changeLanguage, useSettingsI18n, type SupportedLanguage } from "@/lib/i18n";
+import { useSettingsScreen } from "@/domains/settings/hooks/useSettingsScreen";
+import { useSettingsI18n } from "@/lib/i18n";
+import { tokens } from "@/design-system/tokens";
 
-interface SelectionState {
-  type: "theme" | "language" | null;
-  visible: boolean;
-}
+// =============================================================================
+// MAIN COMPONENT (Composition Pattern)
+// =============================================================================
 
 export default function SettingsScreen() {
   const { colors } = useTheme();
-  const { user, logout, isLoading: authLoading } = useAuthStore();
-  const { display, notifications, updateDisplay, updateNotifications, isLoading } = useSettingsStore();
-  const isAuthenticated = !!user?.isLoggedIn;
   const settings = useSettingsI18n();
-  const [selection, setSelection] = useState<SelectionState>({ type: null, visible: false });
 
-  const openSelection = (type: SelectionState["type"]) => {
-    setSelection({ type, visible: true });
-  };
-
-  const closeSelection = () => {
-    setSelection({ type: null, visible: false });
-  };
-
-  const handleSelectionChange = async (value: string) => {
-    if (!selection.type) return;
-
-    if (selection.type === "theme") {
-      await updateDisplay({ theme: value as "light" | "dark" | "system" });
-    } else if (selection.type === "language") {
-      await updateDisplay({ language: value as SupportedLanguage });
-      await changeLanguage(value as SupportedLanguage);
-    }
-  };
-
-  const handleLogout = () => {
-    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Sign Out",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await logout();
-          } catch (error) {
-            Alert.alert("Error", "Failed to sign out. Please try again.");
-          }
-        },
-      },
-    ]);
-  };
-
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      "Delete Account",
-      "This will permanently delete your account and all associated data. This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete Account",
-          style: "destructive",
-          onPress: () => {
-            // TODO: Implement account deletion
-            console.log("Delete account");
-          },
-        },
-      ]
-    );
-  };
-
-  const themeOptions = [
-    { value: "light", label: settings.display.theme.light, description: settings.display.theme.lightDesc },
-    { value: "dark", label: settings.display.theme.dark, description: settings.display.theme.darkDesc },
-    { value: "system", label: settings.display.theme.system, description: settings.display.theme.systemDesc },
-  ];
-
-  const languageOptions = [
-    { value: "en", label: "English", description: "English (United States)" },
-    { value: "ko", label: "한국어", description: "Korean (South Korea)" },
-  ];
-
-  const getDisplayValue = (key: "theme" | "language") => {
-    const value = display[key];
-    if (key === "theme") {
-      return themeOptions.find((opt) => opt.value === value)?.label || value;
-    }
-    return languageOptions.find((opt) => opt.value === value)?.label || value;
-  };
-
-  const renderUserInfo = () => {
-    if (!isAuthenticated) return null;
-
-    return (
-      <Card variant="elevated" style={styles.userCard}>
-        <View style={styles.userInfo}>
-          <View style={[styles.avatar, { backgroundColor: colors.interactive.primary }]}>
-            <Text style={styles.avatarText}>{user?.username?.charAt(0).toUpperCase() || "U"}</Text>
-          </View>
-          <View style={styles.userDetails}>
-            <Text style={[styles.username, { color: colors.text.primary }]}>{user?.username || "User"}</Text>
-            <Text style={[styles.email, { color: colors.text.secondary }]}>
-              {user?.email || user?.phone || "Signed in"}
-            </Text>
-          </View>
-        </View>
-      </Card>
-    );
-  };
+  const {
+    user,
+    isAuthenticated,
+    display,
+    notifications,
+    isLoading,
+    authLoading,
+    selection,
+    themeOptions,
+    languageOptions,
+    getDisplayValue,
+    openSelection,
+    closeSelection,
+    handleSelectionChange,
+    handleLogout,
+    handleDeleteAccount,
+    updateNotifications,
+  } = useSettingsScreen();
 
   return (
     <SettingsLayout title={settings.title}>
-      {renderUserInfo()}
+      {/* User Info Card */}
+      {isAuthenticated && (
+        <Card variant="elevated" style={styles.userCard}>
+          <View style={styles.userInfo}>
+            <View style={[styles.avatar, { backgroundColor: colors.interactive.primary }]}>
+              <Text style={styles.avatarText}>{user?.username?.charAt(0).toUpperCase() || "U"}</Text>
+            </View>
+            <View style={styles.userDetails}>
+              <Text style={[styles.username, { color: colors.text.primary }]}>{user?.username || "User"}</Text>
+              <Text style={[styles.email, { color: colors.text.secondary }]}>
+                {user?.email || user?.phone || "Signed in"}
+              </Text>
+            </View>
+          </View>
+        </Card>
+      )}
 
       {/* Display Settings */}
       <SettingsSection title={settings.display.title} variant="grouped">
@@ -154,7 +90,7 @@ export default function SettingsScreen() {
         />
       </SettingsSection>
 
-      {/* Account Settings - only for authenticated users */}
+      {/* Account Settings */}
       {isAuthenticated && (
         <SettingsSection title="Account" variant="grouped">
           <SettingsItem
@@ -178,11 +114,12 @@ export default function SettingsScreen() {
         </SettingsSection>
       )}
 
-      {/* App Info */}
+      {/* App Version */}
       <View style={styles.appInfo}>
         <Text style={[styles.appVersion, { color: colors.text.secondary }]}>Version 1.0.0</Text>
       </View>
 
+      {/* Selection Modal */}
       <SelectionModal
         visible={selection.visible}
         title={selection.type === "theme" ? "Choose Theme" : settings.display.language.select}
@@ -195,10 +132,14 @@ export default function SettingsScreen() {
   );
 }
 
+// =============================================================================
+// STYLES
+// =============================================================================
+
 const styles = StyleSheet.create({
   userCard: {
-    marginBottom: 24,
-    padding: 16,
+    marginBottom: tokens.spacing.layout.sm,
+    padding: tokens.spacing.component.lg,
   },
   userInfo: {
     flexDirection: "row",
@@ -210,29 +151,29 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
+    marginRight: tokens.spacing.component.lg,
   },
   avatarText: {
     color: "white",
-    fontSize: 20,
-    fontWeight: "600",
+    fontSize: tokens.typography.fontSize.h4,
+    fontWeight: tokens.typography.fontWeight.semibold,
   },
   userDetails: {
     flex: 1,
   },
   username: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 4,
+    fontSize: tokens.typography.fontSize.h4,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    marginBottom: tokens.spacing.component.xs,
   },
   email: {
-    fontSize: 14,
+    fontSize: tokens.typography.fontSize.bodySmall,
   },
   appInfo: {
     alignItems: "center",
-    paddingVertical: 16,
+    paddingVertical: tokens.spacing.component.lg,
   },
   appVersion: {
-    fontSize: 12,
+    fontSize: tokens.typography.fontSize.caption,
   },
 });

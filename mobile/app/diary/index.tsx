@@ -1,239 +1,67 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React from "react";
 import {
   View,
   Text,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   ScrollView,
-  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Calendar } from "react-native-calendars";
-import { Meal, mealStorageUtils } from "@/domains/diary";
+import {
+  Meal,
+  useDiaryPage,
+  WeekDaySelector,
+  MealFeedItem,
+} from "@/domains/diary";
+import { formatDateToString } from "@/domains/diary/utils/dateUtils";
 import { useDiaryI18n } from "@/lib/i18n";
 import { useTheme } from "@/design-system/theme";
 import { tokens } from "@/design-system/tokens";
 import { BottomSheet } from "@/design-system/styled";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const FEED_PADDING = 16;
-const PHOTO_WIDTH = SCREEN_WIDTH - FEED_PADDING * 2;
-const PHOTO_HEIGHT = PHOTO_WIDTH * 0.75; // 4:3 aspect ratio
-
-// Helper functions for date manipulation
-const getWeekDays = (date: Date): Date[] => {
-  const days: Date[] = [];
-  const current = new Date(date);
-  const dayOfWeek = current.getDay();
-
-  // Start from Sunday (0)
-  current.setDate(current.getDate() - dayOfWeek);
-
-  for (let i = 0; i < 7; i++) {
-    days.push(new Date(current));
-    current.setDate(current.getDate() + 1);
-  }
-
-  return days;
-};
-
-const isSameDay = (date1: Date, date2: Date): boolean => {
-  return (
-    date1.getFullYear() === date2.getFullYear() &&
-    date1.getMonth() === date2.getMonth() &&
-    date1.getDate() === date2.getDate()
-  );
-};
-
-const formatTime = (date: Date): string => {
-  return date.toLocaleTimeString("ko-KR", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-};
-
-const getMealTypeEmoji = (mealType: string): string => {
-  switch (mealType.toLowerCase()) {
-    case "breakfast":
-      return "🌅";
-    case "lunch":
-      return "☀️";
-    case "dinner":
-      return "🌙";
-    case "snack":
-      return "🍎";
-    default:
-      return "🍽️";
-  }
-};
-
-const getMealTypeLabel = (mealType: string): string => {
-  switch (mealType.toLowerCase()) {
-    case "breakfast":
-      return "아침";
-    case "lunch":
-      return "점심";
-    case "dinner":
-      return "저녁";
-    case "snack":
-      return "간식";
-    default:
-      return "식사";
-  }
-};
-
-const formatDateToString = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
-const DAY_NAMES_KO = ["일", "월", "화", "수", "목", "금", "토"];
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
 
 export default function DiaryPage() {
   const { colors } = useTheme();
   const router = useRouter();
   const diary = useDiaryI18n();
 
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [weekDays, setWeekDays] = useState<Date[]>([]);
-  const [meals, setMeals] = useState<Meal[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [datesWithMeals, setDatesWithMeals] = useState<Set<string>>(new Set());
-  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  // Use the extracted hook for all state and logic
+  const {
+    selectedDate,
+    weekDays,
+    formattedMonthYear,
+    today,
+    meals,
+    isLoading,
+    showCalendarModal,
+    setShowCalendarModal,
+    markedDates,
+    selectDate,
+    navigateToPreviousWeek,
+    navigateToNextWeek,
+    handleCalendarDayPress,
+    dateHasMeals,
+  } = useDiaryPage(colors.interactive.primary);
 
-  // Initialize week days
-  useEffect(() => {
-    setWeekDays(getWeekDays(selectedDate));
-  }, []);
+  // =============================================================================
+  // HANDLERS
+  // =============================================================================
 
-  // Update week when navigating
-  const updateWeek = useCallback((date: Date) => {
-    setWeekDays(getWeekDays(date));
-  }, []);
-
-  // Load all meals to determine markers
-  useEffect(() => {
-    const loadAllMeals = async () => {
-      try {
-        const loadedMeals = await mealStorageUtils.getAllMeals();
-
-        // Create set of dates that have meals
-        const datesSet = new Set<string>();
-        loadedMeals.forEach(meal => {
-          const dateStr = meal.timestamp.toISOString().split("T")[0];
-          if (dateStr) datesSet.add(dateStr);
-        });
-        setDatesWithMeals(datesSet);
-      } catch (error) {
-        console.error("Error loading all meals:", error);
-      }
-    };
-
-    loadAllMeals();
-  }, []);
-
-  // Load meals for selected date
-  useEffect(() => {
-    const loadMealsForDate = async () => {
-      setIsLoading(true);
-      try {
-        const mealsForDate = await mealStorageUtils.getMealsForDate(selectedDate);
-        // Sort by timestamp (newest first)
-        mealsForDate.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-        setMeals(mealsForDate);
-      } catch (error) {
-        console.error("Error loading meals for date:", error);
-        setMeals([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadMealsForDate();
-  }, [selectedDate]);
-
-  const handleDateSelect = useCallback((date: Date) => {
-    setSelectedDate(date);
-  }, []);
-
-  const navigateToPreviousWeek = useCallback(() => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() - 7);
-    setSelectedDate(newDate);
-    updateWeek(newDate);
-  }, [selectedDate, updateWeek]);
-
-  const navigateToNextWeek = useCallback(() => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + 7);
-    setSelectedDate(newDate);
-    updateWeek(newDate);
-  }, [selectedDate, updateWeek]);
-
-  const handleMealPress = useCallback((meal: Meal) => {
+  const handleMealPress = (meal: Meal) => {
     // TODO: Navigate to meal detail page
     console.log("Meal pressed:", meal.id);
-  }, []);
+  };
 
-  const handleCalendarDayPress = useCallback((day: { dateString: string }) => {
-    const selectedDateFromCalendar = new Date(day.dateString + "T12:00:00");
-    setSelectedDate(selectedDateFromCalendar);
-    updateWeek(selectedDateFromCalendar);
-    setShowCalendarModal(false);
-  }, [updateWeek]);
-
-  const today = useMemo(() => new Date(), []);
-
-  const dateHasMeals = useCallback((date: Date): boolean => {
-    const dateStr = date.toISOString().split("T")[0];
-    return dateStr ? datesWithMeals.has(dateStr) : false;
-  }, [datesWithMeals]);
-
-  const getFormattedMonthYear = useMemo(() => {
-    if (weekDays.length === 0) return "";
-    const middleDate = weekDays[3];
-    if (!middleDate) return "";
-    return middleDate.toLocaleDateString("ko-KR", { month: "long", year: "numeric" });
-  }, [weekDays]);
-
-  // Create markedDates for the calendar modal
-  const markedDates = useMemo(() => {
-    const marks: Record<string, { marked: boolean; dotColor: string; selected?: boolean; selectedColor?: string }> = {};
-
-    // Add dots for dates with meals
-    datesWithMeals.forEach(dateStr => {
-      marks[dateStr] = {
-        marked: true,
-        dotColor: colors.interactive.primary,
-      };
-    });
-
-    // Mark selected date
-    const selectedDateStr = formatDateToString(selectedDate);
-    if (marks[selectedDateStr]) {
-      marks[selectedDateStr] = {
-        ...marks[selectedDateStr],
-        selected: true,
-        selectedColor: colors.interactive.primary,
-      };
-    } else {
-      marks[selectedDateStr] = {
-        marked: false,
-        dotColor: colors.interactive.primary,
-        selected: true,
-        selectedColor: colors.interactive.primary,
-      };
-    }
-
-    return marks;
-  }, [datesWithMeals, selectedDate, colors.interactive.primary]);
+  // =============================================================================
+  // RENDER
+  // =============================================================================
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg.primary }]}>
@@ -248,7 +76,7 @@ export default function DiaryPage() {
           onPress={() => setShowCalendarModal(true)}
         >
           <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
-            {getFormattedMonthYear}
+            {formattedMonthYear}
           </Text>
           <Ionicons name="chevron-down" size={18} color={colors.text.secondary} />
         </TouchableOpacity>
@@ -270,64 +98,17 @@ export default function DiaryPage() {
       </View>
 
       {/* Week Navigation */}
-      <View style={[styles.weekNavigation, { borderBottomColor: colors.border.default }]}>
-        <TouchableOpacity onPress={navigateToPreviousWeek} style={styles.navButton}>
-          <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
+      <WeekDaySelector
+        weekDays={weekDays}
+        selectedDate={selectedDate}
+        today={today}
+        onDateSelect={selectDate}
+        onPreviousWeek={navigateToPreviousWeek}
+        onNextWeek={navigateToNextWeek}
+        dateHasMeals={dateHasMeals}
+      />
 
-        <View style={styles.weekCalendar}>
-          {weekDays.map((date, index) => {
-            const isSelected = isSameDay(date, selectedDate);
-            const isToday = isSameDay(date, today);
-            const hasMeals = dateHasMeals(date);
-
-            return (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.dayItem,
-                  isSelected && { backgroundColor: colors.interactive.primary },
-                ]}
-                onPress={() => handleDateSelect(date)}
-              >
-                <Text
-                  style={[
-                    styles.dayName,
-                    { color: isSelected ? "white" : colors.text.secondary },
-                  ]}
-                >
-                  {DAY_NAMES_KO[index]}
-                </Text>
-                <Text
-                  style={[
-                    styles.dayNumber,
-                    { color: isSelected ? "white" : colors.text.primary },
-                    isToday && !isSelected && { color: colors.interactive.primary },
-                  ]}
-                >
-                  {date.getDate()}
-                </Text>
-                {/* Always render dot container to prevent layout shift, use opacity for visibility */}
-                <View
-                  style={[
-                    styles.mealMarker,
-                    {
-                      backgroundColor: isSelected ? "white" : colors.interactive.primary,
-                      opacity: hasMeals ? 1 : 0,
-                    },
-                  ]}
-                />
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <TouchableOpacity onPress={navigateToNextWeek} style={styles.navButton}>
-          <Ionicons name="chevron-forward" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Content - Use flex: 1 container to prevent layout shift between states */}
+      {/* Content */}
       <View style={styles.contentWrapper}>
         {isLoading ? (
           <View style={styles.loadingContainer}>
@@ -343,7 +124,7 @@ export default function DiaryPage() {
               {selectedDate.toLocaleDateString("ko-KR", {
                 month: "long",
                 day: "numeric",
-                weekday: "long"
+                weekday: "long",
               })}
             </Text>
             <TouchableOpacity
@@ -365,60 +146,19 @@ export default function DiaryPage() {
               {selectedDate.toLocaleDateString("ko-KR", {
                 month: "long",
                 day: "numeric",
-                weekday: "long"
+                weekday: "long",
               })}
             </Text>
 
             {/* Feed */}
             <View style={styles.feed}>
               {meals.map((meal, index) => (
-                <TouchableOpacity
+                <MealFeedItem
                   key={meal.id}
-                  style={styles.feedItem}
-                  onPress={() => handleMealPress(meal)}
-                  activeOpacity={0.9}
-                >
-                  {/* Photo */}
-                  <View style={[styles.photoContainer, { backgroundColor: colors.bg.secondary }]}>
-                    {meal.photoUri ? (
-                      <Image
-                        source={{ uri: meal.photoUri }}
-                        style={styles.mealPhoto}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <Ionicons name="image-outline" size={48} color={colors.text.secondary} />
-                    )}
-                  </View>
-
-                  {/* Info */}
-                  <View style={styles.mealInfo}>
-                    <Text style={[styles.mealType, { color: colors.text.primary }]}>
-                      {getMealTypeEmoji(meal.mealType)} {getMealTypeLabel(meal.mealType)}
-                    </Text>
-                    <View style={styles.mealMeta}>
-                      <Text style={[styles.mealTime, { color: colors.text.secondary }]}>
-                        {formatTime(meal.timestamp)}
-                      </Text>
-                      {meal.location?.address && (
-                        <>
-                          <Text style={[styles.metaDivider, { color: colors.text.secondary }]}>·</Text>
-                          <Text
-                            style={[styles.mealLocation, { color: colors.text.secondary }]}
-                            numberOfLines={1}
-                          >
-                            {meal.location.restaurantName || meal.location.address.split(",")[0]}
-                          </Text>
-                        </>
-                      )}
-                    </View>
-                  </View>
-
-                  {/* Divider (except for last item) */}
-                  {index < meals.length - 1 && (
-                    <View style={[styles.divider, { backgroundColor: colors.border.default }]} />
-                  )}
-                </TouchableOpacity>
+                  meal={meal}
+                  onPress={handleMealPress}
+                  showDivider={index < meals.length - 1}
+                />
               ))}
             </View>
           </ScrollView>
@@ -464,9 +204,9 @@ export default function DiaryPage() {
               disabledArrowColor: colors.text.secondary,
               monthTextColor: colors.text.primary,
               indicatorColor: colors.interactive.primary,
-              textDayFontWeight: tokens.typography.fontWeight.normal,
-              textMonthFontWeight: tokens.typography.fontWeight.semibold,
-              textDayHeaderFontWeight: tokens.typography.fontWeight.medium,
+              textDayFontWeight: "400",
+              textMonthFontWeight: "600",
+              textDayHeaderFontWeight: "500",
               textDayFontSize: tokens.typography.fontSize.body,
               textMonthFontSize: tokens.typography.fontSize.h4,
               textDayHeaderFontSize: tokens.typography.fontSize.bodySmall,
@@ -478,11 +218,14 @@ export default function DiaryPage() {
   );
 }
 
+// =============================================================================
+// STYLES
+// =============================================================================
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  // Wrapper ensures consistent layout regardless of loading/empty/content state
   contentWrapper: {
     flex: 1,
   },
@@ -490,68 +233,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingHorizontal: tokens.spacing.component.md,
+    paddingTop: tokens.spacing.component.sm,
+    paddingBottom: tokens.spacing.component.md,
   },
   backButton: {
-    padding: 4,
+    padding: tokens.spacing.component.xs,
     width: 40,
   },
   headerTitleContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    gap: tokens.spacing.component.xs,
+    paddingVertical: tokens.spacing.component.xs,
+    paddingHorizontal: tokens.spacing.component.sm,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: tokens.typography.fontSize.h4,
+    fontWeight: tokens.typography.fontWeight.semibold,
   },
   headerButtons: {
     flexDirection: "row",
-    gap: 4,
+    gap: tokens.spacing.component.xs,
   },
   headerButton: {
-    padding: 8,
-  },
-  weekNavigation: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-  },
-  navButton: {
-    padding: 8,
-  },
-  weekCalendar: {
-    flex: 1,
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  dayItem: {
-    alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    minWidth: 36,
-  },
-  dayName: {
-    fontSize: 12,
-    fontWeight: "500",
-    marginBottom: 4,
-  },
-  dayNumber: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  mealMarker: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginTop: 4,
+    padding: tokens.spacing.component.sm,
   },
   loadingContainer: {
     flex: 1,
@@ -562,95 +268,53 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 40,
+    paddingHorizontal: tokens.spacing.layout.xl,
     paddingBottom: 80,
-    gap: 12,
+    gap: tokens.spacing.component.md,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    marginTop: 16,
+    fontSize: tokens.typography.fontSize.h3,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    marginTop: tokens.spacing.component.md,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: tokens.typography.fontSize.bodySmall,
     textAlign: "center",
   },
   addMealButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
-    marginTop: 16,
+    paddingHorizontal: tokens.spacing.layout.lg,
+    paddingVertical: tokens.spacing.component.md,
+    borderRadius: tokens.radius.md,
+    gap: tokens.spacing.component.sm,
+    marginTop: tokens.spacing.component.md,
   },
   addMealButtonText: {
     color: "white",
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: tokens.typography.fontSize.body,
+    fontWeight: tokens.typography.fontWeight.semibold,
   },
   contentScroll: {
     flex: 1,
   },
   contentContainer: {
-    padding: FEED_PADDING,
+    padding: tokens.spacing.component.md,
   },
   dateLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 20,
+    fontSize: tokens.typography.fontSize.body,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    marginBottom: tokens.spacing.layout.md,
   },
   feed: {
-    gap: 24,
+    gap: tokens.spacing.layout.lg,
   },
-  feedItem: {
-    gap: 12,
-  },
-  photoContainer: {
-    width: PHOTO_WIDTH,
-    height: PHOTO_HEIGHT,
-    borderRadius: tokens.radius.lg,
-    overflow: "hidden",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  mealPhoto: {
-    width: "100%",
-    height: "100%",
-  },
-  mealInfo: {
-    gap: 4,
-  },
-  mealType: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  mealMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  mealTime: {
-    fontSize: 14,
-  },
-  metaDivider: {
-    fontSize: 14,
-  },
-  mealLocation: {
-    fontSize: 14,
-    flex: 1,
-  },
-  divider: {
-    height: 1,
-    marginTop: 12,
-  },
-  // Modal styles
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: tokens.spacing.component.md,
+    paddingVertical: tokens.spacing.component.md,
     borderBottomWidth: 1,
   },
   modalCloseButton: {
@@ -660,16 +324,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: tokens.typography.fontSize.h4,
+    fontWeight: tokens.typography.fontWeight.semibold,
     flex: 1,
     textAlign: "center",
   },
   calendarContainer: {
-    padding: 16,
-    paddingBottom: 32,
-    // Fixed minHeight to prevent layout shift when month changes
-    // Calendar can show 4-6 weeks; this accommodates 6 weeks + header + day names
+    padding: tokens.spacing.component.md,
+    paddingBottom: tokens.spacing.layout.xl,
     minHeight: 370,
   },
 });
