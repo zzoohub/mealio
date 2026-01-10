@@ -1,7 +1,7 @@
 /**
- * MealPhotoGrid - Grid layout for meal photos
+ * EntryPhotoGrid - Grid layout for entry photos
  *
- * Displays meal photos in a responsive grid layout.
+ * Displays entry photos in a responsive grid layout.
  * Wraps MealPhotoCard components with proper spacing.
  *
  * Features:
@@ -12,7 +12,7 @@
  *
  * @example
  * ```tsx
- * <MealPhotoGrid
+ * <EntryPhotoGrid
  *   meals={[
  *     { id: '1', photoUri: '...', time: '12:30' },
  *     { id: '2', photoUri: '...', time: '14:20' },
@@ -31,7 +31,7 @@ import { Stack } from '@/design-system/styled';
 import { MealPhotoCard, MealPhotoData } from './MealPhotoCard';
 import type { BaseComponentProps } from '@/types';
 
-export interface MealPhotoGridProps extends BaseComponentProps {
+export interface EntryPhotoGridProps extends BaseComponentProps {
   /** Array of meal photos to display */
   meals: MealPhotoData[];
   /** Number of columns in the grid */
@@ -44,7 +44,7 @@ export interface MealPhotoGridProps extends BaseComponentProps {
   onMealLongPress?: (meal: MealPhotoData) => void;
 }
 
-export function MealPhotoGrid({
+export function EntryPhotoGrid({
   meals,
   columns = 3,
   cardSize = 'medium',
@@ -52,7 +52,7 @@ export function MealPhotoGrid({
   onMealLongPress,
   testID,
   style,
-}: MealPhotoGridProps) {
+}: EntryPhotoGridProps) {
   // Calculate gap based on columns
   const gap = columns === 3 ? 'lg' : 'md';
 

@@ -4,13 +4,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/design-system/theme";
 import { tokens } from "@/design-system/tokens";
 import { SortMethod } from "@/domains/analytics";
-import { SortMetadata } from "../hooks/useMealSorting";
+import { SortMetadata } from "../hooks/useEntrySorting";
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-export interface MealSortModalProps {
+export interface EntrySortModalProps {
   visible: boolean;
   onClose: () => void;
   currentSortMethod: SortMethod;
@@ -22,13 +22,13 @@ export interface MealSortModalProps {
 // COMPONENT
 // =============================================================================
 
-export function MealSortModal({
+export function EntrySortModal({
   visible,
   onClose,
   currentSortMethod,
   sortOptions,
   onSelect,
-}: MealSortModalProps) {
+}: EntrySortModalProps) {
   const { colors } = useTheme();
 
   const renderSortOption = ({ item }: { item: SortMetadata }) => {
@@ -155,4 +155,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MealSortModal;
+export default EntrySortModal;

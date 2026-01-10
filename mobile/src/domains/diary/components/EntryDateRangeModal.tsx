@@ -4,13 +4,13 @@ import { Calendar } from "react-native-calendars";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/design-system/theme";
 import { tokens } from "@/design-system/tokens";
-import { CalendarRangeState } from "../hooks/useMealSearch";
+import { CalendarRangeState } from "../hooks/useEntrySearch";
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-export interface MealDateRangeModalProps {
+export interface EntryDateRangeModalProps {
   visible: boolean;
   onClose: () => void;
   calendarRange: CalendarRangeState;
@@ -23,14 +23,14 @@ export interface MealDateRangeModalProps {
 // COMPONENT
 // =============================================================================
 
-export function MealDateRangeModal({
+export function EntryDateRangeModal({
   visible,
   onClose,
   calendarRange,
   onDayPress,
   onPresetSelect,
   onClear,
-}: MealDateRangeModalProps) {
+}: EntryDateRangeModalProps) {
   const { colors } = useTheme();
 
   const handlePreset = (days: number) => {
@@ -247,4 +247,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MealDateRangeModal;
+export default EntryDateRangeModal;

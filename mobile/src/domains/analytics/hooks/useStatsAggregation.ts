@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from "react";
-import { Meal } from "@/domains/diary";
+import { Entry } from "@/domains/diary";
 import { TimePeriod, PeriodStats } from "../stores/analyticsStore";
 
 interface CacheEntry {
@@ -9,7 +9,7 @@ interface CacheEntry {
 }
 
 interface AggregationContext {
-  totalMeals: number;
+  totalEntries: number;
   totalDays: number;
   uniqueDays: Set<string>;
   nutritionTotals: {
@@ -41,11 +41,11 @@ const statsCache = new Map<string, CacheEntry>();
 
 // Stats aggregation utility functions
 export const statsAggregationUtils = {
-  generateCacheKey: (period: TimePeriod, mealsCount: number): string => {
+  generateCacheKey: (period: TimePeriod, entriesCount: number): string => {
     const { type, startDate, endDate } = period;
     const start = startDate ? startDate.toISOString().split("T")[0] : "none";
     const end = endDate ? endDate.toISOString().split("T")[0] : "none";
-    return `${type}-${start}-${end}-${mealsCount}`;
+    return `${type}-${start}-${end}-${entriesCount}`;
   },
 
   isValidCacheEntry: (entry: CacheEntry): boolean => {
@@ -122,16 +122,16 @@ export const statsAggregationUtils = {
     }
   },
 
-  filterMealsByPeriod: (meals: Meal[], period: TimePeriod): Meal[] => {
+  filterEntriesByPeriod: (entries: Entry[], period: TimePeriod): Entry[] => {
     const { start, end } = statsAggregationUtils.getPeriodDateRange(period);
 
-    return meals.filter(meal => {
-      const mealTime = meal.timestamp.getTime();
-      return mealTime >= start.getTime() && mealTime <= end.getTime();
+    return entries.filter(entry => {
+      const entryTime = entry.timestamp.getTime();
+      return entryTime >= start.getTime() && entryTime <= end.getTime();
     });
   },
 
-  buildAggregationContext: (meals: Meal[]): AggregationContext => {
+  buildAggregationContext: (entries: Entry[]): AggregationContext => {
     const uniqueDays = new Set<string>();
     const nutritionTotals = {
       calories: 0,
@@ -142,22 +142,25 @@ export const statsAggregationUtils = {
       fiber: 0,
     };
 
-    meals.forEach(meal => {
+    entries.forEach(entry => {
       // Track unique days
-      const dayKey = meal.timestamp.toDateString();
+      const dayKey = entry.timestamp.toDateString();
       uniqueDays.add(dayKey);
 
-      // Accumulate nutrition
-      nutritionTotals.calories += meal.nutrition.calories || 0;
-      nutritionTotals.protein += meal.nutrition.protein || 0;
-      nutritionTotals.carbs += meal.nutrition.carbs || 0;
-      nutritionTotals.fat += meal.nutrition.fat || 0;
-      nutritionTotals.water += meal.nutrition.water || 0;
-      nutritionTotals.fiber += meal.nutrition.fiber || 0;
+      // Accumulate nutrition from the nested meal object
+      const nutrition = entry.meal.nutrition;
+      if (nutrition) {
+        nutritionTotals.calories += nutrition.calories || 0;
+        nutritionTotals.protein += nutrition.protein || 0;
+        nutritionTotals.carbs += nutrition.carbs || 0;
+        nutritionTotals.fat += nutrition.fat || 0;
+        nutritionTotals.water += nutrition.water || 0;
+        nutritionTotals.fiber += nutrition.fiber || 0;
+      }
     });
 
     return {
-      totalMeals: meals.length,
+      totalEntries: entries.length,
       totalDays: Math.max(uniqueDays.size, 1), // Prevent division by zero
       uniqueDays,
       nutritionTotals,
@@ -252,15 +255,15 @@ export const statsAggregationUtils = {
   },
 
   /**
-   * Aggregates meal statistics for a given period with caching and performance optimization
+   * Aggregates entry statistics for a given period with caching and performance optimization
    */
   calculatePeriodStats: async (
-    meals: Meal[],
+    entries: Entry[],
     period: TimePeriod,
     userMetricsType?: "total" | "dailyAverage",
   ): Promise<PeriodStats> => {
     // Check cache first
-    const cacheKey = statsAggregationUtils.generateCacheKey(period, meals.length) + `-${userMetricsType || "auto"}`;
+    const cacheKey = statsAggregationUtils.generateCacheKey(period, entries.length) + `-${userMetricsType || "auto"}`;
     const cachedEntry = statsCache.get(cacheKey);
 
     if (cachedEntry && statsAggregationUtils.isValidCacheEntry(cachedEntry)) {
@@ -273,11 +276,11 @@ export const statsAggregationUtils = {
     }
 
     try {
-      // Filter meals for the period
-      const periodMeals = statsAggregationUtils.filterMealsByPeriod(meals, period);
+      // Filter entries for the period
+      const periodEntries = statsAggregationUtils.filterEntriesByPeriod(entries, period);
 
       // Build aggregation context
-      const context = statsAggregationUtils.buildAggregationContext(periodMeals);
+      const context = statsAggregationUtils.buildAggregationContext(periodEntries);
 
       // Calculate targets based on period
       const targets = statsAggregationUtils.calculateTargetsForPeriod(period, context.totalDays);
@@ -383,13 +386,13 @@ export const statsAggregationUtils = {
   /**
    * Pre-calculates stats for common periods to improve performance
    */
-  preloadCommonPeriods: async (meals: Meal[]): Promise<void> => {
+  preloadCommonPeriods: async (entries: Entry[]): Promise<void> => {
     const commonPeriods: TimePeriod[] = [{ type: "day" }, { type: "week" }, { type: "month" }];
 
     // Calculate in parallel but don't wait for completion
     Promise.all(
       commonPeriods.map(period =>
-        statsAggregationUtils.calculatePeriodStats(meals, period).catch(error => {
+        statsAggregationUtils.calculatePeriodStats(entries, period).catch(error => {
           console.warn("Failed to preload period stats:", period.type, error);
         }),
       ),
@@ -406,12 +409,12 @@ export const useStatsAggregation = () => {
   const cacheRef = useRef(statsCache);
 
   const calculatePeriodStats = useCallback(
-    async (meals: Meal[], period: TimePeriod, userMetricsType?: "total" | "dailyAverage") => {
+    async (entries: Entry[], period: TimePeriod, userMetricsType?: "total" | "dailyAverage") => {
       setLoading(true);
       setError(null);
 
       try {
-        const result = await statsAggregationUtils.calculatePeriodStats(meals, period, userMetricsType);
+        const result = await statsAggregationUtils.calculatePeriodStats(entries, period, userMetricsType);
         return result;
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Failed to calculate stats";
@@ -424,9 +427,9 @@ export const useStatsAggregation = () => {
     [],
   );
 
-  const preloadCommonPeriods = useCallback(async (meals: Meal[]) => {
+  const preloadCommonPeriods = useCallback(async (entries: Entry[]) => {
     try {
-      await statsAggregationUtils.preloadCommonPeriods(meals);
+      await statsAggregationUtils.preloadCommonPeriods(entries);
     } catch (err) {
       console.warn("Failed to preload common periods:", err);
     }

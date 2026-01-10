@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { Meal } from "../types";
+import { Entry } from "../types";
 import { SortMethod } from "../../analytics";
 
 export interface SortMetadata {
@@ -12,7 +12,7 @@ export interface SortMetadata {
 
 export interface SortedSection {
   title: string;
-  data: Meal[];
+  data: Entry[];
 }
 
 // Constants
@@ -92,8 +92,8 @@ const SORT_OPTIONS: SortMetadata[] = [
   },
 ];
 
-// Meal sorting utility functions
-export const mealSortingUtils = {
+// Entry sorting utility functions
+export const entrySortingUtils = {
   /**
    * Gets all available sort options with metadata
    */
@@ -116,10 +116,12 @@ export const mealSortingUtils = {
   /**
    * Calculates nutrition density score (protein + fiber) per 100 calories
    */
-  calculateNutritionDensity: (meal: Meal): number => {
-    const calories = meal.nutrition.calories || 1; // Prevent division by zero
-    const protein = meal.nutrition.protein || 0;
-    const fiber = meal.nutrition.fiber || 0;
+  calculateNutritionDensity: (entry: Entry): number => {
+    const nutrition = entry.meal.nutrition;
+    if (!nutrition) return 0;
+    const calories = nutrition.calories || 1; // Prevent division by zero
+    const protein = nutrition.protein || 0;
+    const fiber = nutrition.fiber || 0;
 
     // Calculate density as (protein + fiber) per 100 calories
     return ((protein + fiber) / calories) * 100;
@@ -128,13 +130,16 @@ export const mealSortingUtils = {
   /**
    * Gets health score from AI analysis or calculates a basic one
    */
-  getHealthScore: (meal: Meal): number => {
-    if (meal.aiAnalysis?.insights?.healthScore) {
-      return meal.aiAnalysis.insights.healthScore;
+  getHealthScore: (entry: Entry): number => {
+    if (entry.meal.aiAnalysis?.insights?.healthScore) {
+      return entry.meal.aiAnalysis.insights.healthScore;
     }
 
+    const nutrition = entry.meal.nutrition;
+    if (!nutrition) return 0;
+
     // Calculate basic health score based on nutrition balance
-    const { calories = 0, protein = 0, carbs = 0, fat = 0, fiber = 0 } = meal.nutrition;
+    const { calories = 0, protein = 0, carbs = 0, fat = 0, fiber = 0 } = nutrition;
 
     if (calories === 0) return 0;
 
@@ -162,62 +167,62 @@ export const mealSortingUtils = {
   /**
    * Gets sort value for comparison
    */
-  getSortValue: (meal: Meal, sortMethod: SortMethod): number => {
+  getSortValue: (entry: Entry, sortMethod: SortMethod): number => {
     switch (sortMethod) {
       case "date-desc":
       case "date-asc":
-        return meal.timestamp.getTime();
+        return entry.timestamp.getTime();
 
       case "calories-desc":
       case "calories-asc":
-        return meal.nutrition.calories || 0;
+        return entry.meal.nutrition?.calories || 0;
 
       case "protein-desc":
       case "protein-asc":
-        return meal.nutrition.protein || 0;
+        return entry.meal.nutrition?.protein || 0;
 
       case "health-score-desc":
       case "health-score-asc":
-        return mealSortingUtils.getHealthScore(meal);
+        return entrySortingUtils.getHealthScore(entry);
 
       case "nutrition-density-desc":
       case "nutrition-density-asc":
-        return mealSortingUtils.calculateNutritionDensity(meal);
+        return entrySortingUtils.calculateNutritionDensity(entry);
 
       default:
-        return meal.timestamp.getTime();
+        return entry.timestamp.getTime();
     }
   },
 
   /**
-   * Compares two meals based on sort method
+   * Compares two entries based on sort method
    */
-  compareMeals: (a: Meal, b: Meal, sortMethod: SortMethod): number => {
-    const metadata = mealSortingUtils.getSortMetadata(sortMethod);
-    const valueA = mealSortingUtils.getSortValue(a, sortMethod);
-    const valueB = mealSortingUtils.getSortValue(b, sortMethod);
+  compareEntries: (a: Entry, b: Entry, sortMethod: SortMethod): number => {
+    const metadata = entrySortingUtils.getSortMetadata(sortMethod);
+    const valueA = entrySortingUtils.getSortValue(a, sortMethod);
+    const valueB = entrySortingUtils.getSortValue(b, sortMethod);
 
     const comparison = valueA - valueB;
     return metadata.ascending ? comparison : -comparison;
   },
 
   /**
-   * Sorts meals in chunks for better performance with large datasets
+   * Sorts entries in chunks for better performance with large datasets
    */
-  sortMealsInChunks: async (meals: Meal[], sortMethod: SortMethod): Promise<Meal[]> => {
-    if (meals.length <= CHUNK_SIZE) {
-      return meals.sort((a, b) => mealSortingUtils.compareMeals(a, b, sortMethod));
+  sortEntriesInChunks: async (entries: Entry[], sortMethod: SortMethod): Promise<Entry[]> => {
+    if (entries.length <= CHUNK_SIZE) {
+      return entries.sort((a, b) => entrySortingUtils.compareEntries(a, b, sortMethod));
     }
 
     // Split into chunks
-    const chunks: Meal[][] = [];
-    for (let i = 0; i < meals.length; i += CHUNK_SIZE) {
-      chunks.push(meals.slice(i, i + CHUNK_SIZE));
+    const chunks: Entry[][] = [];
+    for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
+      chunks.push(entries.slice(i, i + CHUNK_SIZE));
     }
 
     // Sort each chunk
     const sortedChunks = await Promise.all(
-      chunks.map(chunk => Promise.resolve(chunk.sort((a, b) => mealSortingUtils.compareMeals(a, b, sortMethod)))),
+      chunks.map(chunk => Promise.resolve(chunk.sort((a, b) => entrySortingUtils.compareEntries(a, b, sortMethod)))),
     );
 
     // Merge sorted chunks
@@ -225,7 +230,7 @@ export const mealSortingUtils = {
     for (let i = 1; i < sortedChunks.length; i++) {
       const chunk = sortedChunks[i];
       if (chunk) {
-        result = mealSortingUtils.mergeSortedArrays(result, chunk, sortMethod);
+        result = entrySortingUtils.mergeSortedArrays(result, chunk, sortMethod);
       }
     }
 
@@ -235,29 +240,29 @@ export const mealSortingUtils = {
   /**
    * Merges two sorted arrays
    */
-  mergeSortedArrays: (arr1: Meal[], arr2: Meal[], sortMethod: SortMethod): Meal[] => {
-    const result: Meal[] = [];
+  mergeSortedArrays: (arr1: Entry[], arr2: Entry[], sortMethod: SortMethod): Entry[] => {
+    const result: Entry[] = [];
     let i = 0,
       j = 0;
 
     while (i < arr1.length && j < arr2.length) {
-      const meal1 = arr1[i];
-      const meal2 = arr2[j];
-      if (meal1 && meal2) {
-        if (mealSortingUtils.compareMeals(meal1, meal2, sortMethod) <= 0) {
-          result.push(meal1);
+      const entry1 = arr1[i];
+      const entry2 = arr2[j];
+      if (entry1 && entry2) {
+        if (entrySortingUtils.compareEntries(entry1, entry2, sortMethod) <= 0) {
+          result.push(entry1);
           i++;
         } else {
-          result.push(meal2);
+          result.push(entry2);
           j++;
         }
       } else {
         // Handle edge case where array contains undefined
-        if (meal1) {
-          result.push(meal1);
+        if (entry1) {
+          result.push(entry1);
         }
-        if (meal2) {
-          result.push(meal2);
+        if (entry2) {
+          result.push(entry2);
         }
         i++;
         j++;
@@ -270,35 +275,35 @@ export const mealSortingUtils = {
   },
 
   /**
-   * Groups sorted meals into sections
+   * Groups sorted entries into sections
    */
-  groupMealsIntoSections: (sortedMeals: Meal[], sortMethod: SortMethod): SortedSection[] => {
-    if (sortedMeals.length === 0) return [];
+  groupEntriesIntoSections: (sortedEntries: Entry[], sortMethod: SortMethod): SortedSection[] => {
+    if (sortedEntries.length === 0) return [];
 
     // For date-based sorting, group by date
     if (sortMethod === "date-desc" || sortMethod === "date-asc") {
-      return mealSortingUtils.groupByDate(sortedMeals);
+      return entrySortingUtils.groupByDate(sortedEntries);
     }
 
     // For other sorting methods, group by ranges
-    return mealSortingUtils.groupByValueRange(sortedMeals, sortMethod);
+    return entrySortingUtils.groupByValueRange(sortedEntries, sortMethod);
   },
 
   /**
-   * Groups meals by date
+   * Groups entries by date
    */
-  groupByDate: (meals: Meal[]): SortedSection[] => {
-    const grouped = meals.reduce((acc, meal) => {
-      const date = meal.timestamp.toDateString();
+  groupByDate: (entries: Entry[]): SortedSection[] => {
+    const grouped = entries.reduce((acc, entry) => {
+      const date = entry.timestamp.toDateString();
       if (!acc[date]) {
         acc[date] = [];
       }
-      acc[date].push(meal);
+      acc[date].push(entry);
       return acc;
-    }, {} as Record<string, Meal[]>);
+    }, {} as Record<string, Entry[]>);
 
     return Object.entries(grouped)
-      .map(([date, meals]) => {
+      .map(([date, entries]) => {
         const sectionDate = new Date(date);
         const today = new Date();
         const yesterday = new Date(today);
@@ -319,7 +324,7 @@ export const mealSortingUtils = {
 
         return {
           title,
-          data: meals,
+          data: entries,
         } as SortedSection;
       })
       .sort((a, b) => {
@@ -330,43 +335,43 @@ export const mealSortingUtils = {
   },
 
   /**
-   * Groups meals by value ranges for non-date sorting
+   * Groups entries by value ranges for non-date sorting
    */
-  groupByValueRange: (meals: Meal[], sortMethod: SortMethod): SortedSection[] => {
-    const metadata = mealSortingUtils.getSortMetadata(sortMethod);
+  groupByValueRange: (entries: Entry[], sortMethod: SortMethod): SortedSection[] => {
+    const metadata = entrySortingUtils.getSortMetadata(sortMethod);
 
     switch (sortMethod) {
       case "calories-desc":
       case "calories-asc":
-        return mealSortingUtils.groupByCalorieRanges(meals);
+        return entrySortingUtils.groupByCalorieRanges(entries);
 
       case "protein-desc":
       case "protein-asc":
-        return mealSortingUtils.groupByProteinRanges(meals);
+        return entrySortingUtils.groupByProteinRanges(entries);
 
       case "health-score-desc":
       case "health-score-asc":
-        return mealSortingUtils.groupByHealthScore(meals);
+        return entrySortingUtils.groupByHealthScore(entries);
 
       case "nutrition-density-desc":
       case "nutrition-density-asc":
-        return mealSortingUtils.groupByDensityRanges(meals);
+        return entrySortingUtils.groupByDensityRanges(entries);
 
       default:
         // Single section for unsupported groupings
         return [
           {
-            title: `All Meals (${metadata.label})`,
-            data: meals,
+            title: `All Entries (${metadata.label})`,
+            data: entries,
           },
         ];
     }
   },
 
   /**
-   * Groups meals by calorie ranges
+   * Groups entries by calorie ranges
    */
-  groupByCalorieRanges: (meals: Meal[]): SortedSection[] => {
+  groupByCalorieRanges: (entries: Entry[]): SortedSection[] => {
     const ranges = [
       { min: 0, max: 200, label: "Light (0-200 cal)" },
       { min: 200, max: 400, label: "Moderate (200-400 cal)" },
@@ -375,13 +380,13 @@ export const mealSortingUtils = {
       { min: 800, max: Infinity, label: "Very Large (800+ cal)" },
     ];
 
-    return mealSortingUtils.groupByRanges(meals, ranges, meal => meal.nutrition.calories || 0);
+    return entrySortingUtils.groupByRanges(entries, ranges, entry => entry.meal.nutrition?.calories || 0);
   },
 
   /**
-   * Groups meals by protein ranges
+   * Groups entries by protein ranges
    */
-  groupByProteinRanges: (meals: Meal[]): SortedSection[] => {
+  groupByProteinRanges: (entries: Entry[]): SortedSection[] => {
     const ranges = [
       { min: 0, max: 10, label: "Low Protein (0-10g)" },
       { min: 10, max: 20, label: "Moderate Protein (10-20g)" },
@@ -389,13 +394,13 @@ export const mealSortingUtils = {
       { min: 30, max: Infinity, label: "Very High Protein (30g+)" },
     ];
 
-    return mealSortingUtils.groupByRanges(meals, ranges, meal => meal.nutrition.protein || 0);
+    return entrySortingUtils.groupByRanges(entries, ranges, entry => entry.meal.nutrition?.protein || 0);
   },
 
   /**
-   * Groups meals by health score
+   * Groups entries by health score
    */
-  groupByHealthScore: (meals: Meal[]): SortedSection[] => {
+  groupByHealthScore: (entries: Entry[]): SortedSection[] => {
     const ranges = [
       { min: 80, max: 100, label: "Excellent (80-100)" },
       { min: 60, max: 80, label: "Good (60-80)" },
@@ -403,13 +408,13 @@ export const mealSortingUtils = {
       { min: 0, max: 40, label: "Poor (0-40)" },
     ];
 
-    return mealSortingUtils.groupByRanges(meals, ranges, meal => mealSortingUtils.getHealthScore(meal));
+    return entrySortingUtils.groupByRanges(entries, ranges, entry => entrySortingUtils.getHealthScore(entry));
   },
 
   /**
-   * Groups meals by nutrition density
+   * Groups entries by nutrition density
    */
-  groupByDensityRanges: (meals: Meal[]): SortedSection[] => {
+  groupByDensityRanges: (entries: Entry[]): SortedSection[] => {
     const ranges = [
       { min: 10, max: Infinity, label: "Very Dense (10+)" },
       { min: 5, max: 10, label: "Dense (5-10)" },
@@ -417,29 +422,29 @@ export const mealSortingUtils = {
       { min: 0, max: 2, label: "Low (0-2)" },
     ];
 
-    return mealSortingUtils.groupByRanges(meals, ranges, meal => mealSortingUtils.calculateNutritionDensity(meal));
+    return entrySortingUtils.groupByRanges(entries, ranges, entry => entrySortingUtils.calculateNutritionDensity(entry));
   },
 
   /**
-   * Generic function to group meals by ranges
+   * Generic function to group entries by ranges
    */
   groupByRanges: (
-    meals: Meal[],
+    entries: Entry[],
     ranges: { min: number; max: number; label: string }[],
-    valueExtractor: (meal: Meal) => number,
+    valueExtractor: (entry: Entry) => number,
   ): SortedSection[] => {
     const sections: SortedSection[] = [];
 
     ranges.forEach(range => {
-      const mealsInRange = meals.filter(meal => {
-        const value = valueExtractor(meal);
+      const entriesInRange = entries.filter(entry => {
+        const value = valueExtractor(entry);
         return value >= range.min && value < range.max;
       });
 
-      if (mealsInRange.length > 0) {
+      if (entriesInRange.length > 0) {
         sections.push({
-          title: `${range.label} (${mealsInRange.length})`,
-          data: mealsInRange,
+          title: `${range.label} (${entriesInRange.length})`,
+          data: entriesInRange,
         });
       }
     });
@@ -450,34 +455,34 @@ export const mealSortingUtils = {
   /**
    * Main sorting function that handles large datasets efficiently
    */
-  sortMeals: async (meals: Meal[], sortMethod: SortMethod): Promise<SortedSection[]> => {
+  sortEntries: async (entries: Entry[], sortMethod: SortMethod): Promise<SortedSection[]> => {
     try {
-      if (meals.length === 0) {
+      if (entries.length === 0) {
         return [];
       }
 
-      // Sort meals
-      const sortedMeals = await mealSortingUtils.sortMealsInChunks(meals, sortMethod);
+      // Sort entries
+      const sortedEntries = await entrySortingUtils.sortEntriesInChunks(entries, sortMethod);
 
       // Group into sections
-      return mealSortingUtils.groupMealsIntoSections(sortedMeals, sortMethod);
+      return entrySortingUtils.groupEntriesIntoSections(sortedEntries, sortMethod);
     } catch (error) {
-      console.error("Error sorting meals:", error);
+      console.error("Error sorting entries:", error);
 
       // Fallback to simple date-based grouping
-      return mealSortingUtils.groupByDate(meals.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()));
+      return entrySortingUtils.groupByDate(entries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()));
     }
   },
 
   /**
    * Gets estimated sort time for UI feedback
    */
-  getEstimatedSortTime: (mealCount: number): number => {
+  getEstimatedSortTime: (entryCount: number): number => {
     // Rough estimates in milliseconds
-    if (mealCount < 50) return 10;
-    if (mealCount < 200) return 50;
-    if (mealCount < 500) return 150;
-    if (mealCount < 1000) return 300;
+    if (entryCount < 50) return 10;
+    if (entryCount < 200) return 50;
+    if (entryCount < 500) return 150;
+    if (entryCount < 1000) return 300;
     return 500;
   },
 
@@ -491,19 +496,19 @@ export const mealSortingUtils = {
   },
 };
 
-// Custom hook for meal sorting functionality
-export const useMealSorting = () => {
+// Custom hook for entry sorting functionality
+export const useEntrySorting = () => {
   const [sortingInProgress, setSortingInProgress] = useState(false);
   const [currentSortMethod, setCurrentSortMethod] = useState<SortMethod>("date-desc");
 
-  const sortOptions = useMemo(() => mealSortingUtils.getSortOptions(), []);
+  const sortOptions = useMemo(() => entrySortingUtils.getSortOptions(), []);
 
-  const sortMeals = useCallback(async (meals: Meal[], sortMethod: SortMethod): Promise<SortedSection[]> => {
+  const sortEntries = useCallback(async (entries: Entry[], sortMethod: SortMethod): Promise<SortedSection[]> => {
     setSortingInProgress(true);
     setCurrentSortMethod(sortMethod);
 
     try {
-      const result = await mealSortingUtils.sortMeals(meals, sortMethod);
+      const result = await entrySortingUtils.sortEntries(entries, sortMethod);
       return result;
     } finally {
       setSortingInProgress(false);
@@ -511,28 +516,28 @@ export const useMealSorting = () => {
   }, []);
 
   const getSortMetadata = useCallback((sortMethod: SortMethod) => {
-    return mealSortingUtils.getSortMetadata(sortMethod);
+    return entrySortingUtils.getSortMetadata(sortMethod);
   }, []);
 
-  const getEstimatedSortTime = useCallback((mealCount: number) => {
-    return mealSortingUtils.getEstimatedSortTime(mealCount);
+  const getEstimatedSortTime = useCallback((entryCount: number) => {
+    return entrySortingUtils.getEstimatedSortTime(entryCount);
   }, []);
 
   const isExpensiveSort = useCallback((sortMethod: SortMethod) => {
-    return mealSortingUtils.isExpensiveSort(sortMethod);
+    return entrySortingUtils.isExpensiveSort(sortMethod);
   }, []);
 
   return {
     sortingInProgress,
     currentSortMethod,
     sortOptions,
-    sortMeals,
+    sortEntries,
     getSortMetadata,
     getEstimatedSortTime,
     isExpensiveSort,
     // Direct access to utils for advanced usage
-    utils: mealSortingUtils,
+    utils: entrySortingUtils,
   };
 };
 
-export default mealSortingUtils;
+export default entrySortingUtils;

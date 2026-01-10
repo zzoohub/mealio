@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Meal, MealHistoryFilter } from "../types";
-import { mealStorageUtils, generateMockMeals } from "./useMealStorage";
-import { mealSortingUtils, SortedSection } from "./useMealSorting";
+import { Entry, EntryFilter } from "../types";
+import { entryStorageUtils, generateMockEntries } from "./useEntryStorage";
+import { entrySortingUtils, SortedSection } from "./useEntrySorting";
 import { useAnalyticsStore, SortMethod } from "../../analytics";
 import { getCachedData } from "@/lib/performance";
 
@@ -20,10 +20,10 @@ export interface CalendarRangeState {
   markedDates: Record<string, any>;
 }
 
-export interface UseMealSearchReturn {
+export interface UseEntrySearchReturn {
   // Data
   sections: SortedSection[];
-  meals: Meal[];
+  entries: Entry[];
 
   // States
   isLoading: boolean;
@@ -37,7 +37,7 @@ export interface UseMealSearchReturn {
   setSearchQuery: (query: string) => void;
   sortMethod: SortMethod;
   setSortMethod: (method: SortMethod) => void;
-  sortOptions: ReturnType<typeof mealSortingUtils.getSortOptions>;
+  sortOptions: ReturnType<typeof entrySortingUtils.getSortOptions>;
 
   // Date Range
   dateRange: DateRange;
@@ -69,11 +69,11 @@ const ITEMS_PER_PAGE = 20;
 // HOOK IMPLEMENTATION
 // =============================================================================
 
-export function useMealSearch(): UseMealSearchReturn {
+export function useEntrySearch(): UseEntrySearchReturn {
   const { globalPeriod, setGlobalPeriod, sortMethod, setSortMethod } = useAnalyticsStore();
 
   // Data state
-  const [meals, setMeals] = useState<Meal[]>([]);
+  const [entries, setEntries] = useState<Entry[]>([]);
   const [sortedSections, setSortedSections] = useState<SortedSection[]>([]);
 
   // Loading states
@@ -102,7 +102,7 @@ export function useMealSearch(): UseMealSearchReturn {
   });
 
   // Sort options
-  const sortOptions = useMemo(() => mealSortingUtils.getSortOptions(), []);
+  const sortOptions = useMemo(() => entrySortingUtils.getSortOptions(), []);
 
   // Derived date range
   const dateRange: DateRange = useMemo(
@@ -117,10 +117,10 @@ export function useMealSearch(): UseMealSearchReturn {
   // EFFECTS
   // =============================================================================
 
-  // Update sections when meals or sort method changes
+  // Update sections when entries or sort method changes
   useEffect(() => {
     const updateSortedSections = async () => {
-      if (meals.length === 0) {
+      if (entries.length === 0) {
         setSortedSections([]);
         return;
       }
@@ -128,14 +128,14 @@ export function useMealSearch(): UseMealSearchReturn {
       setIsSorting(true);
       try {
         const sections = await getCachedData(
-          `meal-sections-${sortMethod}-${meals.length}-${searchQuery}`,
-          () => mealSortingUtils.sortMeals(meals, sortMethod),
+          `entry-sections-${sortMethod}-${entries.length}-${searchQuery}`,
+          () => entrySortingUtils.sortEntries(entries, sortMethod),
           { ttl: 1 * 60 * 1000 }
         );
         setSortedSections(sections);
       } catch (err) {
-        console.error("Error sorting meals:", err);
-        const fallbackSections = await mealSortingUtils.sortMeals(meals, "date-desc");
+        console.error("Error sorting entries:", err);
+        const fallbackSections = await entrySortingUtils.sortEntries(entries, "date-desc");
         setSortedSections(fallbackSections);
       } finally {
         setIsSorting(false);
@@ -143,7 +143,7 @@ export function useMealSearch(): UseMealSearchReturn {
     };
 
     updateSortedSections();
-  }, [meals, sortMethod, searchQuery]);
+  }, [entries, sortMethod, searchQuery]);
 
   // Load data on filter changes
   useEffect(() => {
@@ -154,47 +154,44 @@ export function useMealSearch(): UseMealSearchReturn {
         setPage(1);
         setHasMore(true);
 
-        const filter: MealHistoryFilter = {};
+        const filter: EntryFilter = {};
         if (searchQuery) filter.searchQuery = searchQuery;
         if (globalPeriod.startDate) filter.startDate = globalPeriod.startDate;
         if (globalPeriod.endDate) filter.endDate = globalPeriod.endDate;
 
-        let loadedMeals = await mealStorageUtils.getMealsFiltered(filter);
+        let loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
 
-        // For development: add mock data if no meals exist (only once)
-        if (loadedMeals.length === 0 && !searchQuery && !mockDataGenerated) {
-          const mockMeals = generateMockMeals();
-          for (const mockMeal of mockMeals) {
+        // For development: add mock data if no entries exist (only once)
+        if (loadedEntries.length === 0 && !searchQuery && !mockDataGenerated) {
+          const mockEntries = generateMockEntries();
+          for (const mockEntry of mockEntries) {
             try {
-              await mealStorageUtils.saveMeal({
-                userId: mockMeal.userId,
-                name: mockMeal.name,
-                photoUri: mockMeal.photoUri,
-                timestamp: mockMeal.timestamp,
-                mealType: mockMeal.mealType,
-                nutrition: mockMeal.nutrition,
-                ingredients: mockMeal.ingredients,
-                aiAnalysis: mockMeal.aiAnalysis,
-                location: mockMeal.location,
-                notes: mockMeal.notes,
-                isVerified: mockMeal.isVerified,
-              });
+              const entryData: Parameters<typeof entryStorageUtils.saveEntry>[0] = {
+                userId: mockEntry.userId,
+                timestamp: mockEntry.timestamp,
+                notes: mockEntry.notes,
+                meal: mockEntry.meal,
+              };
+              if (mockEntry.location) {
+                entryData.location = mockEntry.location;
+              }
+              await entryStorageUtils.saveEntry(entryData);
             } catch (err) {
-              console.error("Error saving mock meal:", err);
+              console.error("Error saving mock entry:", err);
             }
           }
           setMockDataGenerated(true);
-          loadedMeals = await mealStorageUtils.getMealsFiltered(filter);
+          loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
         }
 
         const endIndex = ITEMS_PER_PAGE;
-        const paginatedMeals = loadedMeals.slice(0, endIndex);
+        const paginatedEntries = loadedEntries.slice(0, endIndex);
 
-        setMeals(paginatedMeals);
-        setHasMore(endIndex < loadedMeals.length);
+        setEntries(paginatedEntries);
+        setHasMore(endIndex < loadedEntries.length);
       } catch (err) {
-        console.error("Error loading meals:", err);
-        setError(err instanceof Error ? err : new Error("Failed to load meals"));
+        console.error("Error loading entries:", err);
+        setError(err instanceof Error ? err : new Error("Failed to load entries"));
       } finally {
         setIsLoading(false);
       }
@@ -341,25 +338,25 @@ export function useMealSearch(): UseMealSearchReturn {
     try {
       setIsLoadingMore(true);
 
-      const filter: MealHistoryFilter = {};
+      const filter: EntryFilter = {};
       if (searchQuery) filter.searchQuery = searchQuery;
       if (globalPeriod.startDate) filter.startDate = globalPeriod.startDate;
       if (globalPeriod.endDate) filter.endDate = globalPeriod.endDate;
 
-      const loadedMeals = await mealStorageUtils.getMealsFiltered(filter);
+      const loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
 
       const startIndex = page * ITEMS_PER_PAGE;
       const endIndex = startIndex + ITEMS_PER_PAGE;
-      const newMeals = loadedMeals.slice(startIndex, endIndex);
+      const newEntries = loadedEntries.slice(startIndex, endIndex);
 
-      if (newMeals.length > 0) {
-        setMeals((prev) => [...prev, ...newMeals]);
+      if (newEntries.length > 0) {
+        setEntries((prev) => [...prev, ...newEntries]);
         setPage((prev) => prev + 1);
       }
 
-      setHasMore(endIndex < loadedMeals.length);
+      setHasMore(endIndex < loadedEntries.length);
     } catch (err) {
-      console.error("Error loading more meals:", err);
+      console.error("Error loading more entries:", err);
     } finally {
       setIsLoadingMore(false);
     }
@@ -386,7 +383,7 @@ export function useMealSearch(): UseMealSearchReturn {
   return {
     // Data
     sections: sortedSections,
-    meals,
+    entries,
 
     // States
     isLoading,

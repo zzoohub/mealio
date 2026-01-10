@@ -1,7 +1,7 @@
 import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { TimePeriod, PeriodStats, MetricsDisplayType } from "../stores/analyticsStore";
 import { statsAggregationUtils } from "./useStatsAggregation";
-import { mealStorageUtils } from "@/domains/diary";
+import { entryStorageUtils } from "@/domains/diary";
 
 export const useStatsQuery = (period: TimePeriod, metricsType: MetricsDisplayType) => {
   const generateQueryKey = (period: TimePeriod, metricsType: MetricsDisplayType) => [
@@ -15,8 +15,8 @@ export const useStatsQuery = (period: TimePeriod, metricsType: MetricsDisplayTyp
   return useSuspenseQuery({
     queryKey: generateQueryKey(period, metricsType),
     queryFn: async (): Promise<PeriodStats> => {
-      const meals = await mealStorageUtils.getAllMeals();
-      return statsAggregationUtils.calculatePeriodStats(meals, period, metricsType);
+      const entries = await entryStorageUtils.getAllEntries();
+      return statsAggregationUtils.calculatePeriodStats(entries, period, metricsType);
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
@@ -39,8 +39,8 @@ export const usePrefetchStats = () => {
     await queryClient.prefetchQuery({
       queryKey: generateQueryKey(period, metricsType),
       queryFn: async (): Promise<PeriodStats> => {
-        const meals = await mealStorageUtils.getAllMeals();
-        return statsAggregationUtils.calculatePeriodStats(meals, period, metricsType);
+        const entries = await entryStorageUtils.getAllEntries();
+        return statsAggregationUtils.calculatePeriodStats(entries, period, metricsType);
       },
       staleTime: 5 * 60 * 1000,
     });

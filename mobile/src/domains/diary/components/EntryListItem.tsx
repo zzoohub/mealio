@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Meal } from "../types";
+import { Entry } from "../types";
 import { useTheme } from "@/design-system/theme";
 import { tokens } from "@/design-system/tokens";
 
@@ -9,9 +9,9 @@ import { tokens } from "@/design-system/tokens";
 // TYPES
 // =============================================================================
 
-export interface MealListItemProps {
-  meal: Meal;
-  onPress?: (meal: Meal) => void;
+export interface EntryListItemProps {
+  entry: Entry;
+  onPress?: (entry: Entry) => void;
 }
 
 // =============================================================================
@@ -41,18 +41,18 @@ const getMealTypeIcon = (mealType: string): string => {
   }
 };
 
-const getMealTypeEmoji = (mealType: string): string => {
+const getMealTypeLabel = (mealType: string): string => {
   switch (mealType.toLowerCase()) {
     case "breakfast":
-      return "breakfast";
+      return "Breakfast";
     case "lunch":
-      return "lunch";
+      return "Lunch";
     case "dinner":
-      return "moon";
+      return "Dinner";
     case "snack":
-      return "nutrition";
+      return "Snack";
     default:
-      return "restaurant";
+      return "Meal";
   }
 };
 
@@ -60,15 +60,18 @@ const getMealTypeEmoji = (mealType: string): string => {
 // COMPONENT
 // =============================================================================
 
-export const MealListItem = React.memo(function MealListItem({
-  meal,
+export const EntryListItem = React.memo(function EntryListItem({
+  entry,
   onPress,
-}: MealListItemProps) {
+}: EntryListItemProps) {
   const { colors } = useTheme();
 
   const handlePress = () => {
-    onPress?.(meal);
+    onPress?.(entry);
   };
+
+  const meal = entry.meal;
+  const nutrition = meal.nutrition;
 
   return (
     <TouchableOpacity
@@ -104,10 +107,10 @@ export const MealListItem = React.memo(function MealListItem({
               color={colors.interactive.primary}
             />
             <Text style={[styles.name, { color: colors.text.primary }]} numberOfLines={1}>
-              {meal.name}
+              {getMealTypeLabel(meal.mealType)}
             </Text>
             <Text style={[styles.time, { color: colors.text.secondary }]}>
-              {formatTime(meal.timestamp)}
+              {formatTime(entry.timestamp)}
             </Text>
           </View>
 
@@ -134,42 +137,46 @@ export const MealListItem = React.memo(function MealListItem({
         </View>
 
         {/* Nutrition Summary */}
-        <View style={styles.nutritionRow}>
-          <View style={styles.nutritionItem}>
-            <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>
-              {meal.nutrition.calories}
-            </Text>
-            <Text style={[styles.nutritionLabel, { color: colors.text.secondary }]}>cal</Text>
+        {nutrition && (
+          <View style={styles.nutritionRow}>
+            <View style={styles.nutritionItem}>
+              <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>
+                {nutrition.calories}
+              </Text>
+              <Text style={[styles.nutritionLabel, { color: colors.text.secondary }]}>cal</Text>
+            </View>
+            <View style={styles.nutritionItem}>
+              <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>
+                {nutrition.protein}g
+              </Text>
+              <Text style={[styles.nutritionLabel, { color: colors.text.secondary }]}>protein</Text>
+            </View>
+            <View style={styles.nutritionItem}>
+              <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>
+                {nutrition.carbs}g
+              </Text>
+              <Text style={[styles.nutritionLabel, { color: colors.text.secondary }]}>carbs</Text>
+            </View>
+            <View style={styles.nutritionItem}>
+              <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>
+                {nutrition.fat}g
+              </Text>
+              <Text style={[styles.nutritionLabel, { color: colors.text.secondary }]}>fat</Text>
+            </View>
           </View>
-          <View style={styles.nutritionItem}>
-            <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>
-              {meal.nutrition.protein}g
-            </Text>
-            <Text style={[styles.nutritionLabel, { color: colors.text.secondary }]}>protein</Text>
-          </View>
-          <View style={styles.nutritionItem}>
-            <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>
-              {meal.nutrition.carbs}g
-            </Text>
-            <Text style={[styles.nutritionLabel, { color: colors.text.secondary }]}>carbs</Text>
-          </View>
-          <View style={styles.nutritionItem}>
-            <Text style={[styles.nutritionValue, { color: colors.interactive.primary }]}>
-              {meal.nutrition.fat}g
-            </Text>
-            <Text style={[styles.nutritionLabel, { color: colors.text.secondary }]}>fat</Text>
-          </View>
-        </View>
+        )}
 
         {/* Ingredients Preview */}
-        <View style={styles.ingredientsPreview}>
-          <Text
-            style={[styles.ingredientsText, { color: colors.text.secondary }]}
-            numberOfLines={2}
-          >
-            {meal.ingredients.join(", ")}
-          </Text>
-        </View>
+        {meal.ingredients && meal.ingredients.length > 0 && (
+          <View style={styles.ingredientsPreview}>
+            <Text
+              style={[styles.ingredientsText, { color: colors.text.secondary }]}
+              numberOfLines={2}
+            >
+              {meal.ingredients.join(", ")}
+            </Text>
+          </View>
+        )}
 
         {/* AI Recommendations */}
         <View
@@ -318,4 +325,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MealListItem;
+export default EntryListItem;

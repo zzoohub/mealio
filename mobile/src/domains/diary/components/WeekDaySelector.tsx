@@ -16,7 +16,7 @@ export interface WeekDaySelectorProps {
   onDateSelect: (date: Date) => void;
   onPreviousWeek: () => void;
   onNextWeek: () => void;
-  dateHasMeals: (date: Date) => boolean;
+  dateHasEntries: (date: Date) => boolean;
 }
 
 // =============================================================================
@@ -30,7 +30,7 @@ export function WeekDaySelector({
   onDateSelect,
   onPreviousWeek,
   onNextWeek,
-  dateHasMeals,
+  dateHasEntries,
 }: WeekDaySelectorProps) {
   const { colors } = useTheme();
 
@@ -44,7 +44,7 @@ export function WeekDaySelector({
         {weekDays.map((date, index) => {
           const isSelected = isSameDay(date, selectedDate);
           const isToday = isSameDay(date, today);
-          const hasMeals = dateHasMeals(date);
+          const hasEntries = dateHasEntries(date);
 
           return (
             <TouchableOpacity
@@ -74,10 +74,10 @@ export function WeekDaySelector({
               </Text>
               <View
                 style={[
-                  styles.mealMarker,
+                  styles.entryMarker,
                   {
                     backgroundColor: isSelected ? "white" : colors.interactive.primary,
-                    opacity: hasMeals ? 1 : 0,
+                    opacity: hasEntries ? 1 : 0,
                   },
                 ]}
               />
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     fontSize: tokens.typography.fontSize.body,
     fontWeight: tokens.typography.fontWeight.semibold,
   },
-  mealMarker: {
+  entryMarker: {
     width: 6,
     height: 6,
     borderRadius: 3,

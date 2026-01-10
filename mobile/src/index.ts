@@ -14,14 +14,14 @@ export type {
 
 export type {
   MealType,
-  PostPrivacy,
   NutritionInfo,
   Location,
   AIAnalysis,
-  PostFormData,
   CapturedPhoto,
   CameraSettings,
   Meal,
+  Entry,
+  EntryFilter,
 } from "./domains/diary";
 
 export type { AnalyticsEvent } from "./domains/analytics/types";

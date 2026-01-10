@@ -4,13 +4,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/design-system/theme";
 import { tokens } from "@/design-system/tokens";
 import { SortMethod } from "@/domains/analytics";
-import { mealSortingUtils } from "../hooks/useMealSorting";
+import { entrySortingUtils } from "../hooks/useEntrySorting";
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-export interface MealFilterChipsProps {
+export interface EntryFilterChipsProps {
   sortMethod: SortMethod;
   dateRangeLabel: string;
   showClearButton: boolean;
@@ -23,16 +23,16 @@ export interface MealFilterChipsProps {
 // COMPONENT
 // =============================================================================
 
-export function MealFilterChips({
+export function EntryFilterChips({
   sortMethod,
   dateRangeLabel,
   showClearButton,
   onSortPress,
   onDateRangePress,
   onClear,
-}: MealFilterChipsProps) {
+}: EntryFilterChipsProps) {
   const { colors } = useTheme();
-  const sortMetadata = mealSortingUtils.getSortMetadata(sortMethod);
+  const sortMetadata = entrySortingUtils.getSortMetadata(sortMethod);
 
   return (
     <View style={styles.container}>
@@ -111,4 +111,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MealFilterChips;
+export default EntryFilterChips;

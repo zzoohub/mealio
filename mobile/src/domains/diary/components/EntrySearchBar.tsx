@@ -8,7 +8,7 @@ import { tokens } from "@/design-system/tokens";
 // TYPES
 // =============================================================================
 
-export interface MealSearchBarProps {
+export interface EntrySearchBarProps {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
@@ -18,11 +18,11 @@ export interface MealSearchBarProps {
 // COMPONENT
 // =============================================================================
 
-export function MealSearchBar({
+export function EntrySearchBar({
   value,
   onChangeText,
-  placeholder = "Search meals...",
-}: MealSearchBarProps) {
+  placeholder = "Search entries...",
+}: EntrySearchBarProps) {
   const { colors } = useTheme();
 
   return (
@@ -69,4 +69,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MealSearchBar;
+export default EntrySearchBar;

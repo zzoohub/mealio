@@ -12,10 +12,10 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Calendar } from "react-native-calendars";
 import {
-  Meal,
+  Entry,
   useDiaryPage,
   WeekDaySelector,
-  MealFeedItem,
+  EntryFeedItem,
 } from "@/domains/diary";
 import { formatDateToString } from "@/domains/diary/utils/dateUtils";
 import { useDiaryI18n } from "@/lib/i18n";
@@ -38,7 +38,7 @@ export default function DiaryPage() {
     weekDays,
     formattedMonthYear,
     today,
-    meals,
+    entries,
     isLoading,
     showCalendarModal,
     setShowCalendarModal,
@@ -47,16 +47,15 @@ export default function DiaryPage() {
     navigateToPreviousWeek,
     navigateToNextWeek,
     handleCalendarDayPress,
-    dateHasMeals,
+    dateHasEntries,
   } = useDiaryPage(colors.interactive.primary);
 
   // =============================================================================
   // HANDLERS
   // =============================================================================
 
-  const handleMealPress = (meal: Meal) => {
-    // TODO: Navigate to meal detail page
-    console.log("Meal pressed:", meal.id);
+  const handleEntryPress = (entry: Entry) => {
+    router.push(`/diary/${entry.id}`);
   };
 
   // =============================================================================
@@ -105,7 +104,7 @@ export default function DiaryPage() {
         onDateSelect={selectDate}
         onPreviousWeek={navigateToPreviousWeek}
         onNextWeek={navigateToNextWeek}
-        dateHasMeals={dateHasMeals}
+        dateHasEntries={dateHasEntries}
       />
 
       {/* Content */}
@@ -114,7 +113,7 @@ export default function DiaryPage() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.interactive.primary} />
           </View>
-        ) : meals.length === 0 ? (
+        ) : entries.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="restaurant-outline" size={64} color={colors.text.secondary} />
             <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
@@ -152,12 +151,12 @@ export default function DiaryPage() {
 
             {/* Feed */}
             <View style={styles.feed}>
-              {meals.map((meal, index) => (
-                <MealFeedItem
-                  key={meal.id}
-                  meal={meal}
-                  onPress={handleMealPress}
-                  showDivider={index < meals.length - 1}
+              {entries.map((entry, index) => (
+                <EntryFeedItem
+                  key={entry.id}
+                  entry={entry}
+                  onPress={handleEntryPress}
+                  showDivider={index < entries.length - 1}
                 />
               ))}
             </View>

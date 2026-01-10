@@ -11,13 +11,13 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import {
-  Meal,
-  useMealSearch,
-  MealListItem,
-  MealSearchBar,
-  MealFilterChips,
-  MealSortModal,
-  MealDateRangeModal,
+  Entry,
+  useEntrySearch,
+  EntryListItem,
+  EntrySearchBar,
+  EntryFilterChips,
+  EntrySortModal,
+  EntryDateRangeModal,
   SortedSection,
 } from "@/domains/diary";
 import { useDiaryI18n } from "@/lib/i18n";
@@ -54,14 +54,14 @@ export default function DiarySearchScreen() {
     setShowDateRangeModal,
     loadMore,
     handleSortMethodSelect,
-  } = useMealSearch();
+  } = useEntrySearch();
 
   // =============================================================================
   // HANDLERS
   // =============================================================================
 
-  const handleMealPress = (meal: Meal) => {
-    // TODO: Navigate to meal detail
+  const handleEntryPress = (entry: Entry) => {
+    router.push(`/diary/${entry.id}`);
   };
 
   const handleQuickCapture = () => {
@@ -72,8 +72,8 @@ export default function DiarySearchScreen() {
   // RENDER HELPERS
   // =============================================================================
 
-  const renderMealItem = ({ item }: { item: Meal }) => (
-    <MealListItem meal={item} onPress={handleMealPress} />
+  const renderEntryItem = ({ item }: { item: Entry }) => (
+    <EntryListItem entry={item} onPress={handleEntryPress} />
   );
 
   const renderSectionHeader = ({ section }: { section: SortedSection }) => (
@@ -134,14 +134,14 @@ export default function DiarySearchScreen() {
       </View>
 
       {/* Search Bar */}
-      <MealSearchBar
+      <EntrySearchBar
         value={searchQuery}
         onChangeText={setSearchQuery}
         placeholder={diary.searchPlaceholder}
       />
 
       {/* Filter Chips */}
-      <MealFilterChips
+      <EntryFilterChips
         sortMethod={sortMethod}
         dateRangeLabel={formatDateRange()}
         showClearButton={showClearButton}
@@ -181,8 +181,8 @@ export default function DiarySearchScreen() {
         ) : (
           <SectionList
             sections={sections}
-            keyExtractor={(item: Meal) => item.id}
-            renderItem={renderMealItem}
+            keyExtractor={(item: Entry) => item.id}
+            renderItem={renderEntryItem}
             renderSectionHeader={renderSectionHeader}
             ListFooterComponent={renderFooter}
             onEndReached={loadMore}
@@ -196,7 +196,7 @@ export default function DiarySearchScreen() {
       </View>
 
       {/* Sort Modal */}
-      <MealSortModal
+      <EntrySortModal
         visible={showSortModal}
         onClose={() => setShowSortModal(false)}
         currentSortMethod={sortMethod}
@@ -205,7 +205,7 @@ export default function DiarySearchScreen() {
       />
 
       {/* Date Range Modal */}
-      <MealDateRangeModal
+      <EntryDateRangeModal
         visible={showDateRangeModal}
         onClose={() => setShowDateRangeModal(false)}
         calendarRange={calendarRange}

@@ -1,25 +1,48 @@
+// Meal-level components (display meal data)
 export { MealPhotoCard } from './MealPhotoCard';
-export { MealPhotoGrid } from './MealPhotoGrid';
-export { default as RecentMeals } from './RecentMeals';
+export { EntryPhotoGrid } from './EntryPhotoGrid';
+
+// Entry-level components
+export { default as RecentEntries } from './RecentEntries';
 
 // Search components
-export { MealListItem } from './MealListItem';
-export { MealSearchBar } from './MealSearchBar';
-export { MealFilterChips } from './MealFilterChips';
-export { MealSortModal } from './MealSortModal';
-export { MealDateRangeModal } from './MealDateRangeModal';
+export { EntryListItem } from './EntryListItem';
+export { EntrySearchBar } from './EntrySearchBar';
+export { EntryFilterChips } from './EntryFilterChips';
+export { EntrySortModal } from './EntrySortModal';
+export { EntryDateRangeModal } from './EntryDateRangeModal';
 
 // Diary page components
 export { WeekDaySelector } from './WeekDaySelector';
-export { MealFeedItem } from './MealFeedItem';
+export { EntryFeedItem } from './EntryFeedItem';
+
+// Detail page components
+export {
+  EntryDetailPage,
+  EntryDetailHeader,
+  MealHeroImage,
+  EntryContextBar,
+  EntryNotesSection,
+  MealNutritionRow,
+  EntryDeleteButton,
+} from './detail';
 
 // Types
 export type { MealPhotoData, MealPhotoCardProps } from './MealPhotoCard';
-export type { MealPhotoGridProps } from './MealPhotoGrid';
-export type { MealListItemProps } from './MealListItem';
-export type { MealSearchBarProps } from './MealSearchBar';
-export type { MealFilterChipsProps } from './MealFilterChips';
-export type { MealSortModalProps } from './MealSortModal';
-export type { MealDateRangeModalProps } from './MealDateRangeModal';
+export type { EntryPhotoGridProps } from './EntryPhotoGrid';
+export type { EntryListItemProps } from './EntryListItem';
+export type { EntrySearchBarProps } from './EntrySearchBar';
+export type { EntryFilterChipsProps } from './EntryFilterChips';
+export type { EntrySortModalProps } from './EntrySortModal';
+export type { EntryDateRangeModalProps } from './EntryDateRangeModal';
 export type { WeekDaySelectorProps } from './WeekDaySelector';
-export type { MealFeedItemProps } from './MealFeedItem';
+export type { EntryFeedItemProps } from './EntryFeedItem';
+export type {
+  EntryDetailPageProps,
+  EntryDetailHeaderProps,
+  MealHeroImageProps,
+  EntryContextBarProps,
+  EntryNotesSectionProps,
+  MealNutritionRowProps,
+  EntryDeleteButtonProps,
+} from './detail';

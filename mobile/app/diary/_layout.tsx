@@ -12,6 +12,7 @@ export default function DiaryLayout() {
     >
       <Stack.Screen name="index" />
       <Stack.Screen name="search" />
+      <Stack.Screen name="[id]" />
     </Stack>
   );
 }

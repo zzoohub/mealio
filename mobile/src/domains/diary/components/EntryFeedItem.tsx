@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Meal } from "../types";
+import { Entry } from "../types";
 import { useTheme } from "@/design-system/theme";
 import { tokens } from "@/design-system/tokens";
 import { formatTime } from "../utils/dateUtils";
@@ -13,15 +13,15 @@ import { formatTime } from "../utils/dateUtils";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const FEED_PADDING = 16;
 const PHOTO_WIDTH = SCREEN_WIDTH - FEED_PADDING * 2;
-const PHOTO_HEIGHT = PHOTO_WIDTH * 0.75; // 4:3 aspect ratio
+const PHOTO_HEIGHT = PHOTO_WIDTH; // 1:1 aspect ratio
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-export interface MealFeedItemProps {
-  meal: Meal;
-  onPress?: (meal: Meal) => void;
+export interface EntryFeedItemProps {
+  entry: Entry;
+  onPress?: (entry: Entry) => void;
   showDivider?: boolean;
 }
 
@@ -63,20 +63,20 @@ const getMealTypeLabel = (mealType: string): string => {
 // COMPONENT
 // =============================================================================
 
-export function MealFeedItem({ meal, onPress, showDivider = false }: MealFeedItemProps) {
+export function EntryFeedItem({ entry, onPress, showDivider = false }: EntryFeedItemProps) {
   const { colors } = useTheme();
 
   const handlePress = () => {
-    onPress?.(meal);
+    onPress?.(entry);
   };
 
   return (
     <TouchableOpacity style={styles.container} onPress={handlePress} activeOpacity={0.9}>
       {/* Photo */}
       <View style={[styles.photoContainer, { backgroundColor: colors.bg.secondary }]}>
-        {meal.photoUri ? (
+        {entry.meal.photoUri ? (
           <Image
-            source={{ uri: meal.photoUri }}
+            source={{ uri: entry.meal.photoUri }}
             style={styles.photo}
             resizeMode="cover"
           />
@@ -89,26 +89,26 @@ export function MealFeedItem({ meal, onPress, showDivider = false }: MealFeedIte
       <View style={styles.info}>
         <View style={styles.mealTypeRow}>
           <Ionicons
-            name={getMealTypeEmoji(meal.mealType) as any}
+            name={getMealTypeEmoji(entry.meal.mealType) as any}
             size={18}
             color={colors.interactive.primary}
           />
           <Text style={[styles.mealType, { color: colors.text.primary }]}>
-            {getMealTypeLabel(meal.mealType)}
+            {getMealTypeLabel(entry.meal.mealType)}
           </Text>
         </View>
         <View style={styles.meta}>
           <Text style={[styles.time, { color: colors.text.secondary }]}>
-            {formatTime(meal.timestamp)}
+            {formatTime(entry.timestamp)}
           </Text>
-          {meal.location?.address && (
+          {entry.location?.address && (
             <>
               <Text style={[styles.dividerDot, { color: colors.text.secondary }]}>·</Text>
               <Text
                 style={[styles.location, { color: colors.text.secondary }]}
                 numberOfLines={1}
               >
-                {meal.location.restaurantName || meal.location.address.split(",")[0]}
+                {entry.location.restaurantName || entry.location.address.split(",")[0]}
               </Text>
             </>
           )}
@@ -176,4 +176,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MealFeedItem;
+export default EntryFeedItem;

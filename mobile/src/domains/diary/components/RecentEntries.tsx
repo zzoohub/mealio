@@ -1,18 +1,18 @@
 /**
- * RecentMeals - Horizontal scrolling list of recent meals
+ * RecentEntries - Horizontal scrolling list of recent entries
  *
- * Displays the user's most recent meals in a horizontal carousel.
- * Uses Card component from design system for meal items.
+ * Displays the user's most recent diary entries in a horizontal carousel.
+ * Uses Card component from design system for entry items.
  *
  * Features:
- * - Horizontal scroll with meal cards
+ * - Horizontal scroll with entry cards
  * - Loading and empty states
- * - Navigation to meal detail
+ * - Navigation to entry detail
  * - "See All" action to view full history
  *
  * @example
  * ```tsx
- * <RecentMeals onSeeAll={() => navigation.navigate('MealHistory')} />
+ * <RecentEntries onSeeAll={() => navigation.navigate('DiaryHistory')} />
  * ```
  */
 
@@ -23,14 +23,14 @@ import { useRouter } from 'expo-router';
 import { Box, Text, HStack, VStack, Card } from '@/design-system/styled';
 import { createStyles, useStyles } from '@/design-system/theme';
 import { tokens } from '@/design-system/tokens';
-import type { Meal } from '../types';
-import { mealStorageUtils, generateMockMeals } from '../hooks/useMealStorage';
+import type { Entry } from '../types';
+import { entryStorageUtils, generateMockEntries } from '../hooks/useEntryStorage';
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-interface RecentMealsProps {
+interface RecentEntriesProps {
   onSeeAll?: () => void;
 }
 
@@ -38,14 +38,29 @@ interface RecentMealsProps {
 // SUB-COMPONENTS
 // =============================================================================
 
-interface MealCardItemProps {
-  meal: Meal;
+interface EntryCardItemProps {
+  entry: Entry;
   onPress: () => void;
   formatTime: (date: Date) => string;
 }
 
-function MealCardItem({ meal, onPress, formatTime }: MealCardItemProps) {
-  const s = useStyles(mealCardStyles);
+const getMealTypeLabel = (mealType: string): string => {
+  switch (mealType.toLowerCase()) {
+    case "breakfast":
+      return "Breakfast";
+    case "lunch":
+      return "Lunch";
+    case "dinner":
+      return "Dinner";
+    case "snack":
+      return "Snack";
+    default:
+      return "Meal";
+  }
+};
+
+function EntryCardItem({ entry, onPress, formatTime }: EntryCardItemProps) {
+  const s = useStyles(entryCardStyles);
 
   return (
     <Card
@@ -54,17 +69,19 @@ function MealCardItem({ meal, onPress, formatTime }: MealCardItemProps) {
       onPress={onPress}
       style={s.card}
     >
-      <Image source={{ uri: meal.photoUri }} style={s.image} />
+      <Image source={{ uri: entry.meal.photoUri }} style={s.image} />
       <VStack gap="xs" style={s.content}>
         <Text variant="bodySmall" weight="medium" numberOfLines={2}>
-          {meal.name}
+          {getMealTypeLabel(entry.meal.mealType)}
         </Text>
         <Text variant="caption" color="secondary">
-          {formatTime(meal.timestamp)}
+          {formatTime(entry.timestamp)}
         </Text>
-        <Text variant="caption" color="link" weight="medium">
-          {meal.nutrition.calories} cal
-        </Text>
+        {entry.meal.nutrition && (
+          <Text variant="caption" color="link" weight="medium">
+            {entry.meal.nutrition.calories} cal
+          </Text>
+        )}
       </VStack>
     </Card>
   );
@@ -135,55 +152,53 @@ function EmptyState() {
 // MAIN COMPONENT
 // =============================================================================
 
-export default function RecentMeals({ onSeeAll }: RecentMealsProps) {
-  const [recentMeals, setRecentMeals] = useState<Meal[]>([]);
+export default function RecentEntries({ onSeeAll }: RecentEntriesProps) {
+  const [recentEntries, setRecentEntries] = useState<Entry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [mockDataInitialized, setMockDataInitialized] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    loadRecentMeals();
+    loadRecentEntries();
   }, []);
 
-  const loadRecentMeals = async () => {
+  const loadRecentEntries = async () => {
     try {
       setIsLoading(true);
-      let meals = await mealStorageUtils.getRecentMeals(6);
+      let entries = await entryStorageUtils.getRecentEntries(6);
 
-      // For development: add mock data if no meals exist
-      if (meals.length === 0 && !mockDataInitialized) {
-        const mockMeals = generateMockMeals();
-        // Save mock meals to storage so they can be found later
-        for (const mockMeal of mockMeals) {
-          await mealStorageUtils.saveMeal({
-            userId: mockMeal.userId,
-            name: mockMeal.name,
-            photoUri: mockMeal.photoUri,
-            timestamp: mockMeal.timestamp,
-            mealType: mockMeal.mealType,
-            nutrition: mockMeal.nutrition,
-            ingredients: mockMeal.ingredients,
-            aiAnalysis: mockMeal.aiAnalysis,
-            location: mockMeal.location,
-            notes: mockMeal.notes,
-            isVerified: mockMeal.isVerified,
-          });
+      // For development: add mock data if no entries exist
+      if (entries.length === 0 && !mockDataInitialized) {
+        const mockEntries = generateMockEntries();
+        // Save mock entries to storage so they can be found later
+        for (const mockEntry of mockEntries) {
+          const entryData: Parameters<typeof entryStorageUtils.saveEntry>[0] = {
+            userId: mockEntry.userId,
+            timestamp: mockEntry.timestamp,
+            notes: mockEntry.notes,
+            meal: mockEntry.meal,
+          };
+          if (mockEntry.location) {
+            entryData.location = mockEntry.location;
+          }
+          await entryStorageUtils.saveEntry(entryData);
         }
-        // Reload meals after saving mock data
-        meals = await mealStorageUtils.getRecentMeals(6);
+        // Reload entries after saving mock data
+        entries = await entryStorageUtils.getRecentEntries(6);
         setMockDataInitialized(true);
       }
 
-      setRecentMeals(meals);
+      setRecentEntries(entries);
     } catch (error) {
-      console.error('Error loading recent meals:', error);
+      console.error('Error loading recent entries:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleMealPress = (meal: Meal) => {
-    // Navigate to meal detail for editing
+  const handleEntryPress = (entry: Entry) => {
+    // Navigate to entry detail for editing
+    router.push(`/diary/${entry.id}`);
   };
 
   const formatRelativeTime = (date: Date): string => {
@@ -206,7 +221,7 @@ export default function RecentMeals({ onSeeAll }: RecentMealsProps) {
     return <LoadingState />;
   }
 
-  if (recentMeals.length === 0) {
+  if (recentEntries.length === 0) {
     return <EmptyState />;
   }
 
@@ -218,11 +233,11 @@ export default function RecentMeals({ onSeeAll }: RecentMealsProps) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingLeft: 0 }}
       >
-        {recentMeals.map((meal) => (
-          <MealCardItem
-            key={meal.id}
-            meal={meal}
-            onPress={() => handleMealPress(meal)}
+        {recentEntries.map((entry) => (
+          <EntryCardItem
+            key={entry.id}
+            entry={entry}
+            onPress={() => handleEntryPress(entry)}
             formatTime={formatRelativeTime}
           />
         ))}
@@ -235,7 +250,7 @@ export default function RecentMeals({ onSeeAll }: RecentMealsProps) {
 // STYLES
 // =============================================================================
 
-const mealCardStyles = createStyles((colors) => ({
+const entryCardStyles = createStyles((colors) => ({
   card: {
     width: 140,
     marginRight: tokens.spacing.component.md,

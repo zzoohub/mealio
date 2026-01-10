@@ -89,10 +89,10 @@ export function useOrbitalNavigation(): UseOrbitalNavigationReturn {
           staleTime: 1000 * 60 * 15, // 15 minutes
         },
         {
-          key: ["meals", "recent", "summary"],
+          key: ["entries", "recent", "summary"],
           fetcher: async () => {
-            const { mealStorageUtils } = await import("@/domains/diary");
-            return mealStorageUtils.getRecentMeals(5);
+            const { entryStorageUtils } = await import("@/domains/diary");
+            return entryStorageUtils.getRecentEntries(5);
           },
           staleTime: 1000 * 60 * 5, // 5 minutes
         },

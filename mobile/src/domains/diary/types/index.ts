@@ -1,6 +1,11 @@
-// Meal and nutrition related types
+// Diary domain types
+// Entry = diary entry (일기 항목)
+// Meal = food data within an entry (식사 정보)
 
-// Enums first to avoid circular references
+// =============================================================================
+// ENUMS
+// =============================================================================
+
 export enum MealType {
   BREAKFAST = "breakfast",
   LUNCH = "lunch",
@@ -8,13 +13,10 @@ export enum MealType {
   SNACK = "snack",
 }
 
-export enum PostPrivacy {
-  PUBLIC = "public",
-  FRIENDS = "friends",
-  PRIVATE = "private",
-}
+// =============================================================================
+// NUTRITION & AI
+// =============================================================================
 
-// Interfaces
 export interface NutritionInfo {
   calories: number;
   protein: number;
@@ -23,7 +25,7 @@ export interface NutritionInfo {
   fiber?: number;
   sugar?: number;
   sodium?: number;
-  water?: number; // Added for compatibility with stats aggregation
+  water?: number;
 }
 
 export interface AIAnalysis {
@@ -33,7 +35,19 @@ export interface AIAnalysis {
   mealCategory: MealType;
   ingredients: string[];
   cuisineType?: string;
+  /** AI가 생성한 한줄평 (위트있는 코멘트) */
+  comment?: string;
+  insights?: {
+    healthScore: number;
+    nutritionBalance: string;
+    recommendations: string[];
+    warnings?: string[];
+  };
 }
+
+// =============================================================================
+// LOCATION
+// =============================================================================
 
 export interface Location {
   latitude: number;
@@ -42,21 +56,67 @@ export interface Location {
   restaurantName?: string;
 }
 
-export interface PostFormData {
-  content: string;
-  images: string[];
-  mealType?: MealType;
-  privacy: PostPrivacy;
-  location?: Location;
+// =============================================================================
+// MEAL (식사 정보)
+// =============================================================================
+
+export interface Meal {
+  photoUri: string;
+  mealType: MealType;
+  nutrition?: NutritionInfo;
+  ingredients?: string[];
+  aiAnalysis?: AIAnalysis;
+  isVerified?: boolean;
 }
 
-// Camera and media types for meal capture
+// =============================================================================
+// ENTRY (일기 항목)
+// =============================================================================
+
+export interface Entry {
+  id: string;
+  userId: string;
+  timestamp: Date;
+  notes: string;
+  location?: Location;
+  meal: Meal;
+  /** 만족도 (1-5) */
+  rating?: number;
+  /** 다시 먹고 싶어요 */
+  wouldEatAgain?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// =============================================================================
+// FILTERS & STATISTICS
+// =============================================================================
+
+export interface EntryFilter {
+  startDate?: Date;
+  endDate?: Date;
+  mealType?: MealType;
+  searchQuery?: string;
+}
+
+export interface EntryStatistics {
+  totalEntries: number;
+  averageCalories: number;
+  averageNutrition: NutritionInfo;
+  topIngredients: { name: string; count: number }[];
+  mealTypeDistribution: Record<MealType, number>;
+}
+
+// =============================================================================
+// CAMERA & MEDIA
+// =============================================================================
+
 export interface CapturedPhoto {
   uri: string;
   width: number;
   height: number;
   base64?: string;
-  exif?: any;
+  exif?: Record<string, unknown>;
 }
 
 export interface CameraSettings {
@@ -65,43 +125,3 @@ export interface CameraSettings {
   quality: number;
 }
 
-export interface Meal {
-  id: string;
-  userId: string;
-  name: string;
-  photoUri: string;
-  timestamp: Date;
-  mealType: MealType;
-  nutrition: NutritionInfo;
-  ingredients: string[];
-  aiAnalysis: AIAnalysisWithInsights;
-  location: Location;
-  notes: string;
-  isVerified: boolean; // true if user has edited/verified the AI results
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface AIAnalysisWithInsights extends AIAnalysis {
-  insights?: {
-    healthScore: number; // 0-100
-    nutritionBalance: string; // e.g., "High protein, moderate carbs"
-    recommendations: string[];
-    warnings?: string[]; // e.g., "High sodium content"
-  };
-}
-
-export interface MealHistoryFilter {
-  startDate?: Date;
-  endDate?: Date;
-  mealType?: MealType;
-  searchQuery?: string;
-}
-
-export interface MealStatistics {
-  totalMeals: number;
-  averageCalories: number;
-  averageNutrition: NutritionInfo;
-  topIngredients: { name: string; count: number }[];
-  mealTypeDistribution: Record<MealType, number>;
-}

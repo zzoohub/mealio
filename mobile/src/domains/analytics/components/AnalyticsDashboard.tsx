@@ -8,7 +8,7 @@ import { PeriodSelector } from "./PeriodSelector";
 import { ProgressRing } from "./ProgressRing";
 import { AchievementCard, Achievement } from "./AchievementCard";
 import { InsightCard } from "./InsightCard";
-import { RecentMeals } from "@/domains/diary";
+import { RecentEntries } from "@/domains/diary";
 import { useRouter } from "expo-router";
 import { useAnalyticsI18n } from "@/lib/i18n";
 import { useAnalyticsDashboard } from "../hooks/useAnalyticsDashboard";
@@ -134,8 +134,8 @@ export default function AnalyticsDashboard({ onNavigate }: AnalyticsDashboardPro
         {/* Period Summary with Suspense */}
         <StatsSuspenseWrapper onNavigate={onNavigate} />
 
-        {/* Recent Meals */}
-        <RecentMeals onSeeAll={handleSeeAllHistory} />
+        {/* Recent Entries */}
+        <RecentEntries onSeeAll={handleSeeAllHistory} />
 
         {/* Nutrition Rings */}
         <View style={styles.nutritionSection}>

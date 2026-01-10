@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Meal } from "../types";
-import { mealStorageUtils } from "./useMealStorage";
+import { Entry } from "../types";
+import { entryStorageUtils } from "./useEntryStorage";
 import { getWeekDays, isSameDay, formatDateToString } from "../utils/dateUtils";
 
 // =============================================================================
@@ -15,8 +15,8 @@ export interface UseDiaryPageReturn {
   today: Date;
 
   // Data
-  meals: Meal[];
-  datesWithMeals: Set<string>;
+  entries: Entry[];
+  datesWithEntries: Set<string>;
 
   // States
   isLoading: boolean;
@@ -36,7 +36,7 @@ export interface UseDiaryPageReturn {
   handleCalendarDayPress: (day: { dateString: string }) => void;
 
   // Utilities
-  dateHasMeals: (date: Date) => boolean;
+  dateHasEntries: (date: Date) => boolean;
   isSameDay: (date1: Date, date2: Date) => boolean;
 }
 
@@ -48,10 +48,10 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
   // State
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weekDays, setWeekDays] = useState<Date[]>([]);
-  const [meals, setMeals] = useState<Meal[]>([]);
+  const [entries, setEntries] = useState<Entry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [datesWithMeals, setDatesWithMeals] = useState<Set<string>>(new Set());
+  const [datesWithEntries, setDatesWithEntries] = useState<Set<string>>(new Set());
   const [showCalendarModal, setShowCalendarModal] = useState(false);
 
   const today = useMemo(() => new Date(), []);
@@ -66,48 +66,48 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
     setWeekDays(getWeekDays(date));
   }, []);
 
-  // Load all meals to determine markers
+  // Load all entries to determine markers
   useEffect(() => {
-    const loadAllMeals = async () => {
+    const loadAllEntries = async () => {
       try {
-        const loadedMeals = await mealStorageUtils.getAllMeals();
+        const loadedEntries = await entryStorageUtils.getAllEntries();
 
-        // Create set of dates that have meals
+        // Create set of dates that have entries
         const datesSet = new Set<string>();
-        loadedMeals.forEach((meal) => {
-          const dateStr = meal.timestamp.toISOString().split("T")[0];
+        loadedEntries.forEach((entry) => {
+          const dateStr = entry.timestamp.toISOString().split("T")[0];
           if (dateStr) datesSet.add(dateStr);
         });
-        setDatesWithMeals(datesSet);
+        setDatesWithEntries(datesSet);
       } catch (err) {
-        console.error("Error loading all meals:", err);
-        setError(err instanceof Error ? err : new Error("Failed to load meals"));
+        console.error("Error loading all entries:", err);
+        setError(err instanceof Error ? err : new Error("Failed to load entries"));
       }
     };
 
-    loadAllMeals();
+    loadAllEntries();
   }, []);
 
-  // Load meals for selected date
+  // Load entries for selected date
   useEffect(() => {
-    const loadMealsForDate = async () => {
+    const loadEntriesForDate = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const mealsForDate = await mealStorageUtils.getMealsForDate(selectedDate);
+        const entriesForDate = await entryStorageUtils.getEntriesForDate(selectedDate);
         // Sort by timestamp (newest first)
-        mealsForDate.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-        setMeals(mealsForDate);
+        entriesForDate.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        setEntries(entriesForDate);
       } catch (err) {
-        console.error("Error loading meals for date:", err);
-        setMeals([]);
-        setError(err instanceof Error ? err : new Error("Failed to load meals for date"));
+        console.error("Error loading entries for date:", err);
+        setEntries([]);
+        setError(err instanceof Error ? err : new Error("Failed to load entries for date"));
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadMealsForDate();
+    loadEntriesForDate();
   }, [selectedDate]);
 
   // =============================================================================
@@ -146,12 +146,12 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
   // DERIVED DATA
   // =============================================================================
 
-  const dateHasMeals = useCallback(
+  const dateHasEntries = useCallback(
     (date: Date): boolean => {
       const dateStr = date.toISOString().split("T")[0];
-      return dateStr ? datesWithMeals.has(dateStr) : false;
+      return dateStr ? datesWithEntries.has(dateStr) : false;
     },
-    [datesWithMeals]
+    [datesWithEntries]
   );
 
   const formattedMonthYear = useMemo(() => {
@@ -167,8 +167,8 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
       { marked: boolean; dotColor: string; selected?: boolean; selectedColor?: string }
     > = {};
 
-    // Add dots for dates with meals
-    datesWithMeals.forEach((dateStr) => {
+    // Add dots for dates with entries
+    datesWithEntries.forEach((dateStr) => {
       marks[dateStr] = {
         marked: true,
         dotColor: primaryColor,
@@ -193,7 +193,7 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
     }
 
     return marks;
-  }, [datesWithMeals, selectedDate, primaryColor]);
+  }, [datesWithEntries, selectedDate, primaryColor]);
 
   // =============================================================================
   // RETURN
@@ -207,8 +207,8 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
     today,
 
     // Data
-    meals,
-    datesWithMeals,
+    entries,
+    datesWithEntries,
 
     // States
     isLoading,
@@ -228,7 +228,7 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
     handleCalendarDayPress,
 
     // Utilities
-    dateHasMeals,
+    dateHasEntries,
     isSameDay,
   };
 }
