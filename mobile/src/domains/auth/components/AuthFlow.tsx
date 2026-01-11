@@ -7,8 +7,11 @@ import { createStyles, useStyles, useTheme } from "@/design-system/theme";
 import { Text } from "@/design-system/styled";
 import { tokens } from "@/design-system/tokens";
 import { GoogleSignInButton } from "./GoogleSignInButton";
+import { AppleSignInButton } from "./AppleSignInButton";
 import { useAuthStore } from "../stores/authStore";
 import { useGoogleAuth } from "../hooks/useGoogleAuth";
+import { useAppleAuth } from "../hooks/useAppleAuth";
+import type { AuthCredential } from "../types";
 
 // =============================================================================
 // TYPES
@@ -26,20 +29,34 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
   const s = useStyles(styles);
   const { colors } = useTheme();
 
-  const { loginWithGoogle, isLoading } = useAuthStore();
-  const { signIn: googleSignIn, isSigningIn } = useGoogleAuth();
+  const { login, isLoading } = useAuthStore();
+  const { signIn: googleSignIn, isSigningIn: isGoogleSigningIn } = useGoogleAuth();
+  const { signIn: appleSignIn, isSigningIn: isAppleSigningIn } = useAppleAuth();
 
-  const handleGoogleSignIn = useCallback(async () => {
-    try {
-      const googleUser = await googleSignIn();
-      if (googleUser) {
-        await loginWithGoogle(googleUser);
-        onComplete();
+  const isSigningIn = isGoogleSigningIn || isAppleSigningIn;
+
+  const handleSignIn = useCallback(
+    async (signInFn: () => Promise<AuthCredential | null>, providerName: string) => {
+      try {
+        const credential = await signInFn();
+        if (credential) {
+          await login(credential);
+          onComplete();
+        }
+      } catch {
+        Alert.alert("Error", `Failed to sign in with ${providerName}. Please try again.`);
       }
-    } catch {
-      Alert.alert("Error", "Failed to sign in with Google. Please try again.");
-    }
-  }, [googleSignIn, loginWithGoogle, onComplete]);
+    },
+    [login, onComplete]
+  );
+
+  const handleGoogleSignIn = useCallback(() => {
+    handleSignIn(googleSignIn, "Google");
+  }, [handleSignIn, googleSignIn]);
+
+  const handleAppleSignIn = useCallback(() => {
+    handleSignIn(appleSignIn, "Apple");
+  }, [handleSignIn, appleSignIn]);
 
   const handleBack = useCallback(() => {
     router.back();
@@ -60,6 +77,7 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
         </View>
 
         <View style={s.buttonsSection}>
+          <AppleSignInButton onPress={handleAppleSignIn} isLoading={isAppleSigningIn || isLoading} />
           <GoogleSignInButton onPress={handleGoogleSignIn} isLoading={isSigningIn || isLoading} />
         </View>
       </View>

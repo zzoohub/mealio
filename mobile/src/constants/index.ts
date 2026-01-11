@@ -25,7 +25,7 @@ export const STORAGE_KEYS = {
   RECENT_PHOTOS: "recent_photos",
   APP_SETTINGS: "app_settings",
   // Auth
-  GOOGLE_AUTH_TOKEN: "google_auth_token",
+  AUTH_TOKEN: "auth_token",
   // Settings
   NOTIFICATION_SETTINGS: "notification_settings",
   PRIVACY_SETTINGS: "privacy_settings",

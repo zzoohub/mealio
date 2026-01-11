@@ -1,486 +1,430 @@
-# Data Modeling Patterns
+# Pattern Implementation Details
 
-Detailed implementation guidance for common patterns.
-
-## Soft Deletes
-
-### Basic Pattern
-
-```
-Entity:
-  - id
-  - ... other columns ...
-  - deleted_at (nullable timestamp)
-```
-
-### Implementation Considerations
-
-**Querying:**
-```
-Active:  WHERE deleted_at IS NULL
-Deleted: WHERE deleted_at IS NOT NULL
-All:     No filter (admin only)
-```
-
-**Cascading Soft Deletes:**
-When parent is soft-deleted, should children be soft-deleted?
-
-| Approach | Pros | Cons |
-|----------|------|------|
-| Cascade soft delete | Consistent state | Complex to undo |
-| Leave children | Simple | Orphan-like state |
-| Application decides | Flexible | Business logic in code |
-
-**Unique Constraints with Soft Delete:**
-Problem: `email` unique, but deleted user blocks new signup with same email.
-
-Solutions:
-1. Partial unique index: `UNIQUE(email) WHERE deleted_at IS NULL`
-2. Composite unique: `UNIQUE(email, deleted_at)` with sentinel value
-3. Anonymize on delete: Set email to `deleted-{id}@example.com`
-
-**Restoration:**
-- Set `deleted_at = NULL`
-- What about children? Restore them too?
-- What about uniqueness conflicts created while deleted?
+Implementation specifics for patterns. For when/why to use each pattern, see SKILL.md.
 
 ---
 
-## Audit Trail
+## Soft Delete Implementation
 
-### Level 1: Timestamps Only
+### Unique Constraint Problem
 
-```
-Entity:
-  - created_at (required, immutable)
-  - updated_at (required, auto-update)
-```
+**Problem**: `email` unique, but deleted user blocks new signup.
 
-Answers: When was it created? When last changed?
+**Solutions**:
 
-### Level 2: Timestamps + Actor
+1. **Partial unique index** (recommended)
+```sql
+-- PostgreSQL
+CREATE UNIQUE INDEX users_email_active_idx ON users(email) WHERE deleted_at IS NULL;
 
-```
-Entity:
-  - created_at
-  - created_by → users.id
-  - updated_at
-  - updated_by → users.id
+-- SQLite (3.8+)
+CREATE UNIQUE INDEX users_email_active_idx ON users(email) WHERE deleted_at IS NULL;
 ```
 
-Answers: Who created it? Who last changed it?
+2. **Composite unique with sentinel**
+```sql
+-- Use epoch 0 as "not deleted" sentinel
+deleted_at DEFAULT '1970-01-01'
+UNIQUE(email, deleted_at)
+```
+
+3. **Anonymize on delete**
+```sql
+UPDATE users SET 
+  email = 'deleted-' || id || '@removed.local',
+  deleted_at = NOW()
+WHERE id = :id;
+```
+
+### Cascading Soft Deletes
+
+```sql
+-- Trigger to cascade soft delete to children
+CREATE FUNCTION cascade_soft_delete() RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE orders SET deleted_at = NEW.deleted_at 
+  WHERE user_id = NEW.id AND deleted_at IS NULL;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER user_soft_delete
+  AFTER UPDATE OF deleted_at ON users
+  FOR EACH ROW
+  WHEN (OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL)
+  EXECUTE FUNCTION cascade_soft_delete();
+```
+
+### Restoration Checklist
+
+- [ ] Set `deleted_at = NULL`
+- [ ] Check for uniqueness conflicts created while deleted
+- [ ] Decide: restore children too?
+- [ ] Re-validate any business rules
+
+---
+
+## Audit Trail Implementation
+
+### Level 2: Actor Tracking
+
+```sql
+-- Columns to add
+created_by BIGINT REFERENCES users(id),
+updated_by BIGINT REFERENCES users(id)
+
+-- Application must pass current_user_id on every write
+```
 
 ### Level 3: History Table
 
-```
-Entity:
-  - id
-  - ... columns ...
-  - version (incrementing)
+```sql
+CREATE TABLE orders_history (
+  history_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  order_id BIGINT NOT NULL,
+  
+  -- Snapshot of all order columns
+  user_id BIGINT,
+  status TEXT,
+  total NUMERIC,
+  
+  -- Audit metadata
+  version INT NOT NULL,
+  operation TEXT NOT NULL CHECK (operation IN ('INSERT', 'UPDATE', 'DELETE')),
+  changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  changed_by BIGINT REFERENCES users(id)
+);
 
-Entity_History:
-  - history_id (PK)
-  - entity_id (FK to Entity)
-  - ... all entity columns (snapshot) ...
-  - version
-  - changed_at
-  - changed_by
-  - operation (INSERT/UPDATE/DELETE)
-```
-
-Answers: What was the value at any point in time?
-
-**Implementation Options:**
-
-| Method | Pros | Cons |
-|--------|------|------|
-| Application code | Full control | Easy to forget |
-| Database triggers | Can't bypass | Harder to debug |
-| CDC (Change Data Capture) | Decoupled | Infrastructure complexity |
-
-### Level 4: Change Details
-
-Add to history table:
-```
-changes: JSON
-  - field_name: [old_value, new_value]
+CREATE INDEX orders_history_order_idx ON orders_history(order_id, version);
 ```
 
-Answers: Exactly what changed in each update?
+**Trigger-based capture**:
 
-### Level 5: Event Sourcing
+```sql
+CREATE FUNCTION audit_orders() RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    INSERT INTO orders_history (order_id, user_id, status, total, version, operation, changed_by)
+    VALUES (OLD.id, OLD.user_id, OLD.status, OLD.total, OLD.version, 'DELETE', current_setting('app.user_id')::BIGINT);
+    RETURN OLD;
+  ELSE
+    INSERT INTO orders_history (order_id, user_id, status, total, version, operation, changed_by)
+    VALUES (NEW.id, NEW.user_id, NEW.status, NEW.total, NEW.version, TG_OP, current_setting('app.user_id')::BIGINT);
+    RETURN NEW;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
 
-Don't store state, store events:
+CREATE TRIGGER orders_audit
+  AFTER INSERT OR UPDATE OR DELETE ON orders
+  FOR EACH ROW EXECUTE FUNCTION audit_orders();
 ```
-Events:
-  - event_id
-  - entity_type
-  - entity_id
-  - event_type (Created, Updated, Deleted)
-  - event_data (full payload)
-  - occurred_at
-  - actor_id
 
-Current state = replay all events for entity
+### Level 4: Change Details (JSON diff)
+
+```sql
+-- Add to history table
+changes JSONB  -- {"status": ["pending", "shipped"], "total": [100, 120]}
+
+-- In trigger, compute diff
+changes = jsonb_build_object(
+  'status', jsonb_build_array(OLD.status, NEW.status),
+  'total', jsonb_build_array(OLD.total, NEW.total)
+) WHERE OLD.status != NEW.status OR OLD.total != NEW.total;
 ```
-
-Answers: Complete audit trail, can reconstruct any point in time.
-
-**Trade-offs:**
-- ✅ Perfect audit trail
-- ✅ Can replay/rebuild state
-- ❌ Complex queries for current state
-- ❌ Storage grows indefinitely
-- ❌ Requires event versioning strategy
 
 ---
 
-## Hierarchical Data
+## Hierarchical Data Implementation
 
-### Pattern 1: Adjacency List
+### Adjacency List
 
-```
-Category:
-  - id
-  - parent_id → Category.id (nullable for root)
-  - name
-```
-
-**Queries:**
-- Get parent: Simple JOIN
-- Get children: Simple WHERE
-- Get all descendants: Recursive query (CTE)
-- Get all ancestors: Recursive query (CTE)
-
-**Best for:** Simple hierarchies, frequent structure changes, shallow trees.
-
-### Pattern 2: Materialized Path
-
-```
-Category:
-  - id
-  - path (e.g., "/1/5/12/")
-  - depth (computed from path)
-  - name
+```sql
+CREATE TABLE categories (
+  id BIGINT PRIMARY KEY,
+  parent_id BIGINT REFERENCES categories(id),
+  name TEXT NOT NULL
+);
+CREATE INDEX categories_parent_idx ON categories(parent_id);
 ```
 
-**Queries:**
-- Get descendants: `WHERE path LIKE '/1/5/%'`
-- Get ancestors: Parse path, query by IDs
-- Get depth: `WHERE depth = 2`
+### Materialized Path
 
-**Maintenance:**
-- Insert: Compute path from parent
-- Move: Update path of node AND all descendants
-- Delete: Handle descendants (delete or orphan)
+```sql
+CREATE TABLE categories (
+  id BIGINT PRIMARY KEY,
+  path TEXT NOT NULL,  -- '/1/5/12/'
+  -- PostgreSQL: computed column
+  depth INT GENERATED ALWAYS AS (
+    array_length(string_to_array(trim(path, '/'), '/'), 1)
+  ) STORED,
+  -- SQLite/others: compute in application or trigger
+  name TEXT NOT NULL
+);
 
-**Best for:** Read-heavy, stable hierarchies, need subtree queries.
+CREATE INDEX categories_path_idx ON categories(path text_pattern_ops);
 
-### Pattern 3: Closure Table
+-- Query descendants
+SELECT * FROM categories WHERE path LIKE '/1/5/%';
 
-```
-Category:
-  - id
-  - name
-
-Category_Closure:
-  - ancestor_id → Category.id
-  - descendant_id → Category.id
-  - depth (0 for self-reference)
+-- Query ancestors (parse path in application or use string functions)
 ```
 
-Every node has entries for ALL ancestors (including self).
-
-**Queries:**
-- Get descendants: `WHERE ancestor_id = X AND depth > 0`
-- Get ancestors: `WHERE descendant_id = X AND depth > 0`
-- Get direct children: `WHERE ancestor_id = X AND depth = 1`
-
-**Maintenance:**
-- Insert: Copy parent's ancestor entries + add self
-- Move: Delete old closure entries, create new ones
-- Delete: Delete all closure entries for node
-
-**Best for:** Balanced read/write, need both ancestor and descendant queries.
-
-### Pattern 4: Nested Sets
-
-```
-Category:
-  - id
-  - lft (left boundary)
-  - rgt (right boundary)
-  - name
+**Insert with path computation**:
+```sql
+INSERT INTO categories (id, path, name)
+SELECT :new_id, parent.path || :new_id || '/', :name
+FROM categories parent WHERE parent.id = :parent_id;
 ```
 
-Tree is numbered in depth-first order.
+**Move subtree** (update all descendants):
+```sql
+UPDATE categories 
+SET path = :new_parent_path || :node_id || '/' || 
+           substring(path FROM length(:old_path) + 1)
+WHERE path LIKE :old_path || '%';
+```
 
-**Queries:**
-- Get descendants: `WHERE lft > parent.lft AND rgt < parent.rgt`
-- Get ancestors: `WHERE lft < node.lft AND rgt > node.rgt`
-- Is leaf?: `rgt = lft + 1`
+### Closure Table
 
-**Maintenance:**
-- Insert: Shift all nodes to make room (expensive!)
-- Move: Complex renumbering
-- Delete: Shift nodes back
+```sql
+CREATE TABLE categories (
+  id BIGINT PRIMARY KEY,
+  name TEXT NOT NULL
+);
 
-**Best for:** Static hierarchies, complex tree queries, no updates.
+CREATE TABLE category_closure (
+  ancestor_id BIGINT REFERENCES categories(id) ON DELETE CASCADE,
+  descendant_id BIGINT REFERENCES categories(id) ON DELETE CASCADE,
+  depth INT NOT NULL,
+  PRIMARY KEY (ancestor_id, descendant_id)
+);
 
-### Decision Matrix
+CREATE INDEX closure_descendant_idx ON category_closure(descendant_id);
+```
 
-| Need | Adjacency | Path | Closure | Nested Sets |
-|------|-----------|------|---------|-------------|
-| Simple implementation | ✅ | ⚠️ | ❌ | ❌ |
-| Frequent inserts | ✅ | ⚠️ | ⚠️ | ❌ |
-| Frequent moves | ✅ | ❌ | ⚠️ | ❌ |
-| Subtree queries | ❌ | ✅ | ✅ | ✅ |
-| Ancestor queries | ❌ | ⚠️ | ✅ | ✅ |
-| Deep trees (>10 levels) | ⚠️ | ✅ | ✅ | ⚠️ |
+**Insert new node**:
+```sql
+-- Self-reference
+INSERT INTO category_closure (ancestor_id, descendant_id, depth)
+VALUES (:new_id, :new_id, 0);
+
+-- Copy parent's ancestors, increment depth
+INSERT INTO category_closure (ancestor_id, descendant_id, depth)
+SELECT ancestor_id, :new_id, depth + 1
+FROM category_closure
+WHERE descendant_id = :parent_id;
+```
+
+**Query descendants**:
+```sql
+SELECT c.* FROM categories c
+JOIN category_closure cc ON c.id = cc.descendant_id
+WHERE cc.ancestor_id = :node_id AND cc.depth > 0;
+```
+
+**Query ancestors**:
+```sql
+SELECT c.* FROM categories c
+JOIN category_closure cc ON c.id = cc.ancestor_id
+WHERE cc.descendant_id = :node_id AND cc.depth > 0;
+```
 
 ---
 
-## Polymorphic Associations
+## Polymorphic Association Implementation
 
-### Pattern 1: Type + ID Columns
+### Pattern 1: Type + ID (No FK)
 
+```sql
+CREATE TABLE comments (
+  id BIGINT PRIMARY KEY,
+  commentable_type TEXT NOT NULL CHECK (commentable_type IN ('post', 'product')),
+  commentable_id BIGINT NOT NULL,
+  body TEXT NOT NULL
+);
+
+CREATE INDEX comments_poly_idx ON comments(commentable_type, commentable_id);
 ```
-Comment:
-  - id
-  - commentable_type ("post", "product", "article")
-  - commentable_id
-  - body
-```
-
-**Queries:**
-- Get comments for post: `WHERE commentable_type = 'post' AND commentable_id = ?`
-- Get all user comments: `WHERE user_id = ?`
-
-**Constraints:**
-- ❌ No FK constraint possible
-- ❌ Type column can have invalid values
-- ⚠️ Index on (type, id) helps performance
 
 ### Pattern 2: Separate FK Columns
 
-```
-Comment:
-  - id
-  - post_id → Post.id (nullable)
-  - product_id → Product.id (nullable)
-  - article_id → Article.id (nullable)
-  - body
+```sql
+CREATE TABLE comments (
+  id BIGINT PRIMARY KEY,
+  post_id BIGINT REFERENCES posts(id),
+  product_id BIGINT REFERENCES products(id),
+  body TEXT NOT NULL,
   
-  CHECK: exactly one of post_id, product_id, article_id is NOT NULL
+  CONSTRAINT exactly_one_parent CHECK (
+    (post_id IS NOT NULL)::INT + (product_id IS NOT NULL)::INT = 1
+  )
+);
+
+CREATE INDEX comments_post_idx ON comments(post_id) WHERE post_id IS NOT NULL;
+CREATE INDEX comments_product_idx ON comments(product_id) WHERE product_id IS NOT NULL;
 ```
 
-**Pros:**
-- ✅ FK constraints work
-- ✅ JOINs are straightforward
+### Pattern 3: Intermediate Entity
 
-**Cons:**
-- ❌ Many nullable columns
-- ❌ Check constraint complexity
-- ❌ Schema change for new types
+```sql
+CREATE TABLE commentables (
+  id BIGINT PRIMARY KEY
+);
 
-### Pattern 3: Separate Tables
+CREATE TABLE posts (
+  id BIGINT PRIMARY KEY,
+  commentable_id BIGINT UNIQUE NOT NULL REFERENCES commentables(id),
+  title TEXT
+);
 
+CREATE TABLE products (
+  id BIGINT PRIMARY KEY,
+  commentable_id BIGINT UNIQUE NOT NULL REFERENCES commentables(id),
+  name TEXT
+);
+
+CREATE TABLE comments (
+  id BIGINT PRIMARY KEY,
+  commentable_id BIGINT NOT NULL REFERENCES commentables(id),
+  body TEXT NOT NULL
+);
+
+-- Must create commentable first, then post/product
 ```
-PostComment:
-  - id
-  - post_id → Post.id
-  - body
-
-ProductComment:
-  - id  
-  - product_id → Product.id
-  - body
-```
-
-**Pros:**
-- ✅ Full referential integrity
-- ✅ Clean schema per type
-
-**Cons:**
-- ❌ Duplicate structure
-- ❌ "All comments" query requires UNION
-- ❌ New entity type = new table
-
-### Pattern 4: Intermediate Entity
-
-```
-Commentable:
-  - id
-
-Post:
-  - id
-  - commentable_id → Commentable.id
-
-Product:
-  - id
-  - commentable_id → Commentable.id
-
-Comment:
-  - id
-  - commentable_id → Commentable.id
-  - body
-```
-
-**Pros:**
-- ✅ FK constraints work
-- ✅ Single comments table
-- ✅ Easy to add new types
-
-**Cons:**
-- ❌ Extra table and JOIN
-- ❌ Must create Commentable for every Post/Product
-
-### Decision Guide
-
-| Priority | Pattern |
-|----------|---------|
-| Maximum flexibility, okay with app-level integrity | Type + ID |
-| Need FK constraints, few types | Separate FK columns |
-| Need FK constraints, types differ significantly | Separate tables |
-| Need FK constraints, many similar types | Intermediate entity |
 
 ---
 
-## State Machines
+## State Machine Implementation
 
-### Pattern: Status Column with Transitions
+```sql
+CREATE TABLE orders (
+  id BIGINT PRIMARY KEY,
+  status TEXT NOT NULL DEFAULT 'pending' 
+    CHECK (status IN ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled')),
+  status_changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
-```
-Order:
-  - id
-  - status ("pending", "confirmed", "shipped", "delivered", "cancelled")
-  - status_changed_at
-```
+-- Transition validation trigger
+CREATE FUNCTION validate_order_transition() RETURNS TRIGGER AS $$
+DECLARE
+  valid_transitions JSONB := '{
+    "pending": ["confirmed", "cancelled"],
+    "confirmed": ["shipped", "cancelled"],
+    "shipped": ["delivered"],
+    "delivered": [],
+    "cancelled": []
+  }';
+BEGIN
+  IF OLD.status = NEW.status THEN
+    RETURN NEW;
+  END IF;
+  
+  IF NOT (valid_transitions->OLD.status) ? NEW.status THEN
+    RAISE EXCEPTION 'Invalid transition: % -> %', OLD.status, NEW.status;
+  END IF;
+  
+  NEW.status_changed_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
-**Define Valid Transitions:**
-```
-pending → confirmed, cancelled
-confirmed → shipped, cancelled
-shipped → delivered
-delivered → (terminal)
-cancelled → (terminal)
-```
-
-**Implementation:**
-- Application code validates transitions
-- Consider trigger if critical
-- Log all transitions for audit
-
-### Pattern: Status History Table
-
-```
-Order:
-  - id
-  - current_status
-
-OrderStatusHistory:
-  - id
-  - order_id → Order.id
-  - from_status (nullable for initial)
-  - to_status
-  - changed_at
-  - changed_by
-  - reason (optional)
+CREATE TRIGGER order_status_transition
+  BEFORE UPDATE OF status ON orders
+  FOR EACH ROW EXECUTE FUNCTION validate_order_transition();
 ```
 
-**Benefits:**
-- Full history of state changes
-- When and who changed it
-- Can include reason/notes
+### Status History
+
+```sql
+CREATE TABLE order_status_history (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  order_id BIGINT NOT NULL REFERENCES orders(id),
+  from_status TEXT,
+  to_status TEXT NOT NULL,
+  changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  changed_by BIGINT REFERENCES users(id),
+  reason TEXT
+);
+```
 
 ---
 
-## Temporal Data
+## Temporal Data Implementation
 
-### Pattern 1: Effective Dating
+### Effective Dating
 
+```sql
+CREATE TABLE prices (
+  id BIGINT PRIMARY KEY,
+  product_id BIGINT NOT NULL REFERENCES products(id),
+  amount NUMERIC NOT NULL,
+  effective_from TIMESTAMPTZ NOT NULL,
+  effective_to TIMESTAMPTZ,  -- NULL = current
+  
+  -- PostgreSQL only: prevent overlapping periods
+  EXCLUDE USING gist (
+    product_id WITH =,
+    tstzrange(effective_from, effective_to, '[)') WITH &&
+  )
+  -- SQLite/others: enforce via application or trigger
+);
+
+-- Current price
+SELECT * FROM prices 
+WHERE product_id = :id 
+  AND effective_from <= NOW() 
+  AND (effective_to IS NULL OR effective_to > NOW());
+
+-- Price at specific date
+SELECT * FROM prices
+WHERE product_id = :id
+  AND effective_from <= :date
+  AND (effective_to IS NULL OR effective_to > :date);
 ```
-Price:
-  - id
-  - product_id
-  - amount
-  - effective_from
-  - effective_to (nullable = current)
-```
-
-**Current price:** `WHERE effective_from <= NOW() AND (effective_to IS NULL OR effective_to > NOW())`
-
-**Price at date:** `WHERE effective_from <= :date AND (effective_to IS NULL OR effective_to > :date)`
-
-**Constraint:** No overlapping periods for same product.
-
-### Pattern 2: Bitemporal
-
-```
-Price:
-  - id
-  - product_id
-  - amount
-  - valid_from (business time start)
-  - valid_to (business time end)
-  - recorded_at (system time)
-  - superseded_at (system time, nullable = current record)
-```
-
-**Answers:**
-- What was the price on date X? (business time)
-- What did we think the price was on date X, as of date Y? (both times)
-- When did we learn about this price? (system time)
-
-**Use when:** Corrections happen, need to audit what was known when.
 
 ---
 
-## Multi-Tenancy
+## Multi-Tenancy Implementation
 
-### Shared Schema Pattern
+### Shared Schema Checklist
 
-```
-Every table has:
-  - tenant_id (NOT NULL, indexed)
+```sql
+-- Every table needs tenant_id
+CREATE TABLE orders (
+  id BIGINT PRIMARY KEY,
+  tenant_id BIGINT NOT NULL REFERENCES tenants(id),
+  -- ... other columns
+);
 
-All queries include:
-  - WHERE tenant_id = :current_tenant
-```
+-- Composite indexes with tenant_id first
+CREATE INDEX orders_tenant_user_idx ON orders(tenant_id, user_id);
 
-**Implementation Checklist:**
-- [ ] tenant_id on every table
-- [ ] Composite indexes include tenant_id first
-- [ ] Unique constraints include tenant_id
-- [ ] Application middleware enforces tenant filter
-- [ ] Admin queries explicitly handle multi-tenant
-
-### Row-Level Security (RLS)
-
-If database supports it:
-```
-POLICY tenant_isolation ON table
-  USING (tenant_id = current_setting('app.current_tenant'))
+-- Unique constraints include tenant_id
+CREATE UNIQUE INDEX orders_number_tenant_idx ON orders(tenant_id, order_number);
 ```
 
-**Benefits:**
-- Can't forget the filter
-- Works for all queries including ad-hoc
+### Application Middleware Pattern
 
-**Drawbacks:**
-- Must set session variable
-- Performance overhead
-- Debugging complexity
+```python
+# Every query must include tenant filter
+class TenantMiddleware:
+    def before_query(self, query):
+        if not query.has_tenant_filter():
+            raise SecurityError("Missing tenant filter")
+```
 
-### Scaling Considerations
+### Row-Level Security (PostgreSQL)
 
-**Signs you've outgrown shared schema:**
-- One tenant dominates storage (>50%)
-- One tenant's queries affect others
-- Tenant requires data residency
-- Tenant requires different backup policy
+```sql
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 
-**Migration path:**
-1. Shared schema (start here)
-2. Large tenants → dedicated schema
-3. Enterprise tenants → dedicated database
+CREATE POLICY tenant_isolation ON orders
+  USING (tenant_id = current_setting('app.tenant_id')::BIGINT);
+
+-- Force RLS for table owner too
+ALTER TABLE orders FORCE ROW LEVEL SECURITY;
+
+-- Set tenant context per connection
+SET app.tenant_id = '123';
+```

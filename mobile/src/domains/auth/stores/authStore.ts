@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { STORAGE_KEYS } from "@/constants";
 import { storage } from "@/lib/storage";
-import type { User, GoogleUser } from "../types";
+import type { User, AuthCredential } from "../types";
 
 // =============================================================================
 // TYPES
@@ -15,7 +15,7 @@ interface AuthState {
 }
 
 interface AuthActions {
-  loginWithGoogle: (googleUser: GoogleUser) => Promise<void>;
+  login: (credential: AuthCredential) => Promise<void>;
   logout: () => Promise<void>;
   loadUserFromStorage: () => Promise<void>;
   clearError: () => void;
@@ -41,34 +41,35 @@ export const useAuthStore = create<AuthStore>()(
   subscribeWithSelector((set) => ({
     ...initialState,
 
-    loginWithGoogle: async (googleUser: GoogleUser) => {
+    login: async (credential: AuthCredential) => {
       try {
         set({ isLoading: true, error: null });
 
         // TODO: Replace with actual backend API call
         // In production:
-        // 1. Send googleUser.idToken to your backend
-        // 2. Backend verifies token with Google
+        // 1. Send credential.idToken to your backend
+        // 2. Backend verifies token with the provider
         // 3. Backend returns your own auth token + user data
         await new Promise((resolve) => setTimeout(resolve, 500));
 
         const user: User = {
-          id: `google_${googleUser.id}`,
-          email: googleUser.email,
-          name: googleUser.name,
-          photo: googleUser.photo,
+          id: `${credential.providerId}_${credential.user.id}`,
+          email: credential.user.email,
+          name: credential.user.name,
+          photo: credential.user.photo,
+          provider: credential.providerId,
         };
 
         // Save to storage
         await Promise.all([
           storage.set(STORAGE_KEYS.USER_DATA, user),
-          storage.set(STORAGE_KEYS.GOOGLE_AUTH_TOKEN, googleUser.idToken),
+          storage.set(STORAGE_KEYS.AUTH_TOKEN, credential.idToken),
         ]);
 
         set({ user, isLoading: false, error: null });
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "Google login failed";
+          error instanceof Error ? error.message : "Login failed";
         set({ error: message, isLoading: false });
         throw error;
       }
@@ -80,7 +81,7 @@ export const useAuthStore = create<AuthStore>()(
 
         await storage.removeMultiple([
           STORAGE_KEYS.USER_DATA,
-          STORAGE_KEYS.GOOGLE_AUTH_TOKEN,
+          STORAGE_KEYS.AUTH_TOKEN,
         ]);
 
         set({ ...initialState });
@@ -97,7 +98,7 @@ export const useAuthStore = create<AuthStore>()(
 
         const [userData, authToken] = storage.getMultiple([
           STORAGE_KEYS.USER_DATA,
-          STORAGE_KEYS.GOOGLE_AUTH_TOKEN,
+          STORAGE_KEYS.AUTH_TOKEN,
         ]);
 
         if (userData?.value && authToken?.value) {

@@ -1,11 +1,16 @@
 ---
 name: data-modeling
-description: Data modeling principles for database schema design. Covers entity extraction, relationship analysis, normalization decisions, and architectural trade-offs. Use when designing schemas from business requirements or reviewing existing data structures.
+description: Transform business requirements into logical data models. Covers entity extraction, relationship analysis, normalization decisions, and pattern selection. For pattern implementation details, see references.
+references:
+  - PATTERNS.md    # Detailed implementation for soft deletes, audit trails, hierarchies, polymorphic, etc.
+  - ARCHITECTURE.md # Documentation templates, ADR examples
 ---
 
 # Data Modeling
 
-Transform business requirements into well-structured, scalable database schemas.
+Transform business requirements into well-structured, scalable data models.
+
+---
 
 ## 1. Entity Extraction
 
@@ -28,11 +33,8 @@ Nouns: Users, Posts, Tags, Comments, Likes
 | Does it have multiple attributes? | Might be just a column |
 | Will you query it independently? | Consider embedding |
 | Does it change independently? | Embed with parent |
-| Will it have relationships? | If no, reconsider |
 
 **Step 3: Classify Attributes**
-
-For each attribute, determine:
 
 | Classification | Examples |
 |----------------|----------|
@@ -45,13 +47,12 @@ For each attribute, determine:
 
 Ask these BEFORE designing:
 
-1. **What are the top 5 most frequent queries?** → Design for these reads
-2. **What's the read:write ratio?** → 90:10 vs 50:50 changes everything
-3. **What's the expected data volume in 2 years?** → Affects partitioning decisions
-4. **What consistency guarantees are needed?** → Affects transaction boundaries
-5. **What are the reporting requirements?** → May need separate read models
-6. **Who owns this data?** → Affects where entities live
-7. **What's the data retention policy?** → Soft delete? Archive? Hard delete?
+1. **Top 5 most frequent queries?** → Design for these
+2. **Read:write ratio?** → 90:10 vs 50:50 changes everything
+3. **Expected data volume in 2 years?** → Affects partitioning
+4. **Consistency requirements?** → Transaction boundaries
+5. **Reporting requirements?** → May need read models
+6. **Data retention policy?** → Soft delete? Archive?
 
 ---
 
@@ -59,107 +60,102 @@ Ask these BEFORE designing:
 
 ### Determining Cardinality
 
-| Can A have many B? | Can B have many A? | Type | FK Location |
-|--------------------|--------------------|----- |-------------|
-| Yes | Yes | Many-to-Many | Junction table |
-| Yes | No | One-to-Many | FK on "many" side |
-| No | No | One-to-One | FK on either (prefer dependent) |
+| Can A have many B? | Can B have many A? | Type | Implementation |
+|--------------------|--------------------|----- |----------------|
+| Yes | Yes | N:M | Junction table |
+| Yes | No | 1:N | FK on "many" side |
+| No | No | 1:1 | FK on dependent side |
 
-### One-to-Many Relationships
+### One-to-Many (1:N)
 
 ```
-User (1) ←――――→ (N) Post
+User (1) ←――――→ (N) Order
 
-Decision points:
-- Is the relationship required? (NOT NULL on FK)
-- What happens on parent delete? (CASCADE/RESTRICT/SET NULL)
-- Will you query from both directions?
+Questions:
+- Can Order exist without User? → No = NOT NULL FK
+- What on parent delete? → CASCADE / RESTRICT / SET NULL
+- Query both directions? → Index accordingly
 ```
 
-**Always ask:**
-- "Can a Post exist without a User?" → No = Required, CASCADE
-- "Can a Post be reassigned to another User?" → Yes = Mutable FK
-- "How often do you query User's Posts vs Post's User?" → Index accordingly
+**Decision Guide:**
+- "Can child exist without parent?" → No = CASCADE
+- "Is reassignment allowed?" → Yes = mutable FK
+- "Need to query parent's children often?" → Index the FK
 
-### Many-to-Many Relationships
+### Many-to-Many (N:M)
 
 ```
 Post (N) ←――――→ (M) Tag
 
-Junction table: post_tags
+Junction: post_tags (post_id, tag_id)
 ```
 
-**Junction table decisions:**
-- Does the relationship itself have attributes? (created_at, created_by, sort_order)
-- Are duplicates allowed? (Composite PK prevents them)
-- Is the relationship ordered? (Add sort_order)
-- Who can create/delete the relationship? (Add created_by)
+**Junction Table Decisions:**
+- Does relationship have attributes? (created_at, sort_order)
+- Are duplicates allowed? (composite PK prevents them)
+- Is ordering needed? (add sort_order)
+- Who creates the link? (add created_by)
 
-### One-to-One Relationships
+### One-to-One (1:1)
 
-**Before creating 1:1, ask:**
-- Why not just add columns to the main table?
-- Is it for access pattern separation? (frequently vs rarely accessed)
-- Is it for security separation? (PII in separate table)
-- Is it for optionality? (90% of records won't have this data)
+**Before creating 1:1, justify it:**
+- Access pattern separation? (hot vs cold data)
+- Security separation? (PII in separate table)
+- High optionality? (90% of rows won't have this)
 
-**If you can't answer why → merge into one table.**
+**If you can't justify → merge into one table.**
 
-### Referential Integrity Decisions
+### Referential Actions
 
-| Action | Use When | Risk |
-|--------|----------|------|
-| CASCADE | Child meaningless without parent | Accidental mass deletion |
-| RESTRICT | Deletion should be explicit decision | Orphan prevention blocks operations |
-| SET NULL | Child can exist independently | Orphaned records accumulate |
-| NO ACTION | Handle in application | Inconsistent data possible |
+| Action | Use When |
+|--------|----------|
+| CASCADE | Child meaningless without parent |
+| RESTRICT | Deletion should be explicit (default choice) |
+| SET NULL | Child can exist independently |
 
-**Default to RESTRICT.** Use CASCADE only when you're certain child data is worthless without parent.
+**Default to RESTRICT.** Only use CASCADE when child data is worthless without parent.
 
 ---
 
 ## 3. Normalization Strategy
 
-### Forms Quick Reference
+### Quick Reference
 
-| Form | Rule | Violation Example | Fix |
-|------|------|-------------------|-----|
-| 1NF | Atomic values, no repeating groups | `tags: "a,b,c"` | Separate table |
-| 2NF | No partial dependencies (on part of composite key) | `order_items.product_name` | Move to products |
+| Form | Rule | Violation | Fix |
+|------|------|-----------|-----|
+| 1NF | Atomic values | `tags: "a,b,c"` | Separate table |
+| 2NF | No partial dependencies | `order_items.product_name` | Move to products |
 | 3NF | No transitive dependencies | `orders.customer_city` | Move to customers |
-| BCNF | Every determinant is a candidate key | Complex overlapping keys | Decompose further |
 
-### Normalization Decision Framework
+### When to Normalize (3NF)
 
-**Stay Normalized (3NF) When:**
 - Write-heavy workload
 - Data consistency is critical
-- Data changes frequently after creation
-- Multiple applications access same database
-- Storage cost is a concern
-- Team is small (less coordination needed)
+- Data changes frequently
+- Multiple apps access same DB
+- Storage is a concern
 
-**Consider Denormalization When:**
-- Read-heavy workload (>90% reads)
+### When to Denormalize
+
+- Read-heavy (>90% reads)
 - Query performance is critical path
 - Data rarely changes after creation
-- Single application owns the data
-- You can afford the sync complexity
+- Single app owns the data
+- You accept sync complexity
 
 ### Safe Denormalization Patterns
 
-**Pattern 1: Cached Aggregates**
+**Cached Aggregates**
 ```
-users.posts_count = COUNT(posts WHERE user_id = ?)
+users.posts_count
 
 When: Displayed frequently, expensive to compute
-Sync: Trigger or application on insert/delete
+Sync: Trigger on insert/delete
 Risk: Count drift if sync fails
 ```
 
-**Pattern 2: Snapshot at Event Time**
+**Snapshot at Event Time**
 ```
-order_items.product_name (copied from products.name)
 order_items.product_price (copied from products.price)
 
 When: Historical accuracy required
@@ -167,296 +163,209 @@ Sync: Copy once at creation, never update
 Risk: None (intentionally frozen)
 ```
 
-**Pattern 3: Computed/Derived Columns**
+**Materialized Paths**
 ```
-orders.total = subtotal + tax + shipping
+categories.path = "/electronics/phones/"
 
-When: Frequently accessed, expensive to compute
-Sync: Calculate on write
-Risk: Drift if formula changes
-```
-
-**Pattern 4: Materialized Paths**
-```
-categories.path = "/electronics/phones/smartphones/"
-
-When: Hierarchical queries are frequent
-Sync: Update on parent change (complex!)
-Risk: Path corruption on move operations
+When: Hierarchical queries frequent
+Sync: Update on parent change
+Risk: Path corruption on moves
 ```
 
-### Denormalization Documentation Rule
+### Documentation Rule
 
 Every denormalized field MUST document:
-1. **Source**: Where does the true data live?
+1. **Source**: Where does true data live?
 2. **Sync method**: How is it kept in sync?
 3. **Staleness tolerance**: How stale is acceptable?
-4. **Recovery procedure**: What if it drifts?
+4. **Recovery**: What if it drifts?
 
 ---
 
-## 4. Common Modeling Patterns
+## 4. Common Patterns
 
 ### Soft Deletes
 
 ```
-Entity has: deleted_at (nullable timestamp)
+deleted_at: nullable timestamp
 
-Active records: WHERE deleted_at IS NULL
-Deleted records: WHERE deleted_at IS NOT NULL
+Active: WHERE deleted_at IS NULL
+Deleted: WHERE deleted_at IS NOT NULL
 ```
 
 **Use When:**
-- Regulatory data retention requirements
+- Data retention requirements
 - Undo functionality needed
 - Audit trail required
-- Referential integrity with deleted parents
 
 **Don't Use When:**
-- GDPR "right to be forgotten" (need hard delete)
-- Storage is constrained
-- Performance on active queries matters (partial index helps)
-
-**Critical:** All application queries must filter `WHERE deleted_at IS NULL`.
+- GDPR "right to be forgotten"
+- Storage constrained
+- Most queries need active only (use partial index)
 
 ### Audit Trail
 
-**Level 1: Last Modified Only**
+**Level 1: Last Modified**
 ```
 created_at, created_by
 updated_at, updated_by
 ```
 
-**Level 2: Full History Table**
+**Level 2: History Table**
 ```
 entity_history:
-  - history_id (PK)
-  - entity_id (FK)
-  - all entity columns (snapshot)
-  - changed_at
-  - changed_by
+  - entity_id
+  - all columns (snapshot)
+  - changed_at, changed_by
   - operation (INSERT/UPDATE/DELETE)
-  - changes (what changed, optional)
 ```
 
 **Level 3: Event Sourcing**
 ```
-Store events, not state
-Current state = replay all events
+Store events, derive state
+Current state = replay events
 ```
-
-Choose level based on audit requirements and query patterns.
 
 ### Polymorphic Associations
 
 ```
 comments:
-  - commentable_type: "post" | "product" | "article"
+  - commentable_type: "post" | "product"
   - commentable_id: references different tables
 ```
 
 **Trade-offs:**
-- ✅ Flexible, single comments table
-- ❌ No FK constraint, no referential integrity
-- ❌ Can't JOIN without knowing type
-- ❌ Type column can have invalid values
+- ✅ Flexible, single table
+- ❌ No FK constraint
+- ❌ Can't JOIN without type
 
-**Alternative: Separate Tables**
-```
-post_comments, product_comments, article_comments
-```
+**Alternative:** Separate tables per type
 - ✅ Referential integrity
 - ❌ Duplicated structure
-- ❌ Harder to "get all comments by user"
 
-**Decision:** Use polymorphic if flexibility > integrity. Use separate tables if integrity > flexibility.
+**Decision:** Flexibility > integrity → polymorphic. Integrity > flexibility → separate.
 
 ### Hierarchical Data
 
-| Pattern | Description | Read | Write | Best For |
-|---------|-------------|------|-------|----------|
-| Adjacency List | `parent_id` self-reference | Slow (recursive) | Fast | Shallow trees, rare traversal |
-| Materialized Path | `/1/4/7/` path string | Fast (LIKE) | Slow (update all children) | Read-heavy, stable hierarchy |
-| Nested Sets | `left`/`right` boundaries | Fast | Very slow | Static trees, rare updates |
-| Closure Table | All ancestor-descendant pairs | Fast | Medium | Balanced read/write needs |
-
-**Decision Framework:**
-1. How deep is the tree? (>10 levels = avoid nested sets)
-2. How often does structure change? (frequently = adjacency list)
-3. What queries are needed? (subtree = materialized path, ancestors = closure)
+| Pattern | Read | Write | Best For |
+|---------|------|-------|----------|
+| Adjacency List | Slow | Fast | Shallow, frequent updates |
+| Materialized Path | Fast | Slow | Read-heavy, stable |
+| Closure Table | Fast | Medium | Balanced needs |
 
 ### Multi-Tenancy
 
-| Pattern | Description | Isolation | Complexity |
-|---------|-------------|-----------|------------|
-| Shared Schema | `tenant_id` on every table | Low | Low |
-| Schema per Tenant | Separate schemas, same DB | Medium | Medium |
-| Database per Tenant | Separate databases | High | High |
+| Pattern | Isolation | Complexity |
+|---------|-----------|------------|
+| Shared + tenant_id | Low | Low |
+| Schema per tenant | Medium | Medium |
+| Database per tenant | High | High |
 
-**Shared Schema Risks:**
-- Every query must include tenant filter
-- One bad query exposes all tenant data
-- Noisy neighbor performance issues
+**Start with shared schema**, migrate up when needed.
 
-**Rule:** Start with shared schema + `tenant_id`, migrate to separate schemas/DBs when security or performance demands.
+### State Machines
+
+```
+status column with valid transitions
+
+pending → confirmed → shipped → delivered
+    ↓         ↓
+ cancelled  cancelled
+```
+
+**Use When:**
+- Entity has lifecycle stages
+- Transitions need validation
+- Audit trail of status changes needed
+
+**Implementation:** See PATTERNS.md for transition validation triggers.
 
 ---
 
-## 5. Architectural Considerations
+## 5. Scaling Considerations
 
-### Bounded Contexts & Data Ownership
+### Vertical Partitioning (Split Columns)
 
-**Question:** Should these entities be in the same database?
-
-| Signal | Same DB | Separate DB |
-|--------|---------|-------------|
-| Transactional consistency needed | ✅ | |
-| Different teams own the data | | ✅ |
-| Different scaling requirements | | ✅ |
-| Different technology needs | | ✅ |
-| Shared reporting requirements | ✅ | |
-
-**If separate:** Define clear interfaces. Don't share tables across service boundaries.
-
-### Scaling Considerations
-
-**Vertical Partitioning (Split Columns)**
 ```
 users → users + user_profiles
 
-When: Some columns accessed rarely
+When: Some columns rarely accessed
       Some columns are large (TEXT, BLOB)
-      Different access patterns
 ```
 
-**Horizontal Partitioning (Split Rows)**
+### Horizontal Partitioning (Split Rows)
+
 ```
 orders → orders_2023, orders_2024
 
-When: Table exceeds single-node capacity
-      Clear partition key exists (date, tenant)
+When: Table > 100M rows
+      Clear partition key exists
       Queries include partition key
 ```
-
-**When to Start Thinking About It:**
-- Table > 10M rows
-- Table > 10GB
-- Query performance degrading despite indexing
-- Backup/restore times unacceptable
 
 ### ID Strategy
 
 | Type | Pros | Cons | Use When |
 |------|------|------|----------|
-| Auto-increment | Simple, compact, sortable | Predictable, centralized generation | Single database, internal IDs |
-| UUID v4 | Globally unique, decentralized | Large (16 bytes), random = poor index locality | Distributed systems, external exposure |
-| UUID v7 | Globally unique, time-sortable | Large (16 bytes) | Distributed + need ordering |
-| ULID | Sortable, shorter than UUID | Less standard | APIs, user-facing IDs |
-| Snowflake | Compact, sortable, distributed | Complex generation | High-volume distributed systems |
+| Auto-increment | Simple, compact | Predictable, centralized | Single DB |
+| UUID v4 | Globally unique | Large, random | Distributed |
+| UUID v7 | Unique + sortable | Large | Distributed + ordering |
 
-**Rule:** Pick ONE strategy and use it everywhere. Mixed ID strategies create confusion.
+**Pick ONE and use everywhere.**
 
 ---
 
-## 6. Design Process
-
-### Step-by-Step Process
-
-1. **Gather Requirements**
-   - Interview stakeholders
-   - Review existing systems
-   - Document use cases and queries
-
-2. **Identify Entities**
-   - Extract nouns from requirements
-   - Validate each as true entity
-   - Define attributes for each
-
-3. **Define Relationships**
-   - Map all entity connections
-   - Determine cardinality
-   - Decide referential actions
-
-4. **Normalize**
-   - Apply normalization rules
-   - Document any intentional denormalization
-
-5. **Consider Access Patterns**
-   - List top queries
-   - Verify schema supports them efficiently
-   - Add indexes (conceptually)
-
-6. **Review for Scale**
-   - Estimate data volumes
-   - Identify potential bottlenecks
-   - Plan for growth
-
-7. **Document Decisions**
-   - Create architecture document
-   - Record all trade-offs and rationale
-
-### Design Review Checklist
-
-**Entities:**
-- [ ] Each entity has clear purpose and owner
-- [ ] No entity is "just in case"
-- [ ] Naming is consistent and meaningful
-
-**Relationships:**
-- [ ] All relationships identified
-- [ ] Cardinality determined and documented
-- [ ] Referential actions explicitly chosen
-- [ ] No circular required dependencies
-
-**Attributes:**
-- [ ] Required vs optional is explicit
-- [ ] No redundant data (or documented if intentional)
-- [ ] Appropriate granularity (not over-normalized)
-
-**Integrity:**
-- [ ] Natural keys identified (even if using surrogate PK)
-- [ ] Uniqueness constraints defined
-- [ ] Check constraints for valid values
-
-**Scale:**
-- [ ] Growth estimates documented
-- [ ] No obvious N+1 query patterns
-- [ ] Large tables have partition strategy
-
-**Documentation:**
-- [ ] ERD is current
-- [ ] All denormalization documented
-- [ ] Trade-off decisions recorded
-
----
-
-## 7. Anti-Patterns to Avoid
+## 6. Anti-Patterns
 
 ### Entity Design
-- ❌ **God Table**: One table with 50+ columns for "flexibility"
-- ❌ **EAV (Entity-Attribute-Value)**: Generic key-value unless truly needed
-- ❌ **Metadata Tables**: `table_name`, `column_name`, `value` pattern
-- ❌ **No Natural Key Identified**: Every entity should have a business identifier
+- ❌ **God Table**: 50+ columns "for flexibility"
+- ❌ **EAV Pattern**: Generic key-value unless truly needed
+- ❌ **No Natural Key**: Every entity needs business identifier
 
 ### Relationships
-- ❌ **Missing Referential Integrity**: "We'll handle it in the app"
-- ❌ **Circular Required Dependencies**: A requires B requires A
-- ❌ **Over-use of Polymorphic**: When separate tables would be cleaner
-- ❌ **Junction Table Without Identity**: Sometimes needs its own ID
+- ❌ **Missing FK Constraints**: "Handle in app"
+- ❌ **Circular Dependencies**: A requires B requires A
 
 ### Normalization
 - ❌ **Premature Denormalization**: Optimize before measuring
-- ❌ **Undocumented Denormalization**: Future devs won't know sync rules
+- ❌ **Undocumented Denormalization**: Future devs won't know rules
 - ❌ **Over-Normalization**: 10 JOINs for simple query
-- ❌ **Storing Computed Values That Change Frequently**: Sync overhead exceeds benefit
 
 ### General
-- ❌ **Mixed ID Strategies**: Some tables BIGINT, others UUID
-- ❌ **Inconsistent Naming**: `user_id` vs `userId` vs `UserID`
-- ❌ **No Timestamps**: Not knowing when data was created/modified
-- ❌ **Designing for Unknown Future**: "We might need this someday"
+- ❌ **Mixed ID Strategies**: Some BIGINT, some UUID
+- ❌ **No Timestamps**: Always track created/modified
+- ❌ **Future-proofing**: "Might need someday"
 
 ---
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for documentation templates.
-See [PATTERNS.md](PATTERNS.md) for detailed pattern implementations.
+## 7. Output Format
+
+Deliver logical models as:
+
+1. **Entity List** with attributes and constraints
+2. **Relationship Diagram** (text or visual)
+3. **Decision Log** explaining trade-offs
+
+```
+## Entities
+
+### User
+- id: PK
+- email: unique, required
+- name: required
+- created_at: immutable
+
+### Order  
+- id: PK
+- user_id: FK → User, required, CASCADE
+- status: enum, default 'pending'
+- total: decimal, required
+
+## Relationships
+- User 1:N Order (user can have many orders)
+- Order N:M Product via order_items
+
+## Decisions
+- Chose CASCADE on Order→User: orders meaningless without user
+- Denormalized order.total: calculated once, never changes
+```

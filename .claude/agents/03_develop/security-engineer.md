@@ -210,7 +210,7 @@ console.log("User password:", password);
 - No sensitive data in state/props
 - Proper sanitization of URL params
 
-### Node.js/Express
+### Node.js/Express/Hono
 - Helmet.js configured
 - Rate limiting (express-rate-limit)
 - Input validation (joi, zod)

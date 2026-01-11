@@ -1,8 +1,8 @@
 // Components
-export { AuthFlow, GoogleSignInButton } from "./components";
+export { AuthFlow, GoogleSignInButton, AppleSignInButton } from "./components";
 
 // Hooks
-export { useGoogleAuth, configureGoogleSignIn } from "./hooks";
+export { useGoogleAuth, configureGoogleSignIn, useAppleAuth } from "./hooks";
 
 // Store
 export {
@@ -12,4 +12,4 @@ export {
 } from "./stores/authStore";
 
 // Types
-export type { User, GoogleUser } from "./types";
+export type { User, AuthCredential, AuthProvider } from "./types";

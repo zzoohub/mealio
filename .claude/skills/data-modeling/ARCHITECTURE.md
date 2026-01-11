@@ -1,8 +1,10 @@
-# Architecture Documentation
+# Architecture Documentation Templates
 
 Templates for documenting data model decisions.
 
-## Database Architecture Document Template
+---
+
+## Database Architecture Document
 
 ```markdown
 # [Project Name] Database Architecture
@@ -11,93 +13,60 @@ Templates for documenting data model decisions.
 [One paragraph: What does this database support? What's the bounded context?]
 
 ## Design Principles
-1. [Principle, e.g., "Soft deletes for all user-generated content"]
-2. [Principle, e.g., "UTC timestamps everywhere"]
-3. [Principle, e.g., "Tenant isolation via tenant_id on all tables"]
+1. [e.g., "Soft deletes for all user-generated content"]
+2. [e.g., "UTC timestamps everywhere"]
+3. [e.g., "Tenant isolation via tenant_id on all tables"]
 
 ## Entity Overview
 
-| Entity | Purpose | Owner | Estimated Volume |
-|--------|---------|-------|------------------|
-| users | User accounts | Auth team | 100K in year 1 |
-| posts | User content | Content team | 1M in year 1 |
+| Entity | Purpose | Owner | Est. Volume (Year 1) |
+|--------|---------|-------|----------------------|
+| users | User accounts | Auth | 100K |
+| posts | User content | Content | 1M |
 
 ## Entity Details
 
 ### [Entity Name]
 
-**Purpose:** [What this entity represents]
+**Purpose**: [What this represents]
 
-**Owner:** [Team/service responsible]
-
-**Key Design Decisions:**
-- [Decision]: [Rationale]
+**Key Decisions**:
 - [Decision]: [Rationale]
 
-**Access Patterns:**
-- [Query description] - [Frequency]
-- [Query description] - [Frequency]
+**Access Patterns**:
+- [Query] - [Frequency]
 
-**Growth Considerations:**
-- Current estimate: [X rows]
-- 2-year estimate: [Y rows]
-- Mitigation: [Strategy if needed]
+**Growth**: [Current] → [2-year estimate]
 
 ## Relationships
 
 | From | To | Type | On Delete | Rationale |
-|------|-----|------|-----------|-----------|
+|------|----|------|-----------|-----------|
 | posts | users | N:1 | CASCADE | Posts meaningless without author |
-| posts | tags | N:M | CASCADE | Remove associations only |
 
 ## Denormalization Log
 
-| Location | Source | Sync Method | Staleness Tolerance | Recovery |
-|----------|--------|-------------|---------------------|----------|
-| posts.comments_count | COUNT(comments) | Trigger | 0 (immediate) | Recount script |
-| users.posts_count | COUNT(posts) | Application | 1 hour | Nightly job |
+| Field | Source | Sync Method | Staleness OK? |
+|-------|--------|-------------|---------------|
+| posts.comment_count | COUNT(comments) | Trigger | No |
 
 ## Indexing Strategy
 
-| Index | Supports Query | Estimated Size |
-|-------|----------------|----------------|
-| posts(user_id) | User's posts | 10MB |
-| posts(created_at) | Recent posts | 10MB |
+| Index | Supports Query |
+|-------|----------------|
+| posts(user_id) | User's posts |
+| posts(created_at) | Recent posts feed |
 
-## Partitioning Strategy
+## Security
 
-| Table | Strategy | Key | When to Implement |
-|-------|----------|-----|-------------------|
-| events | Range by month | created_at | >100M rows |
-| orders | Range by year | order_date | >50M rows |
+**PII Columns**: users.email, users.phone
 
-## Security Considerations
-
-**PII Columns:**
-- users.email
-- users.phone
-- user_profiles.address
-
-**Row-Level Security:**
-- Users see only their own data
-- Admins see all within tenant
-
-**Encryption:**
-- [At rest / in transit / column-level needs]
-
-## Migration Guidelines
-
-- All migrations must be reversible
-- Large data migrations: batch by 10K rows
-- Column renames: expand-contract pattern
-- Zero-downtime requirements: [Yes/No]
+**Row-Level Security**: [Yes/No, how?]
 ```
 
 ---
 
-## Architecture Decision Record (ADR) Template
-
-For individual design decisions that need detailed rationale.
+## Architecture Decision Record (ADR)
 
 ```markdown
 # ADR-[NUMBER]: [Title]
@@ -109,31 +78,25 @@ For individual design decisions that need detailed rationale.
 [What is the issue? What forces are at play?]
 
 ## Decision
-[What is the decision that was made?]
+[What was decided?]
 
 ## Alternatives Considered
 
 ### Option A: [Name]
-- Pros: [...]
-- Cons: [...]
+- Pros: ...
+- Cons: ...
 
 ### Option B: [Name]
-- Pros: [...]
-- Cons: [...]
+- Pros: ...
+- Cons: ...
 
 ## Consequences
 
-### Positive
-- [Consequence]
+**Positive**: [Benefits]
 
-### Negative
-- [Consequence]
+**Negative**: [Drawbacks]
 
-### Risks
-- [Risk and mitigation]
-
-## References
-- [Links to relevant docs, discussions]
+**Risks**: [Risk and mitigation]
 ```
 
 ---
@@ -142,87 +105,109 @@ For individual design decisions that need detailed rationale.
 
 ### ADR-001: Soft Delete Strategy
 
-**Status:** Accepted
+**Status**: Accepted
 
-**Context:**
-We need to handle data deletion for user-generated content. Regulatory requirements mandate 90-day retention. Users expect "undo" functionality.
+**Context**: Need to handle data deletion. Regulatory requires 90-day retention. Users expect undo.
 
-**Decision:**
-Implement soft deletes using `deleted_at` timestamp column for: posts, comments, messages. Hard delete for: sessions, temporary tokens.
+**Decision**: Soft deletes via `deleted_at` for user content. Hard delete for sessions/tokens.
 
-**Alternatives Considered:**
+**Alternatives**:
+- Hard delete: Simple, but no undo, no audit
+- Archive tables: Clean separation, but complex queries
 
-Option A: Hard delete everything
-- Pros: Simple, GDPR compliant
-- Cons: No undo, no audit trail, breaks referential integrity
-
-Option B: Archive tables
-- Pros: Clean separation
-- Cons: Complex queries for "with deleted", expensive moves
-
-**Consequences:**
-- Positive: Undo possible, audit trail preserved
-- Negative: All queries must include `deleted_at IS NULL`
-- Risk: Forgotten filter exposes deleted data → Mitigate with query builder defaults
+**Consequences**:
+- Positive: Undo possible, audit preserved
+- Negative: All queries need `deleted_at IS NULL`
+- Risk: Forgotten filter → mitigate with query builder defaults
 
 ---
 
 ### ADR-002: ID Strategy
 
-**Status:** Accepted
+**Status**: Accepted
 
-**Context:**
-Need globally unique identifiers. System will be distributed across regions. IDs may be exposed in URLs.
+**Context**: Need globally unique IDs. Distributed system. IDs exposed in URLs.
 
-**Decision:**
-Use UUIDv7 for all primary keys.
+**Decision**: UUIDv7 for all primary keys.
 
-**Alternatives Considered:**
+**Alternatives**:
+- Auto-increment: Compact but predictable, coordination needed
+- UUIDv4: Unique but random (poor index locality)
+- UUIDv7: Unique + time-sortable + good locality
 
-Option A: Auto-increment BIGINT
-- Pros: Compact, fast, sortable
-- Cons: Predictable (security), requires coordination (distributed)
-
-Option B: UUIDv4
-- Pros: Globally unique, no coordination
-- Cons: Random = poor index locality, not sortable
-
-Option C: UUIDv7 (chosen)
-- Pros: Globally unique, time-sortable, good index locality
-- Cons: Larger than BIGINT (16 bytes)
-
-**Consequences:**
-- Positive: No ID conflicts across regions, natural time ordering
-- Negative: Larger storage, slightly slower JOINs
-- Risk: Library support varies → Use well-maintained library
+**Consequences**:
+- Positive: No conflicts across regions, natural ordering
+- Negative: 16 bytes vs 8 for BIGINT
+- Risk: Library support → use well-maintained lib
 
 ---
 
-### ADR-003: Multi-Tenancy Approach
+### ADR-003: Multi-Tenancy
 
-**Status:** Accepted
+**Status**: Accepted
 
-**Context:**
-SaaS application with hundreds of tenants. Most tenants are small (<1000 records). Some enterprise tenants are large (>1M records).
+**Context**: SaaS with hundreds of tenants. Most small (<1K records), some large (>1M).
 
-**Decision:**
-Shared schema with `tenant_id` column on all tables. Row-level security enforced at application layer. Future option to migrate large tenants to dedicated schema.
+**Decision**: Shared schema with `tenant_id`. Option to migrate large tenants later.
 
-**Alternatives Considered:**
+**Alternatives**:
+- DB per tenant: Complete isolation, high ops cost
+- Schema per tenant: Good isolation, migration overhead
 
-Option A: Database per tenant
-- Pros: Complete isolation
-- Cons: Operational complexity, expensive for small tenants
-
-Option B: Schema per tenant
-- Pros: Good isolation, shared infrastructure
-- Cons: Schema management complexity, migration overhead
-
-Option C: Shared schema (chosen)
-- Pros: Simple operations, easy cross-tenant queries (admin)
-- Cons: Noisy neighbor risk, security depends on app layer
-
-**Consequences:**
+**Consequences**:
 - Positive: Simple deployment, easy onboarding
-- Negative: Must be vigilant about tenant_id in every query
-- Risk: Data leak if filter forgotten → Mitigate with query middleware
+- Negative: Must enforce tenant_id in every query
+- Risk: Data leak → mitigate with query middleware
+
+---
+
+## Denormalization Decision Template
+
+```markdown
+## Denormalized Field: [table.column]
+
+**Source**: [Original location of truth]
+
+**Reason**: [Why denormalized - performance, query simplicity]
+
+**Sync Method**: 
+- [ ] Trigger
+- [ ] Application code
+- [ ] Scheduled job
+
+**Staleness Tolerance**: [Immediate | Minutes | Hours]
+
+**Recovery Procedure**: [How to fix if out of sync]
+
+**Monitoring**: [How to detect drift]
+```
+
+---
+
+## Migration Checklist Template
+
+```markdown
+## Migration: [Description]
+
+**Risk Level**: [Low | Medium | High]
+
+**Rollback Plan**: [How to reverse]
+
+### Pre-Migration
+- [ ] Backup taken
+- [ ] Tested on production-size data
+- [ ] Estimated duration: [X minutes]
+- [ ] Maintenance window scheduled (if needed)
+
+### Steps
+1. [Step with expected duration]
+2. [Step]
+
+### Post-Migration
+- [ ] Verify data integrity
+- [ ] Check application functionality
+- [ ] Monitor for errors
+
+### Rollback Steps (if needed)
+1. [Step]
+```

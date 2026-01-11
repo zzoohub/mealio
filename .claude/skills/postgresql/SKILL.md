@@ -1,489 +1,351 @@
 ---
 name: postgresql
-description: PostgreSQL implementation patterns for efficient SQL, query optimization, indexing, and safe migrations. Focus on performance, scalability, and production readiness.
+description: PostgreSQL problem-solving patterns. For basic syntax, use context7 MCP. This skill covers optimization, concurrency, migrations, and architectural decisions.
 ---
 
 # PostgreSQL Patterns
 
-Write efficient, maintainable PostgreSQL code optimized for production workloads.
-
-## When to Use This Skill
-
-- Writing SQL queries beyond basic CRUD
-- Optimizing slow queries
-- Designing indexing strategies
-- Planning safe database migrations
-- Production database operations
+For basic DDL/DML syntax, use `context7` MCP. This skill focuses on **solving specific problems**.
 
 ---
 
-## 1. SQL Conventions
+## Deep Pagination
 
-### Naming
-
-```sql
--- Tables: plural, snake_case
-users, order_items, product_categories
-
--- Columns: singular, snake_case  
-user_id, created_at, is_active
-
--- Indexes: table_columns_idx
-users_email_idx, orders_user_id_created_at_idx
-
--- Constraints
-users_email_key (UNIQUE), orders_user_id_fkey (FK), products_price_check (CHECK)
-```
-
-### Query Formatting
+**Problem**: OFFSET scans and discards rows — slow for large offsets.
 
 ```sql
--- Complex queries: structured
-select
-    u.id,
-    u.name,
-    count(o.id) as order_count,
-    sum(o.total) as total_spent
-from users as u
-left join orders as o on o.user_id = u.id
-where u.is_active = true
-    and u.created_at >= '2024-01-01'
-group by u.id, u.name
-having count(o.id) > 0
-order by total_spent desc
-limit 20;
-```
-
-### CTEs for Readability
-
-```sql
-with active_users as (
-    select id, name from users where is_active = true
-),
-user_orders as (
-    select user_id, count(*) as order_count, sum(total) as total_spent
-    from orders where status = 'completed'
-    group by user_id
-)
-select au.*, coalesce(uo.order_count, 0), coalesce(uo.total_spent, 0)
-from active_users au
-left join user_orders uo on uo.user_id = au.id;
-```
-
----
-
-## 2. Query Optimization
-
-### EXPLAIN ANALYZE
-
-```sql
-explain (analyze, buffers, format text)
-select * from orders where user_id = 123;
-```
-
-| Output | Meaning | Action |
-|--------|---------|--------|
-| Seq Scan (large table) | Full scan | Add index |
-| Index Scan | Good | - |
-| Index Only Scan | Best | - |
-| Nested Loop (large) | Slow | Consider Hash Join |
-| Sort (on-disk) | Memory exceeded | Increase work_mem or add index |
-| Rows: estimated ≠ actual | Stale stats | Run ANALYZE |
-
-### Anti-Patterns
-
-```sql
--- ❌ Function on indexed column
-select * from users where lower(email) = 'test@example.com';
--- ✅ Expression index
-create index users_email_lower_idx on users(lower(email));
-
--- ❌ SELECT *
-select * from users where id = 1;
--- ✅ Select needed columns (enables Index Only Scan)
-select id, name, email from users where id = 1;
-
--- ❌ NOT IN with subquery
-select * from users where id not in (select user_id from banned);
--- ✅ NOT EXISTS
-select * from users u where not exists (select 1 from banned b where b.user_id = u.id);
-
--- ❌ LIKE with leading wildcard
-select * from products where name like '%phone%';
--- ✅ Full-text search
-create index products_search_idx on products using gin(to_tsvector('english', name));
-select * from products where to_tsvector('english', name) @@ to_tsquery('phone');
-```
-
-### N+1 Prevention
-
-```sql
--- ❌ Loop queries
--- for user in users: query("select * from orders where user_id = ?", user.id)
-
--- ✅ Single query with JOIN
-select u.id, u.name, o.id as order_id, o.total
-from users u
-left join orders o on o.user_id = u.id
-where u.id = any(array[1, 2, 3, 4, 5]);
-
--- ✅ JSON aggregation
-select u.id, u.name,
-    coalesce(jsonb_agg(jsonb_build_object('id', o.id, 'total', o.total)) 
-             filter (where o.id is not null), '[]') as orders
-from users u
-left join orders o on o.user_id = u.id
-where u.id = any(array[1, 2, 3, 4, 5])
-group by u.id;
-```
-
-### Pagination
-
-```sql
--- ❌ OFFSET (slow for deep pages)
-select * from posts order by created_at desc limit 20 offset 100000;
+-- ❌ Slow
+SELECT * FROM posts ORDER BY created_at DESC LIMIT 20 OFFSET 100000;
 
 -- ✅ Cursor pagination
-select id, title, created_at from posts
-where (created_at, id) < ('2024-01-15 10:30:00+00', 12345)
-order by created_at desc, id desc
-limit 20;
+SELECT id, title, created_at FROM posts
+WHERE (created_at, id) < (:last_created_at, :last_id)
+ORDER BY created_at DESC, id DESC
+LIMIT 20;
 
--- Required index
-create index posts_cursor_idx on posts(created_at desc, id desc);
+CREATE INDEX posts_cursor_idx ON posts(created_at DESC, id DESC);
 ```
 
-### Efficient Counting
+**Pitfall**: Can't jump to arbitrary page, only next/prev.
+
+---
+
+## Full-Text Search
+
+**Problem**: `LIKE '%term%'` can't use index.
 
 ```sql
--- Estimate (instant)
-select reltuples::bigint from pg_class where relname = 'posts';
+ALTER TABLE posts ADD COLUMN search_vector tsvector
+  GENERATED ALWAYS AS (
+    setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
+    setweight(to_tsvector('english', coalesce(content, '')), 'B')
+  ) STORED;
 
--- Bounded count ("has more?")
-select count(*) from (select 1 from posts where status = 'published' limit 10001) t;
+CREATE INDEX posts_search_idx ON posts USING GIN(search_vector);
+
+SELECT id, title, ts_rank(search_vector, q) AS rank
+FROM posts, to_tsquery('english', 'postgres & performance') q
+WHERE search_vector @@ q
+ORDER BY rank DESC;
+```
+
+**Pitfall**: Use `pg_trgm` for fuzzy/typo-tolerant search instead.
+
+---
+
+## N+1 Query Prevention
+
+**Solution A**: JSON aggregation
+
+```sql
+SELECT u.id, u.name,
+  COALESCE(jsonb_agg(jsonb_build_object('id', o.id, 'total', o.total)) 
+    FILTER (WHERE o.id IS NOT NULL), '[]') AS orders
+FROM users u
+LEFT JOIN orders o ON o.user_id = u.id
+WHERE u.id = ANY(:user_ids)
+GROUP BY u.id;
+```
+
+**Solution B**: LATERAL join for complex aggregation
+
+```sql
+SELECT u.*, recent.*
+FROM users u
+LEFT JOIN LATERAL (
+  SELECT jsonb_agg(o.*) AS orders
+  FROM orders o WHERE o.user_id = u.id
+  ORDER BY o.created_at DESC LIMIT 5
+) recent ON true;
 ```
 
 ---
 
-## 3. Indexing
+## High-Concurrency Updates
 
-### Index Types
+**Problem**: Row locks cause contention on counters, queues.
 
-| Type | Use Case |
-|------|----------|
-| **B-tree** | Equality, range, sorting (default) |
-| **GIN** | Arrays, JSONB, full-text |
-| **GiST** | Geometric, range types |
-| **BRIN** | Large ordered tables (time-series) |
-
-### B-tree Patterns
+**Solution A**: SKIP LOCKED for queues
 
 ```sql
--- Composite index (column order matters!)
-create index orders_user_created_idx on orders(user_id, created_at desc);
-
--- Supports:
--- ✅ where user_id = 1
--- ✅ where user_id = 1 and created_at > '2024-01-01'
--- ✅ where user_id = 1 order by created_at desc
--- ❌ where created_at > '2024-01-01' (can't skip first column)
+UPDATE jobs SET status = 'processing', worker_id = :worker
+WHERE id = (
+  SELECT id FROM jobs WHERE status = 'pending'
+  ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1
+) RETURNING *;
 ```
 
-### Partial Indexes
+**Solution B**: Batched counters
 
 ```sql
-create index orders_pending_idx on orders(created_at) where status = 'pending';
-create index users_active_idx on users(email) where deleted_at is null;
+-- Buffer writes
+INSERT INTO view_counts_buffer (post_id, delta) VALUES (:id, 1);
+
+-- Periodic flush
+WITH deleted AS (DELETE FROM view_counts_buffer RETURNING *)
+UPDATE posts p SET view_count = view_count + d.total
+FROM (SELECT post_id, SUM(delta) AS total FROM deleted GROUP BY post_id) d
+WHERE p.id = d.post_id;
 ```
 
-### Covering Indexes (INCLUDE)
+**Solution C**: Advisory locks for coordination
 
 ```sql
-create index users_email_idx on users(email) include (id, name, avatar_url);
--- Enables Index Only Scan for: select id, name, avatar_url from users where email = ?
-```
-
-### GIN for JSONB
-
-```sql
-create index products_data_idx on products using gin(data);
--- Supports: data @> '{"color": "red"}', data ? 'color'
-
--- Specific path (smaller, faster)
-create index products_color_idx on products using gin((data->'color'));
-```
-
-### Index Maintenance
-
-```sql
--- Unused indexes
-select indexrelname, idx_scan, pg_size_pretty(pg_relation_size(indexrelid))
-from pg_stat_user_indexes
-where idx_scan = 0 and indisunique is false
-order by pg_relation_size(indexrelid) desc;
-
--- Rebuild bloated index
-reindex index concurrently users_email_idx;
+SELECT pg_try_advisory_lock(hashtext('resource:' || :id));
+-- do work
+SELECT pg_advisory_unlock(hashtext('resource:' || :id));
 ```
 
 ---
 
-## 4. Safe Migrations
+## Zero-Downtime Migrations
 
-### Risk Assessment
+### Adding NOT NULL
 
-| Operation | Lock | Risk |
-|-----------|------|------|
-| Add nullable column | Brief | Low |
-| Add column with default (PG11+) | Brief | Low |
-| Add NOT NULL (existing) | ACCESS EXCLUSIVE | High |
-| Create index | SHARE | Medium |
-| Create index CONCURRENTLY | None | Low |
-| Add foreign key | SHARE ROW EXCLUSIVE | High |
-| Change column type | ACCESS EXCLUSIVE | Very High |
+```sql
+-- 1. Add constraint without validation (instant)
+ALTER TABLE users ADD CONSTRAINT users_email_nn 
+  CHECK (email IS NOT NULL) NOT VALID;
 
-### Safe Index Creation
+-- 2. Backfill NULLs (batched)
+-- 3. Validate (scans, minimal lock)
+ALTER TABLE users VALIDATE CONSTRAINT users_email_nn;
+
+-- 4. Convert to NOT NULL (instant)
+ALTER TABLE users ALTER COLUMN email SET NOT NULL;
+ALTER TABLE users DROP CONSTRAINT users_email_nn;
+```
+
+### Adding Index
 
 ```sql
 -- ❌ Blocks writes
-create index users_email_idx on users(email);
+CREATE INDEX idx ON users(email);
 
--- ✅ Concurrent (allows reads/writes)
-create index concurrently users_email_idx on users(email);
+-- ✅ Non-blocking
+CREATE INDEX CONCURRENTLY idx ON users(email);
 ```
 
-### Adding NOT NULL Safely
+**Pitfall**: CONCURRENTLY can fail, leaving invalid index. Check `pg_index.indisvalid`.
+
+### Adding Foreign Key
 
 ```sql
--- 1. Add check constraint (instant)
-alter table users add constraint users_email_not_null check (email is not null) not valid;
-
--- 2. Validate (scans, minimal locking)
-alter table users validate constraint users_email_not_null;
-
--- 3. Convert to NOT NULL (instant)
-alter table users alter column email set not null;
-alter table users drop constraint users_email_not_null;
-```
-
-### Adding Foreign Key Safely
-
-```sql
--- 1. Add NOT VALID (instant)
-alter table orders add constraint orders_user_fkey 
-    foreign key (user_id) references users(id) not valid;
-
--- 2. Validate (scans, minimal locking)
-alter table orders validate constraint orders_user_fkey;
-```
-
-### Backfilling Large Tables
-
-```sql
--- ❌ Single update (locks table)
-update users set new_col = old_col;
-
--- ✅ Batched
-do $$
-declare
-    batch_size int := 5000;
-begin
-    loop
-        with batch as (
-            select id from users where new_col is null limit batch_size for update skip locked
-        )
-        update users set new_col = old_col where id in (select id from batch);
-        
-        exit when not found;
-        commit;
-        perform pg_sleep(0.1);
-    end loop;
-end $$;
+ALTER TABLE orders ADD CONSTRAINT orders_user_fkey
+  FOREIGN KEY (user_id) REFERENCES users(id) NOT VALID;
+ALTER TABLE orders VALIDATE CONSTRAINT orders_user_fkey;
 ```
 
 ---
 
-## 5. Partitioning
+## Backfilling Large Tables
 
-### When to Partition
-
-- Table > 100GB or > 100M rows
-- Queries always filter by partition key (date, tenant_id)
-- Need to drop old data efficiently
-- Maintenance (VACUUM) taking too long
-
-### Range Partitioning (Time-Series)
+**Problem**: Single UPDATE locks table, bloats WAL.
 
 ```sql
-create table events (
-    id bigint generated always as identity,
-    created_at timestamptz not null,
-    data jsonb
-) partition by range (created_at);
-
--- Create partitions
-create table events_2024_01 partition of events
-    for values from ('2024-01-01') to ('2024-02-01');
-create table events_2024_02 partition of events
-    for values from ('2024-02-01') to ('2024-03-01');
-
--- Auto-create with pg_partman (recommended)
--- Or cron job to create future partitions
-
--- Drop old data (instant, no vacuum needed)
-drop table events_2023_01;
-```
-
-### List Partitioning (Multi-Tenant)
-
-```sql
-create table orders (
-    id bigint, tenant_id int not null, total numeric
-) partition by list (tenant_id);
-
-create table orders_tenant_1 partition of orders for values in (1);
-create table orders_tenant_2 partition of orders for values in (2);
-create table orders_default partition of orders default;
-```
-
-### Partition Tips
-
-```sql
--- Always include partition key in queries
-select * from events where created_at >= '2024-01-01' and created_at < '2024-02-01';
-
--- Index each partition (auto-created if defined on parent)
-create index on events (created_at);
-
--- Check partition pruning
-explain select * from events where created_at = '2024-01-15';
--- Should show only events_2024_01 scanned
+DO $$
+DECLARE batch_size INT := 5000; affected INT;
+BEGIN
+  LOOP
+    WITH batch AS (
+      SELECT id FROM users WHERE new_col IS NULL
+      LIMIT batch_size FOR UPDATE SKIP LOCKED
+    )
+    UPDATE users u SET new_col = compute(u.old_col)
+    FROM batch b WHERE u.id = b.id;
+    
+    GET DIAGNOSTICS affected = ROW_COUNT;
+    EXIT WHEN affected = 0;
+    COMMIT;
+    PERFORM pg_sleep(0.1);
+  END LOOP;
+END $$;
 ```
 
 ---
 
-## 6. Connection Pooling
+## Time-Series at Scale
 
-### Why Pool Connections
+**Solution**: Range partitioning + BRIN index
 
-- PostgreSQL: 1 process per connection (~10MB RAM each)
-- Works well: < 100 connections
-- Problems: > 300 connections (context switching, RAM)
-- Solution: PgBouncer, pgpool, or application-level pooling
+```sql
+CREATE TABLE events (
+  id BIGINT GENERATED ALWAYS AS IDENTITY,
+  created_at TIMESTAMPTZ NOT NULL,
+  data JSONB
+) PARTITION BY RANGE (created_at);
 
-### PgBouncer Modes
+CREATE TABLE events_2024_01 PARTITION OF events
+  FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');
 
-| Mode | Description | Use Case |
-|------|-------------|----------|
-| **Transaction** | Conn returned after each transaction | Most apps (recommended) |
-| **Session** | Conn held for entire session | Session variables, prepared statements |
-| **Statement** | Conn returned after each statement | Simple queries only |
+-- BRIN: tiny index for time-ordered data
+CREATE INDEX events_brin ON events USING BRIN(created_at);
 
-### PgBouncer Config
+-- Drop old data instantly
+DROP TABLE events_2023_01;
+```
+
+**Pitfall**: Queries MUST include partition key for pruning.
+
+---
+
+## Materialized View Caching
+
+```sql
+CREATE MATERIALIZED VIEW monthly_sales AS
+SELECT date_trunc('month', created_at) AS month, product_id,
+  SUM(quantity) AS qty, SUM(amount) AS total
+FROM orders WHERE status = 'completed'
+GROUP BY 1, 2;
+
+CREATE UNIQUE INDEX monthly_sales_idx ON monthly_sales(month, product_id);
+
+-- Refresh without blocking reads
+REFRESH MATERIALIZED VIEW CONCURRENTLY monthly_sales;
+```
+
+**Pitfall**: CONCURRENTLY requires unique index.
+
+---
+
+## Row-Level Security (Multi-Tenant)
+
+```sql
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY tenant_isolation ON orders
+  USING (tenant_id = current_setting('app.tenant')::INT);
+
+-- Set per connection
+SET app.tenant = '123';
+SELECT * FROM orders;  -- Auto-filtered
+```
+
+**Pitfall**: Superusers bypass RLS. Test thoroughly.
+
+---
+
+## Hierarchical Queries
+
+```sql
+WITH RECURSIVE tree AS (
+  SELECT id, name, parent_id, 1 AS depth, ARRAY[id] AS path
+  FROM categories WHERE id = :root_id
+  UNION ALL
+  SELECT c.id, c.name, c.parent_id, t.depth + 1, t.path || c.id
+  FROM categories c JOIN tree t ON c.parent_id = t.id
+  WHERE t.depth < 10
+)
+SELECT * FROM tree ORDER BY path;
+```
+
+**Pitfall**: Always add depth limit. Index `parent_id`.
+
+---
+
+## JSONB Performance
+
+```sql
+-- General GIN (all operators)
+CREATE INDEX data_gin ON products USING GIN(data);
+SELECT * FROM products WHERE data @> '{"color": "red"}';
+
+-- Expression index (specific path, smaller)
+CREATE INDEX data_color ON products((data->>'color'));
+SELECT * FROM products WHERE data->>'color' = 'red';
+```
+
+**Pitfall**: `->>'field'` (text) vs `->'field'` (JSON) — different!
+
+---
+
+## Optimistic Locking
+
+```sql
+-- Add version column
+ALTER TABLE orders ADD COLUMN version INT NOT NULL DEFAULT 1;
+
+-- Update with check
+UPDATE orders SET status = 'shipped', version = version + 1
+WHERE id = :id AND version = :expected;
+-- affected = 0 means conflict
+```
+
+---
+
+## Bulk Import
+
+```sql
+CREATE TEMP TABLE staging (LIKE products INCLUDING DEFAULTS);
+COPY staging FROM '/path/data.csv' WITH (FORMAT csv, HEADER);
+
+INSERT INTO products SELECT * FROM staging
+ON CONFLICT (sku) DO UPDATE SET price = EXCLUDED.price;
+```
+
+---
+
+## Debugging Slow Queries
+
+```sql
+EXPLAIN (ANALYZE, BUFFERS) SELECT ...;
+```
+
+| Symptom | Fix |
+|---------|-----|
+| Seq Scan large table | Add index |
+| Rows estimated ≠ actual | Run ANALYZE |
+| Sort external merge | Increase work_mem or add index |
+
+---
+
+## Connection Pooling
+
+PostgreSQL: ~10MB RAM per connection. Use PgBouncer.
 
 ```ini
-[databases]
-mydb = host=localhost dbname=mydb
-
-[pgbouncer]
 pool_mode = transaction
-max_client_conn = 1000      # Clients connecting to PgBouncer
-default_pool_size = 20      # Connections to PostgreSQL per pool
-reserve_pool_size = 5       # Extra connections for burst
+max_client_conn = 1000
+default_pool_size = 20
 ```
 
-### Application Guidelines
-
-```sql
--- Transaction mode limitations:
--- ❌ SET statements (use per-query: set_config())
--- ❌ LISTEN/NOTIFY
--- ❌ Named prepared statements (use unnamed or set prepared_statements = no)
--- ❌ Session-level advisory locks
-
--- Works fine:
--- ✅ Regular queries
--- ✅ Transactions
--- ✅ Temp tables (within transaction)
-```
+**Pitfall**: Transaction mode breaks SET, LISTEN/NOTIFY, prepared statements.
 
 ---
 
-## 7. Production Operations
+## Quick Reference
 
-### Connection Monitoring
-
-```sql
--- Connections by state
-select state, count(*) from pg_stat_activity group by state;
-
--- Long-running queries
-select pid, now() - query_start as duration, state, query
-from pg_stat_activity
-where state != 'idle' and query_start < now() - interval '5 minutes';
-
--- Kill connection
-select pg_terminate_backend(12345);
-```
-
-### Lock Monitoring
-
-```sql
--- Blocking locks
-select blocked.pid, blocked.query, blocking.pid as blocking_pid, blocking.query as blocking_query
-from pg_stat_activity blocked
-join pg_locks bl on blocked.pid = bl.pid
-join pg_locks bg on bl.relation = bg.relation and bl.pid != bg.pid
-join pg_stat_activity blocking on bg.pid = blocking.pid
-where not bl.granted;
-
--- Set timeouts
-set statement_timeout = '30s';
-set lock_timeout = '10s';
-```
-
-### Maintenance
-
-```sql
--- Tables needing vacuum
-select schemaname || '.' || relname, n_dead_tup, last_autovacuum
-from pg_stat_user_tables
-where n_dead_tup > 10000
-order by n_dead_tup desc;
-
--- Cache hit ratio (should be > 99%)
-select sum(heap_blks_hit) / nullif(sum(heap_blks_hit + heap_blks_read), 0) as ratio
-from pg_statio_user_tables;
-
--- Slow queries (requires pg_stat_statements)
-select query, calls, mean_exec_time, total_exec_time
-from pg_stat_statements
-order by total_exec_time desc limit 10;
-```
-
----
-
-## 8. Critical Rules
-
-### Always
-
-1. **Index all foreign keys**
-2. **Use TIMESTAMPTZ** (not TIMESTAMP)
-3. **Use TEXT** (not VARCHAR without limit)
-4. **Use BIGINT for IDs**
-5. **Use CONCURRENTLY for production indexes**
-6. **Test migrations on production-size data**
-
-### Never
-
-1. **OFFSET for deep pagination** → cursor pagination
-2. **Add NOT NULL without checking data** → migration fails
-3. **Change column type without planning** → rewrites table
-4. **Skip statement_timeout in production**
-5. **Trust ORM-generated queries** → check EXPLAIN
-
----
-
-## Related Skills
-
-- Data modeling: `data-modeling`
+| Problem | Solution |
+|---------|----------|
+| Deep pagination | Cursor/keyset |
+| Text search | tsvector + GIN |
+| High concurrency | SKIP LOCKED / batching |
+| Schema migration | NOT VALID + VALIDATE |
+| Index on prod | CONCURRENTLY |
+| Time-series | Partitioning + BRIN |
+| Caching | Materialized views |
+| Multi-tenant | Row-level security |
+| Hierarchies | Recursive CTE |
+| JSONB queries | GIN / expression index |
+| Concurrent edits | Optimistic locking |
+| Bulk import | COPY + staging |

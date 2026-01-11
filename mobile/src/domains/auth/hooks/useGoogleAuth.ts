@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import type { GoogleUser } from "../types";
+import type { AuthCredential } from "../types";
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
 interface UseGoogleAuthReturn {
-  signIn: () => Promise<GoogleUser | null>;
+  signIn: () => Promise<AuthCredential | null>;
   signOut: () => Promise<void>;
   isSigningIn: boolean;
   error: string | null;
@@ -73,7 +73,7 @@ export function useGoogleAuth(): UseGoogleAuthReturn {
     });
   }, []);
 
-  const signIn = useCallback(async (): Promise<GoogleUser | null> => {
+  const signIn = useCallback(async (): Promise<AuthCredential | null> => {
     if (!GoogleSignin || !isSuccessResponse || !isErrorWithCode || !statusCodes) {
       setError("Google Sign-In is not available");
       return null;
@@ -89,14 +89,20 @@ export function useGoogleAuth(): UseGoogleAuthReturn {
 
       if (isSuccessResponse(response)) {
         const { data } = response;
+        const idToken = data.idToken;
+        if (!idToken) {
+          setError("Failed to get ID token from Google");
+          return null;
+        }
         return {
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.name,
-          photo: data.user.photo,
-          familyName: data.user.familyName,
-          givenName: data.user.givenName,
-          idToken: data.idToken,
+          providerId: "google",
+          idToken,
+          user: {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.name,
+            photo: data.user.photo,
+          },
         };
       }
 
