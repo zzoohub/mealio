@@ -5,6 +5,8 @@ description: Next.js 15+ App Router patterns - Server/Client Components, Streami
 
 # Next.js App Router Patterns
 
+**Package manager**: Use `bun` for all commands. For latest Next.js APIs, use `context7` MCP.
+
 ## Project Structure
 
 ```

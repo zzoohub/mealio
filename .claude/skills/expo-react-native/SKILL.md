@@ -5,6 +5,8 @@ description: Expo/React Native project conventions - structure, headless pattern
 
 # Expo & React Native Patterns
 
+**Package manager**: Use `bun` for all commands. For latest Expo APIs, use `context7` MCP.
+
 ## Project Structure
 
 ```
