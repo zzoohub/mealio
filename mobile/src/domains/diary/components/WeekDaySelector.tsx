@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useEffect, useMemo } from "react";
+import React, { useCallback, useRef, useEffect, useMemo, memo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, FlatList } from "react-native";
 import { useTheme } from "@/design-system/theme";
 import { tokens } from "@/design-system/tokens";
@@ -22,14 +22,23 @@ interface WeekData {
   index: number;
 }
 
+interface DayItemProps {
+  date: Date;
+  dayIndex: number;
+  isSelected: boolean;
+  isToday: boolean;
+  isFuture: boolean;
+  hasEntries: boolean;
+  onPress: (date: Date) => void;
+}
+
 // =============================================================================
 // CONSTANTS
 // =============================================================================
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const WEEKS_BEFORE = 104; // 2 years back
-const WEEKS_AFTER = 52; // 1 year forward
-const TOTAL_WEEKS = WEEKS_BEFORE + 1 + WEEKS_AFTER; // 157 weeks
+const WEEKS_AFTER = 0; // No future dates
 const INITIAL_INDEX = WEEKS_BEFORE; // Start at "today" week
 
 // =============================================================================
@@ -69,6 +78,116 @@ function findWeekIndex(weeks: WeekData[], targetDate: Date): number {
 }
 
 // =============================================================================
+// DAY ITEM COMPONENT (Memoized)
+// =============================================================================
+
+const DayItem = memo(function DayItem({
+  date,
+  dayIndex,
+  isSelected,
+  isToday,
+  isFuture,
+  hasEntries,
+  onPress,
+}: DayItemProps) {
+  const { colors } = useTheme();
+
+  const handlePress = useCallback(() => {
+    if (!isFuture) {
+      onPress(date);
+    }
+  }, [date, isFuture, onPress]);
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.dayItem,
+        isSelected && { backgroundColor: colors.interactive.primary },
+      ]}
+      onPress={handlePress}
+      activeOpacity={isFuture ? 1 : 0.7}
+      disabled={isFuture}
+    >
+      <Text
+        style={[
+          styles.dayName,
+          { color: isSelected ? "white" : colors.text.secondary },
+          isFuture && styles.futureText,
+        ]}
+      >
+        {getDayName(dayIndex, "ko")}
+      </Text>
+      <Text
+        style={[
+          styles.dayNumber,
+          { color: isSelected ? "white" : colors.text.primary },
+          isToday && !isSelected && { color: colors.interactive.primary },
+          isFuture && styles.futureText,
+        ]}
+      >
+        {date.getDate()}
+      </Text>
+      <View
+        style={[
+          styles.entryMarker,
+          {
+            backgroundColor: isSelected ? "white" : colors.interactive.primary,
+            opacity: hasEntries && !isFuture ? 1 : 0,
+          },
+        ]}
+      />
+    </TouchableOpacity>
+  );
+});
+
+// =============================================================================
+// WEEK ROW COMPONENT (Memoized)
+// =============================================================================
+
+interface WeekRowProps {
+  days: Date[];
+  selectedDateStr: string;
+  todayStr: string;
+  todayTime: number;
+  onDateSelect: (date: Date) => void;
+  entriesSet: Set<string>;
+}
+
+const WeekRow = memo(function WeekRow({
+  days,
+  selectedDateStr,
+  todayStr,
+  todayTime,
+  onDateSelect,
+  entriesSet,
+}: WeekRowProps) {
+  return (
+    <View style={styles.weekContainer}>
+      {days.map((date, index) => {
+        const dateStr = date.toISOString().split("T")[0] || "";
+        const isSelected = dateStr === selectedDateStr;
+        const isToday = dateStr === todayStr;
+        const isFuture = date.getTime() > todayTime && !isToday;
+        const hasEntries = entriesSet.has(dateStr);
+
+        return (
+          <DayItem
+            key={dateStr}
+            date={date}
+            dayIndex={index}
+            isSelected={isSelected}
+            isToday={isToday}
+            isFuture={isFuture}
+            hasEntries={hasEntries}
+            onPress={onDateSelect}
+          />
+        );
+      })}
+    </View>
+  );
+});
+
+// =============================================================================
 // COMPONENT
 // =============================================================================
 
@@ -79,13 +198,34 @@ export function WeekDaySelector({
   onVisibleWeekChange,
   dateHasEntries,
 }: WeekDaySelectorProps) {
-  const { colors } = useTheme();
   const flatListRef = useRef<FlatList<WeekData>>(null);
   const currentIndexRef = useRef(INITIAL_INDEX);
   const lastNotifiedIdRef = useRef<string | null>(null);
 
+  // Pre-compute string versions for stable comparisons
+  const selectedDateStr = useMemo(
+    () => selectedDate.toISOString().split("T")[0] || "",
+    [selectedDate]
+  );
+  const todayStr = useMemo(() => today.toISOString().split("T")[0] || "", [today]);
+  const todayTime = useMemo(() => today.getTime(), [today]);
+
   // Pre-generate all weeks once
   const weeks = useMemo(() => generateAllWeeks(today), [today]);
+
+  // Build entries set for O(1) lookup - collect all dates that have entries
+  const entriesSet = useMemo(() => {
+    const set = new Set<string>();
+    weeks.forEach(week => {
+      week.days.forEach(date => {
+        if (dateHasEntries(date)) {
+          const dateStr = date.toISOString().split("T")[0];
+          if (dateStr) set.add(dateStr);
+        }
+      });
+    });
+    return set;
+  }, [weeks, dateHasEntries]);
 
   // Scroll to selected date when it changes (e.g., from calendar modal)
   useEffect(() => {
@@ -115,52 +255,22 @@ export function WeekDaySelector({
         }
       }
     },
-    [weeks, onVisibleWeekChange],
+    [weeks, onVisibleWeekChange]
   );
 
-  // Render a single week
+  // Stable render function - no longer depends on selectedDate
   const renderWeek = useCallback(
     ({ item }: { item: WeekData }) => (
-      <View style={styles.weekContainer}>
-        {item.days.map((date, index) => {
-          const isSelected = isSameDay(date, selectedDate);
-          const isToday = isSameDay(date, today);
-          const hasEntries = dateHasEntries(date);
-
-          return (
-            <TouchableOpacity
-              key={`${date.getTime()}-${index}`}
-              style={[styles.dayItem, isSelected && { backgroundColor: colors.interactive.primary }]}
-              onPress={() => onDateSelect(date)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.dayName, { color: isSelected ? "white" : colors.text.secondary }]}>
-                {getDayName(index, "ko")}
-              </Text>
-              <Text
-                style={[
-                  styles.dayNumber,
-                  { color: isSelected ? "white" : colors.text.primary },
-                  isToday && !isSelected && { color: colors.interactive.primary },
-                ]}
-              >
-                {date.getDate()}
-              </Text>
-              <View
-                style={[
-                  styles.entryMarker,
-                  {
-                    backgroundColor: isSelected ? "white" : colors.interactive.primary,
-                    opacity: hasEntries ? 1 : 0,
-                  },
-                ]}
-              />
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      <WeekRow
+        days={item.days}
+        selectedDateStr={selectedDateStr}
+        todayStr={todayStr}
+        todayTime={todayTime}
+        onDateSelect={onDateSelect}
+        entriesSet={entriesSet}
+      />
     ),
-    [selectedDate, today, colors, onDateSelect, dateHasEntries],
+    [selectedDateStr, todayStr, todayTime, onDateSelect, entriesSet]
   );
 
   const getItemLayout = useCallback(
@@ -169,7 +279,7 @@ export function WeekDaySelector({
       offset: SCREEN_WIDTH * index,
       index,
     }),
-    [],
+    []
   );
 
   const keyExtractor = useCallback((item: WeekData) => item.id, []);
@@ -233,6 +343,9 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     marginTop: tokens.spacing.component.xs,
+  },
+  futureText: {
+    opacity: 0.3,
   },
 });
 

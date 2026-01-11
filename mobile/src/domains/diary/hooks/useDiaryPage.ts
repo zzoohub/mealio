@@ -103,13 +103,21 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
   // =============================================================================
 
   const selectDate = useCallback((date: Date) => {
+    // Prevent selecting future dates
+    if (date > today && !isSameDay(date, today)) {
+      return;
+    }
     setSelectedDate(date);
-  }, []);
+  }, [today]);
 
   const handleCalendarDayPress = useCallback((day: { dateString: string }) => {
     const selectedDateFromCalendar = new Date(day.dateString + "T12:00:00");
+    // Prevent selecting future dates
+    if (selectedDateFromCalendar > today && !isSameDay(selectedDateFromCalendar, today)) {
+      return;
+    }
     setSelectedDate(selectedDateFromCalendar);
-  }, []);
+  }, [today]);
 
   // =============================================================================
   // DERIVED DATA

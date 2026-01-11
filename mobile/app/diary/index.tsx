@@ -63,6 +63,7 @@ export default function DiaryPage() {
         <View style={styles.calendarContainer}>
           <Calendar
             current={formatDateToString(selectedDate)}
+            maxDate={formatDateToString(today)}
             onDayPress={(day: { dateString: string }) => {
               handleCalendarDayPress(day);
               close();
@@ -158,30 +159,24 @@ export default function DiaryPage() {
                 weekday: "long",
               })}
             </Text>
-            {isToday ? (
-              <>
-                <TouchableOpacity
-                  style={[styles.addMealButton, { backgroundColor: colors.interactive.primary }]}
-                  onPress={() => router.push("/")}
-                >
-                  <Ionicons name="camera" size={20} color="white" />
-                  <Text style={styles.addMealButtonText}>{diary.recordMeal}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleLoadFromAlbum} style={styles.secondaryLink}>
+            <TouchableOpacity
+              style={[styles.addMealButton, { backgroundColor: colors.interactive.primary }]}
+              onPress={isToday ? () => router.push("/") : handleLoadFromAlbum}
+            >
+              <Ionicons name={isToday ? "camera" : "images-outline"} size={20} color="white" />
+              <Text style={styles.addMealButtonText}>{isToday ? diary.recordMeal : diary.loadFromAlbum}</Text>
+            </TouchableOpacity>
+            <View style={styles.secondaryLink}>
+              {isToday ? (
+                <TouchableOpacity onPress={handleLoadFromAlbum}>
                   <Text style={[styles.secondaryLinkText, { color: colors.text.secondary }]}>
                     {diary.orSelectFromPhotos}
                   </Text>
                 </TouchableOpacity>
-              </>
-            ) : (
-              <TouchableOpacity
-                style={[styles.addMealButton, { backgroundColor: colors.interactive.primary }]}
-                onPress={handleLoadFromAlbum}
-              >
-                <Ionicons name="images-outline" size={20} color="white" />
-                <Text style={styles.addMealButtonText}>{diary.loadFromAlbum}</Text>
-              </TouchableOpacity>
-            )}
+              ) : (
+                <Text style={styles.secondaryLinkText}> </Text>
+              )}
+            </View>
           </View>
         ) : (
           <ScrollView style={styles.contentScroll} showsVerticalScrollIndicator={false}>
@@ -267,8 +262,8 @@ const styles = StyleSheet.create({
   addMealButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: tokens.spacing.layout.lg,
     paddingVertical: tokens.spacing.component.md,
+    paddingHorizontal: 20,
     borderRadius: tokens.radius.md,
     gap: tokens.spacing.component.sm,
     marginTop: tokens.spacing.component.md,

@@ -72,8 +72,7 @@ const styles = createStyles((colors) => ({
   button: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
-    paddingVertical: tokens.spacing.component.md,
-    paddingHorizontal: tokens.spacing.component.lg,
+    padding: tokens.spacing.component.md,
     borderRadius: tokens.radius.lg,
     borderWidth: 1,
     minHeight: 52,
