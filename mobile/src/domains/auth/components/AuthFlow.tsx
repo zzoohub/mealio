@@ -47,7 +47,7 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
         Alert.alert("Error", `Failed to sign in with ${providerName}. Please try again.`);
       }
     },
-    [login, onComplete]
+    [login, onComplete],
   );
 
   const handleGoogleSignIn = useCallback(() => {
@@ -77,8 +77,8 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
         </View>
 
         <View style={s.buttonsSection}>
-          <AppleSignInButton onPress={handleAppleSignIn} isLoading={isAppleSigningIn || isLoading} />
           <GoogleSignInButton onPress={handleGoogleSignIn} isLoading={isSigningIn || isLoading} />
+          <AppleSignInButton onPress={handleAppleSignIn} isLoading={isAppleSigningIn || isLoading} />
         </View>
       </View>
 

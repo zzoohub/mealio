@@ -45,6 +45,7 @@ export function GoogleSignInButton({
         </View>
       )}
       <Text style={s.label}>{label}</Text>
+      <View style={s.spacer} />
     </TouchableOpacity>
   );
 }
@@ -57,7 +58,6 @@ const styles = createStyles((colors) => ({
   button: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
-    justifyContent: "center" as const,
     paddingVertical: tokens.spacing.component.md,
     paddingHorizontal: tokens.spacing.component.lg,
     borderRadius: tokens.radius.lg,
@@ -70,14 +70,19 @@ const styles = createStyles((colors) => ({
     opacity: 0.6,
   },
   iconContainer: {
-    marginRight: tokens.spacing.component.sm,
+    width: 32,
   },
   icon: {
-    marginRight: tokens.spacing.component.sm,
+    width: 32,
   },
   label: {
+    flex: 1,
+    textAlign: "center" as const,
     fontSize: tokens.typography.fontSize.body,
     fontWeight: tokens.typography.fontWeight.medium,
     color: colors.text.primary,
+  },
+  spacer: {
+    width: 32,
   },
 }));

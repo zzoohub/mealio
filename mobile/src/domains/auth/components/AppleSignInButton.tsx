@@ -1,7 +1,9 @@
-import { Platform, View, ActivityIndicator } from "react-native";
+import { Platform, View, ActivityIndicator, TouchableOpacity } from "react-native";
 import { useEffect, useState } from "react";
 import * as AppleAuthentication from "expo-apple-authentication";
+import { Ionicons } from "@expo/vector-icons";
 import { createStyles, useStyles, useTheme } from "@/design-system/theme";
+import { Text } from "@/design-system/styled";
 import { tokens } from "@/design-system/tokens";
 
 // =============================================================================
@@ -12,6 +14,7 @@ interface AppleSignInButtonProps {
   onPress: () => void;
   isLoading?: boolean;
   disabled?: boolean;
+  label?: string;
 }
 
 // =============================================================================
@@ -22,9 +25,10 @@ export function AppleSignInButton({
   onPress,
   isLoading = false,
   disabled = false,
+  label = "Continue with Apple",
 }: AppleSignInButtonProps) {
   const s = useStyles(styles);
-  const { isDark } = useTheme();
+  const { colors } = useTheme();
   const [isAvailable, setIsAvailable] = useState(false);
 
   useEffect(() => {
@@ -41,28 +45,22 @@ export function AppleSignInButton({
   const isDisabled = disabled || isLoading;
 
   return (
-    <View style={s.container}>
+    <TouchableOpacity
+      style={[s.button, isDisabled && s.buttonDisabled]}
+      onPress={onPress}
+      disabled={isDisabled}
+      activeOpacity={0.7}
+    >
       {isLoading ? (
-        <View style={[s.loadingOverlay, isDark ? s.loadingOverlayLight : s.loadingOverlayDark]}>
-          <ActivityIndicator size="small" color={isDark ? "#000" : "#fff"} />
+        <ActivityIndicator size="small" color={colors.text.primary} style={s.icon} />
+      ) : (
+        <View style={s.iconContainer}>
+          <Ionicons name="logo-apple" size={20} color={colors.text.primary} />
         </View>
-      ) : null}
-      <AppleAuthentication.AppleAuthenticationButton
-        buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-        buttonStyle={
-          isDark
-            ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
-            : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-        }
-        cornerRadius={tokens.radius.lg}
-        style={[s.button, isDisabled && s.buttonDisabled]}
-        onPress={() => {
-          if (!isDisabled) {
-            onPress();
-          }
-        }}
-      />
-    </View>
+      )}
+      <Text style={s.label}>{label}</Text>
+      <View style={s.spacer} />
+    </TouchableOpacity>
   );
 }
 
@@ -70,32 +68,35 @@ export function AppleSignInButton({
 // STYLES
 // =============================================================================
 
-const styles = createStyles(() => ({
-  container: {
-    position: "relative" as const,
-  },
+const styles = createStyles((colors) => ({
   button: {
-    width: "100%" as unknown as number,
-    height: 52,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    paddingVertical: tokens.spacing.component.md,
+    paddingHorizontal: tokens.spacing.component.lg,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    minHeight: 52,
+    backgroundColor: colors.bg.primary,
+    borderColor: colors.border.default,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
-  loadingOverlay: {
-    position: "absolute" as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    borderRadius: tokens.radius.lg,
+  iconContainer: {
+    width: 32,
   },
-  loadingOverlayDark: {
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+  icon: {
+    width: 32,
   },
-  loadingOverlayLight: {
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
+  label: {
+    flex: 1,
+    textAlign: "center" as const,
+    fontSize: tokens.typography.fontSize.body,
+    fontWeight: tokens.typography.fontWeight.medium,
+    color: colors.text.primary,
+  },
+  spacer: {
+    width: 32,
   },
 }));
