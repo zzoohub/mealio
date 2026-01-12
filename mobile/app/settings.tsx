@@ -134,11 +134,7 @@ function SettingsRow({
           <Ionicons name={icon} size={20} color={resolvedIconColor} />
         </View>
         <VStack gap="xs" style={s.rowTextContainer}>
-          <Text
-            variant="body"
-            weight="medium"
-            style={{ color: textColor, opacity: disabled ? 0.5 : 1 }}
-          >
+          <Text variant="body" weight="medium" style={{ color: textColor, opacity: disabled ? 0.5 : 1 }}>
             {title}
           </Text>
           {description && (
@@ -148,12 +144,7 @@ function SettingsRow({
           )}
         </VStack>
         {type === "toggle" && onToggleChange && (
-          <Toggle
-            checked={toggleValue ?? false}
-            onChange={onToggleChange}
-            disabled={disabled}
-            size="sm"
-          />
+          <Toggle checked={toggleValue ?? false} onChange={onToggleChange} disabled={disabled} size="sm" />
         )}
         {type === "select" && (
           <HStack gap="xs" align="center">
@@ -163,9 +154,7 @@ function SettingsRow({
             <Ionicons name="chevron-forward" size={16} color={colors.text.tertiary} />
           </HStack>
         )}
-        {type === "navigation" && (
-          <Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />
-        )}
+        {type === "navigation" && <Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />}
       </HStack>
     </View>
   );
@@ -175,12 +164,7 @@ function SettingsRow({
   }
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={onPress}
-      disabled={disabled}
-      style={{ opacity: disabled ? 0.5 : 1 }}
-    >
+    <TouchableOpacity activeOpacity={0.7} onPress={onPress} disabled={disabled} style={{ opacity: disabled ? 0.5 : 1 }}>
       {content}
     </TouchableOpacity>
   );
@@ -250,7 +234,7 @@ export default function SettingsScreen() {
         title="Choose Theme"
         options={themeOptions}
         selectedValue={display.theme}
-        onSelect={(value) => {
+        onSelect={value => {
           handleSelectionChange(value, "theme");
         }}
         onClose={close}
@@ -264,7 +248,7 @@ export default function SettingsScreen() {
         title={settings.display.language.select}
         options={languageOptions}
         selectedValue={display.language}
-        onSelect={(value) => {
+        onSelect={value => {
           handleSelectionChange(value, "language");
         }}
         onClose={close}
@@ -316,7 +300,7 @@ export default function SettingsScreen() {
           description={settings.notifications.description}
           type="toggle"
           toggleValue={notifications.enabled}
-          onToggleChange={(value) => updateNotifications({ enabled: value })}
+          onToggleChange={value => updateNotifications({ enabled: value })}
           isLast
         />
       </SettingsGroup>
