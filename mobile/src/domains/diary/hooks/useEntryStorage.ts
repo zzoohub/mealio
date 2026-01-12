@@ -1,8 +1,20 @@
 import { useState, useCallback, useEffect } from "react";
 import { Entry, EntryFilter, Meal, MealType, NutritionInfo } from "../types";
 import { storage } from "@/lib/storage";
+import { GUEST_LIMITS, ERROR_MESSAGES } from "@/constants";
 
 const ENTRIES_STORAGE_KEY = "@diary_entries";
+
+// =============================================================================
+// GUEST ENTRY LIMIT
+// =============================================================================
+
+export class GuestEntryLimitError extends Error {
+  constructor() {
+    super(ERROR_MESSAGES.GUEST_ENTRY_LIMIT_REACHED);
+    this.name = "GuestEntryLimitError";
+  }
+}
 
 // =============================================================================
 // HELPERS
@@ -17,9 +29,40 @@ const generateEntryId = (): string => {
 // =============================================================================
 
 export const entryStorageUtils = {
-  // Save a new entry
-  saveEntry: async (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">): Promise<Entry> => {
+  // Check if guest can save more entries
+  canGuestSaveEntry: async (isLoggedIn: boolean): Promise<boolean> => {
+    if (isLoggedIn) return true;
+    const entries = await entryStorageUtils.getAllEntries();
+    return entries.length < GUEST_LIMITS.MAX_ENTRIES;
+  },
+
+  // Get remaining entries for guest
+  getGuestEntriesRemaining: async (isLoggedIn: boolean): Promise<number> => {
+    if (isLoggedIn) return Infinity;
+    const entries = await entryStorageUtils.getAllEntries();
+    return Math.max(0, GUEST_LIMITS.MAX_ENTRIES - entries.length);
+  },
+
+  // Get current entry count
+  getEntryCount: async (): Promise<number> => {
+    const entries = await entryStorageUtils.getAllEntries();
+    return entries.length;
+  },
+
+  // Save a new entry (with guest limit check)
+  saveEntry: async (
+    entry: Omit<Entry, "id" | "createdAt" | "updatedAt">,
+    isLoggedIn: boolean = false
+  ): Promise<Entry> => {
     try {
+      // Check guest limit
+      if (!isLoggedIn) {
+        const canSave = await entryStorageUtils.canGuestSaveEntry(isLoggedIn);
+        if (!canSave) {
+          throw new GuestEntryLimitError();
+        }
+      }
+
       const newEntry: Entry = {
         ...entry,
         id: generateEntryId(),
@@ -33,6 +76,9 @@ export const entryStorageUtils = {
       await storage.set(ENTRIES_STORAGE_KEY, updatedEntries);
       return newEntry;
     } catch (error) {
+      if (error instanceof GuestEntryLimitError) {
+        throw error;
+      }
       console.error("Error saving entry:", error);
       throw new Error("Failed to save entry");
     }
@@ -259,7 +305,12 @@ export const entryStorageUtils = {
 // HOOK
 // =============================================================================
 
-export const useEntryStorage = () => {
+interface UseEntryStorageOptions {
+  isLoggedIn?: boolean;
+}
+
+export const useEntryStorage = (options: UseEntryStorageOptions = {}) => {
+  const { isLoggedIn = false } = options;
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -282,21 +333,40 @@ export const useEntryStorage = () => {
     }
   }, []);
 
+  // Guest entry limit helpers
+  const canSaveEntry = useCallback(async (): Promise<boolean> => {
+    return entryStorageUtils.canGuestSaveEntry(isLoggedIn);
+  }, [isLoggedIn]);
+
+  const getEntriesRemaining = useCallback(async (): Promise<number> => {
+    return entryStorageUtils.getGuestEntriesRemaining(isLoggedIn);
+  }, [isLoggedIn]);
+
+  const entriesRemaining = isLoggedIn
+    ? Infinity
+    : Math.max(0, GUEST_LIMITS.MAX_ENTRIES - entries.length);
+
+  const isAtGuestLimit = !isLoggedIn && entries.length >= GUEST_LIMITS.MAX_ENTRIES;
+
   const saveEntry = useCallback(
     async (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">) => {
       setError(null);
       try {
-        const newEntry = await entryStorageUtils.saveEntry(entry);
+        const newEntry = await entryStorageUtils.saveEntry(entry, isLoggedIn);
         setEntries((prev) => [newEntry, ...prev]);
         return newEntry;
       } catch (err) {
+        if (err instanceof GuestEntryLimitError) {
+          setError(err.message);
+          throw err;
+        }
         const errorMessage =
           err instanceof Error ? err.message : "Failed to save entry";
         setError(errorMessage);
         throw new Error(errorMessage);
       }
     },
-    []
+    [isLoggedIn]
   );
 
   const updateEntry = useCallback(
@@ -408,15 +478,23 @@ export const useEntryStorage = () => {
     entries,
     loading,
     error,
+    // CRUD operations
     loadEntries,
     saveEntry,
     updateEntry,
     deleteEntry,
+    // Query helpers
     getEntriesFiltered,
     getRecentEntries,
     getTodaysEntries,
     getNutritionStats,
     clearAllEntries,
+    // Guest limit helpers
+    canSaveEntry,
+    getEntriesRemaining,
+    entriesRemaining,
+    isAtGuestLimit,
+    // Utils
     utils: entryStorageUtils,
   };
 };

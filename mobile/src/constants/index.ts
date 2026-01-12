@@ -6,6 +6,12 @@ export const APP_CONFIG = {
   API_VERSION: "v1",
 } as const;
 
+// Guest user limits (non-logged-in users)
+export const GUEST_LIMITS = {
+  MAX_ENTRIES: 10,
+  AI_ANALYSIS_ENABLED: false,
+} as const;
+
 // API configuration
 export const API_CONFIG = {
   BASE_URL: __DEV__ ? "http://localhost:3000/api" : "https://api.mealio.app",
@@ -83,6 +89,9 @@ export const ERROR_MESSAGES = {
   PHOTO_CAPTURE_FAILED: "Failed to capture photo. Please try again.",
   UPLOAD_FAILED: "Failed to upload photo. Please try again.",
   GENERIC_ERROR: "Something went wrong. Please try again.",
+  // Guest limit errors
+  GUEST_ENTRY_LIMIT_REACHED: "You've reached the maximum of 10 entries. Sign in to save unlimited entries and unlock AI analysis!",
+  GUEST_AI_NOT_AVAILABLE: "AI analysis is available for signed-in users. Sign in to unlock this feature!",
 } as const;
 
 // Success messages

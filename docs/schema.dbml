@@ -1,0 +1,296 @@
+// =============================================================================
+// MEALIO DATABASE SCHEMA
+// A meal tracking and nutrition analysis application
+// =============================================================================
+
+Project mealio {
+  database_type: 'PostgreSQL'
+  Note: '''
+    # Mealio Database Schema
+
+    Core entities for the meal tracking application:
+    - Users and authentication
+    - Diary entries with meal data
+    - Photos and AI analysis
+    - Nutrition tracking
+    - User settings and preferences
+  '''
+}
+
+// =============================================================================
+// USER MANAGEMENT
+// =============================================================================
+
+Table users {
+  id bigint [pk, increment]
+  email varchar(255) [unique, not null]
+  name varchar(100)
+  photo_url text
+
+  // Timestamps
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz [note: 'Soft delete']
+
+  indexes {
+    email
+    created_at
+  }
+
+  Note: 'User accounts (login required, guest data stored locally on device)'
+}
+
+Table user_auth_providers {
+  id bigint [pk, increment]
+  user_id bigint [ref: > users.id, not null]
+  auth_provider varchar(20) [not null, note: 'google, apple']
+  provider_user_id varchar(255) [not null]
+
+  // Timestamps
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    user_id
+    (auth_provider, provider_user_id) [unique]
+    (user_id, auth_provider) [unique]
+  }
+
+  Note: 'OAuth providers linked to user accounts (supports account linking)'
+}
+
+Table user_settings {
+  id bigint [pk, increment]
+  user_id bigint [ref: - users.id, unique, not null]
+
+  // Display settings
+  theme varchar(10) [not null, default: 'system', note: 'light, dark, system']
+  language varchar(5) [not null, default: 'en', note: 'en, ko']
+
+  // Notification settings
+  notifications_enabled boolean [not null, default: true]
+
+  // Privacy settings
+  show_location boolean [not null, default: true]
+  allow_analytics boolean [not null, default: true]
+
+  // Timestamps
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'User preferences and settings (camera settings stored locally on device)'
+}
+
+Table auth_tokens {
+  id bigint [pk, increment]
+  user_id bigint [ref: > users.id, not null]
+  token_hash varchar(255) [unique, not null]
+  device_info jsonb
+  expires_at timestamptz [not null]
+  revoked_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    user_id
+    token_hash
+    (user_id, revoked_at)
+  }
+
+  Note: 'JWT refresh tokens for session management'
+}
+
+// =============================================================================
+// DIARY ENTRIES
+// =============================================================================
+
+Enum meal_type {
+  breakfast
+  lunch
+  dinner
+  snack
+}
+
+Table diary_entries {
+  id bigint [pk, increment]
+  user_id bigint [ref: > users.id, not null]
+
+  // Entry metadata
+  recorded_at timestamptz [not null, note: 'When the meal was consumed']
+  notes text [not null, default: '']
+
+  // Meal classification
+  meal_type meal_type [not null]
+
+  // User feedback
+  rating smallint [note: '1-5 satisfaction rating']
+  would_eat_again boolean
+
+  // Timestamps
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz [note: 'Soft delete']
+
+  indexes {
+    user_id
+    recorded_at
+    (user_id, recorded_at)
+    (user_id, meal_type)
+    (user_id, deleted_at) [note: 'For filtering active entries']
+  }
+
+  Note: 'Individual meal diary entries'
+}
+
+Table entry_locations {
+  id bigint [pk, increment]
+  entry_id bigint [ref: - diary_entries.id, unique, not null]
+
+  // Coordinates (auto-captured via GPS)
+  latitude decimal(10, 8) [not null]
+  longitude decimal(11, 8) [not null]
+
+  // Human-readable (reverse geocoded)
+  address text
+
+  // Timestamps
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (latitude, longitude)
+  }
+
+  Note: 'Auto-captured location data for diary entries'
+}
+
+// =============================================================================
+// PHOTOS & MEDIA
+// =============================================================================
+
+Table entry_photos {
+  id bigint [pk, increment]
+  entry_id bigint [ref: > diary_entries.id, not null]
+
+  // Photo storage
+  photo_uri text [not null, note: 'S3/CloudStorage URI']
+  thumbnail_uri text [note: 'Optimized thumbnail URI']
+
+  // Metadata
+  width integer
+  height integer
+  file_size_bytes integer
+  mime_type varchar(50) [default: 'image/jpeg']
+
+  // Ordering
+  sort_order smallint [not null, default: 0]
+  is_primary boolean [not null, default: false]
+
+  // Timestamps
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    entry_id
+    (entry_id, is_primary)
+    (entry_id, sort_order)
+  }
+
+  Note: 'Photos attached to diary entries (up to 10 per entry)'
+}
+
+// =============================================================================
+// USER DATA (optional overrides of AI data)
+// =============================================================================
+
+Table user_nutrition {
+  id bigint [pk, increment]
+  entry_id bigint [ref: - diary_entries.id, unique, not null]
+
+  // User-editable nutrition (all nullable - only override what user wants)
+  calories integer
+  protein decimal(6, 2)
+  fat decimal(6, 2)
+  sugar decimal(6, 2)
+
+  // Timestamps
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'User-entered nutrition (optional override of AI estimates)'
+}
+
+Table ingredients {
+  id bigint [pk, increment]
+  name varchar(100) [unique, not null]
+  name_ko varchar(100) [note: 'Korean translation']
+
+  // Categorization
+  category varchar(50)
+
+  // Timestamps
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    name
+    name_ko
+    category
+  }
+
+  Note: 'Master list of ingredients'
+}
+
+Table user_ingredients {
+  id bigint [pk, increment]
+  entry_id bigint [ref: > diary_entries.id, not null]
+  ingredient_id bigint [ref: > ingredients.id, not null]
+
+  // Timestamps
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    entry_id
+    ingredient_id
+    (entry_id, ingredient_id) [unique]
+  }
+
+  Note: 'User-added ingredients (optional override of AI detected ingredients)'
+}
+
+// =============================================================================
+// AI ANALYSIS (immutable AI output)
+// =============================================================================
+
+Table ai_analyses {
+  id bigint [pk, increment]
+  entry_id bigint [ref: - diary_entries.id, unique, not null]
+
+  // AI detection results
+  detected_meals jsonb [not null, default: '[]', note: 'Array of detected food items']
+  detected_ingredients jsonb [not null, default: '[]', note: 'Array of detected ingredients']
+  confidence smallint [not null, note: '0-100 confidence score']
+  meal_category meal_type
+  cuisine_type varchar(50)
+
+  // AI-estimated nutrition
+  nutrition jsonb [not null, note: '{calories, protein, carbs, fat, ...}']
+
+  // AI-generated content
+  comment text [note: 'AI-generated witty comment about the meal']
+
+  // Health insights
+  health_score smallint [note: '0-100 health score']
+  nutrition_balance varchar(100) [note: 'e.g., "High protein, low carbs"']
+  recommendations jsonb [default: '[]', note: 'Array of {type, message}']
+
+  // Processing metadata
+  model_version varchar(20) [not null]
+  processed_at timestamptz [not null, default: `now()`]
+  processing_time_ms integer
+
+  // Timestamps
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    entry_id
+    (health_score, entry_id)
+  }
+
+  Note: 'AI analysis results - immutable AI output'
+}
