@@ -31,7 +31,8 @@ export interface NutritionInfo {
 export interface AIAnalysis {
   detectedMeals: string[];
   confidence: number;
-  estimatedCalories: number;
+  /** AI가 추정한 영양 정보 */
+  nutrition: NutritionInfo;
   mealCategory: MealType;
   ingredients: string[];
   cuisineType?: string;

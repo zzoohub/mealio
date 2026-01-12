@@ -46,7 +46,12 @@ const MOCK_ENTRY: Entry = {
     aiAnalysis: {
       detectedMeals: ["닭가슴살 샐러드"],
       confidence: 92,
-      estimatedCalories: 485,
+      nutrition: {
+        calories: 485,
+        protein: 32,
+        carbs: 45,
+        fat: 18,
+      },
       mealCategory: MealType.LUNCH,
       ingredients: ["닭가슴살", "양상추", "방울토마토", "아보카도", "올리브오일", "발사믹"],
       comment: "단백질 폭탄이네요! 운동 후 먹으면 딱이겠어요.",
@@ -146,7 +151,7 @@ export default function DiaryEntryScreen() {
         {/* AI Analysis Section */}
         <AIAnalysisSection
           ingredients={entry?.meal.ingredients ?? entry?.meal.aiAnalysis?.ingredients}
-          nutrition={entry?.meal.nutrition}
+          nutrition={entry?.meal.nutrition ?? entry?.meal.aiAnalysis?.nutrition}
           onIngredientsChange={updateIngredients}
           onNutritionChange={updateNutrition}
           disabled={isDisabled}

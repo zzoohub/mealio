@@ -451,7 +451,7 @@ export function generateMockEntries(): Entry[] {
         aiAnalysis: {
           detectedMeals: ["chicken", "salad", "tomatoes"],
           confidence: 85,
-          estimatedCalories: 380,
+          nutrition: { calories: 380, protein: 32, carbs: 18, fat: 22, fiber: 8 },
           mealCategory: MealType.LUNCH,
           ingredients: ["chicken", "lettuce", "tomatoes", "cucumber"],
           insights: {
@@ -489,7 +489,7 @@ export function generateMockEntries(): Entry[] {
         aiAnalysis: {
           detectedMeals: ["oats", "yogurt", "berries"],
           confidence: 92,
-          estimatedCalories: 320,
+          nutrition: { calories: 320, protein: 12, carbs: 45, fat: 8, fiber: 6 },
           mealCategory: MealType.BREAKFAST,
           ingredients: ["oats", "yogurt", "blueberries", "seeds"],
           insights: {
@@ -529,7 +529,7 @@ export function generateMockEntries(): Entry[] {
         aiAnalysis: {
           detectedMeals: ["salmon", "sweet potato", "broccoli"],
           confidence: 88,
-          estimatedCalories: 520,
+          nutrition: { calories: 520, protein: 35, carbs: 32, fat: 28, fiber: 4 },
           mealCategory: MealType.DINNER,
           ingredients: ["salmon", "sweet potato", "broccoli"],
           insights: {
