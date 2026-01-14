@@ -1,109 +1,65 @@
 ---
 name: nextjs
-description: Next.js 15+ App Router patterns - Server/Client Components, Streaming, Server Actions, and project conventions. Use when building Next.js applications.
+description: |
+  Next.js 15+ App Router patterns and conventions.
+  Use when: building web apps with Next.js, server components, server actions.
+  Do not use for: UX decisions (use ux-design), token/component design (use design-system), mobile apps.
+  Workflow: ux-design → design-system → this skill (web integration).
+references:
+  - examples.md    # Server Actions, Data Fetching, Auth patterns code
 ---
 
 # Next.js App Router Patterns
 
-**Package manager**: Use `bun` for all commands. For latest Next.js APIs, use `context7` MCP.
+**For latest Next.js APIs, use `context7` MCP server with `vercel/next.js`.**
 
-## Project Structure
+**Package manager**: Use `bun` for all commands.
+
+---
+
+## Project Structure (Feature-Sliced Design)
+
+**Use Context7 MCP server with `websites/feature-sliced_github_io`**
 
 ```
 app/                 # Next.js App Router (file-based routing)
 src/
-├── providers/       # App infrastructure (QueryClient, Theme)
-├── design-system/   # UI system (tokens, headless hooks, styled components)
-├── domains/         # Feature modules (fractal structure)
-│   └── user/        # Example domain
-│       ├── actions/ # Server Actions
-│       ├── components/
-│       ├── hooks/
-│       └── types/
-├── components/      # Shared components (Header, Footer)
-├── lib/             # Independent modules (db, auth, logger)
-├── hooks/           # Shared custom hooks
-├── store/           # Zustand store
-└── types/           # Shared types
+├── app/             # App-wide settings, providers, global styles
+│   └── providers/
+├── widgets/         # Large composite blocks (Header, Sidebar, Feed)
+├── features/        # User interactions (auth, send-comment, add-to-cart)
+│   └── auth/
+│       ├── ui/
+│       ├── model/
+│       ├── api/
+│       └── actions/   # Server Actions
+├── entities/        # Business entities (user, product, order)
+│   └── user/
+│       ├── ui/
+│       ├── model/
+│       └── api/
+└── shared/          # Reusable infrastructure
+    ├── ui/          # Design system components
+    ├── lib/         # Utilities, helpers
+    ├── api/         # API client
+    └── config/      # Environment, constants
 ```
+
+### FSD Layer Rules
+
+| Layer | Can import from | Cannot import from |
+|-------|-----------------|-------------------|
+| `app` | All layers below | - |
+| `widgets` | features, entities, shared | app |
+| `features` | entities, shared | app, widgets |
+| `entities` | shared | app, widgets, features |
+| `shared` | - | All layers above |
+
+**Rule: Layers can only import from layers below. Never above.**
 
 ---
 
-## Headless Patterns (Logic/View Separation)
-
-### Core Principle
-
-**Separate WHAT (logic) from HOW (presentation).**
-
-```tsx
-// 1. Logic Layer (Hook) - data and actions only
-const useProductFilters = () => {
-  const [filters, setFilters] = useState<Filters>({});
-  
-  return {
-    filters,
-    setFilter: (key: string, value: string) => 
-      setFilters(prev => ({ ...prev, [key]: value })),
-    clear: () => setFilters({}),
-    activeCount: Object.keys(filters).length,
-  };
-};
-
-// 2. View Layer - styles only, receives data via props
-const FilterBar = ({ filters, onChange, onClear, activeCount }: FilterBarProps) => (
-  <div className="flex gap-2">
-    <FilterDropdown value={filters.category} onChange={v => onChange('category', v)} />
-    {activeCount > 0 && <ClearButton onClick={onClear} />}
-  </div>
-);
-
-// 3. Composition - assembly only 
-const ProductsPage = () => {
-  const { filters, setFilter, clear, activeCount } = useProductFilters();
-  
-  return (
-    <Page>
-      <FilterBar filters={filters} onChange={setFilter} onClear={clear} activeCount={activeCount} />
-      <Suspense fallback={<ProductsSkeleton />}>
-        <ProductList filters={filters} />
-      </Suspense>
-    </Page>
-  );
-};
-```
-
-### Server Component + Composition
-
-```tsx
-// Server Component with streaming
-export default async function DashboardPage() {
-  return (
-    <Page>
-      <PageHeader title="Dashboard" />
-      
-      <Suspense fallback={<StatsSkeleton />}>
-        <StatsSection />
-      </Suspense>
-      
-      <Suspense fallback={<ChartSkeleton />}>
-        <RevenueChart />
-      </Suspense>
-    </Page>
-  );
-}
-
-// Each section is a focused Server Component
-async function StatsSection() {
-  const stats = await getStats();
-  return <StatsGrid stats={stats} />;
-}
-```
-
----
-
-## Server & Client Components
-
-### When to Use 'use client'
+## Server vs Client Components
 
 ```
 Need useState, useEffect, onClick? → 'use client'
@@ -111,13 +67,15 @@ Need browser APIs (window, localStorage)? → 'use client'
 Everything else → Server Component (default)
 ```
 
+**Rule: Server Components by default. Add 'use client' only when needed.**
+
 ### Composition Pattern
 
 ```tsx
-// Server Component fetches data, composes Client Components as leaves
+// Server Component fetches, Client Component interacts
 async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const product = await getProduct(id);
+  const product = await getProduct(id);  // Server-side fetch
   
   return (
     <div>
@@ -129,26 +87,11 @@ async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
 }
 ```
 
-```tsx
-// Client Component - interactive leaf
-'use client';
-
-export function AddToCartButton({ productId }: { productId: string }) {
-  const [isPending, setIsPending] = useState(false);
-  
-  return (
-    <button onClick={() => { /* ... */ }} disabled={isPending}>
-      {isPending ? 'Adding...' : 'Add to Cart'}
-    </button>
-  );
-}
-```
-
 ---
 
-## Streaming & Suspense
+## Streaming with Suspense
 
-**Don't block on slow data. Stream progressively.**
+**Rule: Don't block on slow data. Stream progressively.**
 
 ```tsx
 export default function DashboardPage() {
@@ -156,7 +99,7 @@ export default function DashboardPage() {
     <div>
       <h1>Dashboard</h1>  {/* Renders immediately */}
       
-      <Suspense fallback={<CardsSkeleton />}>
+      <Suspense fallback={<StatsSkeleton />}>
         <StatsCards />  {/* Streams when ready */}
       </Suspense>
       
@@ -172,163 +115,105 @@ export default function DashboardPage() {
 
 ## State Management
 
-### Decision Tree
+| State Type | Solution |
+|------------|----------|
+| Server data in Server Component | Direct fetch (no library) |
+| Server data in Client Component | TanStack Query |
+| Form input | useState |
+| Global client (theme, cart) | Zustand + persist |
 
-```
-Server data in Server Component → Direct fetch (no library)
-Server data in Client Component → TanStack Query
-Form input → useState
-Global client (theme, cart) → Zustand + persist
-```
+---
 
-### TanStack Query (Client Component)
+## Headless Patterns
 
-```tsx
-'use client';
-
-function useProducts(filters: Filters) {
-  return useQuery({
-    queryKey: ['products', filters],
-    queryFn: () => fetchProducts(filters),
-  });
-}
-
-function useCreateProduct() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: createProduct,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] }),
-  });
-}
-```
-
-### Zustand (Client State)
+**Rule: Separate WHAT (logic) from HOW (presentation).**
 
 ```tsx
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-
-export const useCartStore = create<CartStore>()(
-  persist(
-    (set) => ({
-      items: [],
-      addItem: (item) => set((s) => ({ items: [...s.items, item] })),
-      removeItem: (id) => set((s) => ({ items: s.items.filter(i => i.id !== id) })),
-    }),
-    { name: 'cart-storage' }
-  )
-);
+// ❌ Before: Logic mixed in component
+const ProductsPage = () => {
+  const [products, setProducts] = useState([]);
+  const [filters, setFilters] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+  // ... 300+ lines
+};
 ```
+
+```tsx
+// ✅ After: Main component is composition only
+const ProductsPage = () => {
+  const { filters, setFilter, clear } = useProductFilters();
+  const { products, isLoading } = useProducts(filters);
+
+  return (
+    <Page>
+      <FilterBar filters={filters} onChange={setFilter} onClear={clear} />
+      <Suspense fallback={<ProductsSkeleton />}>
+        <ProductGrid products={products} isLoading={isLoading} />
+      </Suspense>
+    </Page>
+  );
+};
+```
+
+**Rule: Main component does composition only. Logic goes in hooks.**
 
 ---
 
 ## Server Actions
 
-### Action + Form Pattern
+**For latest Server Actions API, use `context7` MCP or see [Next.js Server Actions docs](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations).**
 
-```typescript
-// app/actions/post.ts
-'use server';
+**Rule: Server Actions go in `features/*/actions/` directory.**
 
-import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
-
-const schema = z.object({
-  title: z.string().min(1).max(100),
-  content: z.string().min(1),
-});
-
-export async function createPost(prevState: any, formData: FormData) {
-  const result = schema.safeParse({
-    title: formData.get('title'),
-    content: formData.get('content'),
-  });
-  
-  if (!result.success) {
-    return { error: result.error.errors[0].message };
-  }
-  
-  await db.post.create({ data: result.data });
-  revalidatePath('/posts');
-  return { success: true };
-}
-```
+Pattern:
+1. `'use server'` directive at top
+2. Zod schema for validation
+3. Return `{ error }` or `{ success }` 
+4. Call `revalidatePath` or `revalidateTag` after mutation
 
 ```tsx
-// Form with useActionState
-'use client';
-
-import { useActionState } from 'react';
-
-export function PostForm() {
-  const [state, dispatch, isPending] = useActionState(createPost, { error: null });
-  
-  return (
-    <form action={dispatch}>
-      <input name="title" required />
-      <textarea name="content" required />
-      {state.error && <p className="text-red-500">{state.error}</p>}
-      <button type="submit" disabled={isPending}>
-        {isPending ? 'Creating...' : 'Create Post'}
-      </button>
-    </form>
-  );
-}
+// Client form uses useActionState
+const [state, dispatch, isPending] = useActionState(serverAction, initialState);
 ```
 
-### Optimistic Updates
-
-```tsx
-'use client';
-
-import { useOptimistic } from 'react';
-
-export function LikeButton({ post }: { post: Post }) {
-  const [optimisticLikes, addOptimistic] = useOptimistic(
-    post.likes,
-    (state, increment: number) => state + increment
-  );
-
-  return (
-    <button onClick={async () => {
-      addOptimistic(1);
-      await toggleLike(post.id);
-    }}>
-      ❤️ {optimisticLikes}
-    </button>
-  );
-}
-```
+See `examples.md` for full implementation.
 
 ---
 
-## Data Access Layer
+## Data Caching
 
-```typescript
-// lib/data/user.ts
-import { cache } from 'react';
-import { unstable_cache } from 'next/cache';
+**For latest caching APIs, use `context7` MCP or see [Next.js Caching docs](https://nextjs.org/docs/app/building-your-application/caching).**
 
-// Request deduplication (same request, same render)
-export const getUser = cache(async (id: string) => {
-  return db.user.findUnique({ where: { id } });
-});
+| Pattern | Use for |
+|---------|---------|
+| `cache()` from React | Request deduplication (same render) |
+| `unstable_cache()` | Cross-request caching with revalidation |
+| `revalidatePath()` | Invalidate specific path |
+| `revalidateTag()` | Invalidate by tag |
 
-// Cross-request caching (persists across requests)
-export const getCachedUser = unstable_cache(
-  async (id: string) => db.user.findUnique({ where: { id } }),
-  ['user-by-id'],
-  { revalidate: 3600, tags: ['users'] }
-);
-```
+**Rule: Always set revalidation strategy. Don't cache indefinitely.**
 
 ---
 
-## Best Practices
+## Quick Checklist
 
-1. **Server Components by default** - 'use client' only for interactivity
-2. **Stream with Suspense** - Don't block on slow data
-3. **Server Actions for mutations** - No API routes for forms
-4. **useActionState for forms** - Handles pending state automatically
-5. **Interface-first** - Define hook signatures before implementation
-6. **Colocate by feature** - Domain-first structure
+### Architecture
+- [ ] Using FSD layer rules (no upward imports)
+- [ ] Main component is composition only
+- [ ] Logic extracted to custom hooks
+- [ ] Server Actions in features/*/actions/
+
+### Server/Client
+- [ ] Server Components by default
+- [ ] 'use client' only when needed (useState, onClick, browser APIs)
+- [ ] Client components are leaf nodes
+
+### Data
+- [ ] Server data fetched in Server Components
+- [ ] Slow data wrapped in Suspense
+- [ ] Forms use Server Actions + useActionState
+- [ ] Proper cache invalidation (revalidatePath/revalidateTag)
+
+### Design System
+- [ ] Using tokens from design-system (no hardcoded values)
+- [ ] Proper loading/error states

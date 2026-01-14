@@ -1,75 +1,68 @@
 ---
 name: performance-patterns
-description: Web performance patterns - Core Web Vitals, code splitting, caching, and bundle optimization. Use when improving web application performance.
+description: |
+  Web performance patterns and Core Web Vitals optimization.
+  Use when: optimizing load times, fixing CWV issues, code splitting.
+  Do not use for: SEO (use seo skill), general React patterns (use nextjs skill).
+  Workflow: Use after core features are built.
 ---
 
-# Web Performance Patterns
+# Performance Patterns
+
+**For latest framework APIs, use `context7` MCP server with relevant library ID (e.g., `vercel/next.js`, `TanStack/query`).**
+
+---
 
 ## Core Web Vitals Targets
 
-| Metric | Target | What It Measures |
-|--------|--------|-----------------|
-| LCP (Largest Contentful Paint) | < 2.5s | Loading performance |
+| Metric | Target | Measures |
+|--------|--------|----------|
+| LCP (Largest Contentful Paint) | < 2.5s | Loading |
 | INP (Interaction to Next Paint) | < 200ms | Responsiveness |
 | CLS (Cumulative Layout Shift) | < 0.1 | Visual stability |
 
 ---
 
-## Lighter Alternatives
+## Quick Wins
 
-| Heavy | Light Alternative |
-|-------|-------------------|
-| moment.js (300KB) | date-fns (~5KB/fn), dayjs (2KB) |
-| lodash (70KB) | Individual imports, native methods |
-| axios (13KB) | fetch API (native) |
+### 1. Lighter Alternatives
 
-```tsx
-// ❌ Imports entire library
+| Heavy | Light | Savings |
+|-------|-------|---------|
+| moment.js | date-fns, dayjs | ~300KB → ~2KB |
+| lodash (full) | lodash-es (tree-shake) | ~70KB → ~5KB |
+| axios | fetch (native) | ~13KB → 0 |
+
+**Rule: Import only what you need.**
+
+```typescript
+// ❌ Imports entire lodash
 import _ from 'lodash';
 
 // ✅ Import only what you need
 import debounce from 'lodash/debounce';
 ```
 
----
+### 2. Code Splitting
 
-## Code Splitting
+**Rule: Split large components that aren't needed on initial load.**
 
-```tsx
-// Route-based splitting
-import { lazy, Suspense } from 'react';
+- Route-based: Automatic in Next.js App Router, Expo Router
+- Component-based: Use dynamic imports for heavy components
+- Library-based: Import heavy libraries only when needed
 
-const Dashboard = lazy(() => import('./pages/Dashboard'));
+**For implementation, use `context7` MCP or see:**
+- [Next.js Dynamic Imports](https://nextjs.org/docs/app/building-your-application/optimizing/lazy-loading)
+- [React.lazy](https://react.dev/reference/react/lazy)
 
-function App() {
-  return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route path="/dashboard" element={<Dashboard />} />
-      </Routes>
-    </Suspense>
-  );
-}
+### 3. Dynamic Import for Libraries
 
-// Next.js dynamic imports
-import dynamic from 'next/dynamic';
+**Rule: Load heavy libraries only when user triggers the action.**
 
-const HeavyChart = dynamic(() => import('@/components/HeavyChart'), {
-  loading: () => <ChartSkeleton />,
-  ssr: false,
-});
-```
-
----
-
-## Dynamic Library Import
-
-```tsx
-// Load heavy libraries only when needed
-async function generatePDF(data) {
+```typescript
+async function exportToPDF() {
   const { jsPDF } = await import('jspdf');
-  const doc = new jsPDF();
-  return doc;
+  // use jsPDF...
 }
 ```
 
@@ -77,108 +70,60 @@ async function generatePDF(data) {
 
 ## Layout Stability (CLS)
 
-```tsx
-// Reserve space for images
-<div style={{ aspectRatio: '16/9' }}>
-  <Image src={src} alt={alt} fill />
-</div>
+**Rule: Always reserve space for dynamic content.**
 
-// Reserve space for dynamic content
-<div style={{ minHeight: '250px' }}>
-  <Suspense fallback={<Skeleton height={250} />}>
-    <DynamicContent />
-  </Suspense>
-</div>
-```
-
-```css
-/* Font loading without CLS */
-@font-face {
-  font-family: 'CustomFont';
-  src: url('/fonts/custom.woff2') format('woff2');
-  font-display: swap;
-}
-```
+| Element | Solution |
+|---------|----------|
+| Images | Set width/height or aspect-ratio |
+| Dynamic content | Set minHeight, use skeleton |
+| Fonts | Use font-display: swap |
+| Ads/embeds | Reserve container space |
 
 ---
 
-## Caching with TanStack Query
+## Data Fetching
 
-```tsx
-function useProducts() {
-  return useQuery({
-    queryKey: ['products'],
-    queryFn: fetchProducts,
-    staleTime: 5 * 60 * 1000,   // Fresh for 5 minutes
-    gcTime: 30 * 60 * 1000,     // Keep in cache 30 minutes
-  });
-}
+**Rule: Cache aggressively, prefetch on intent.**
 
-// Prefetch on hover
-const queryClient = useQueryClient();
-
-const handleMouseEnter = () => {
-  queryClient.prefetchQuery({
-    queryKey: ['product', productId],
-    queryFn: () => fetchProduct(productId),
-  });
-};
-```
+| Pattern | When |
+|---------|------|
+| staleTime | Data that doesn't change often |
+| Prefetch on hover | Links user is likely to click |
+| Background refetch | Keep data fresh without blocking |
 
 ---
 
-## Debounce Hook
+## Expensive Operations
 
-```tsx
-import { useMemo } from 'react';
-import debounce from 'lodash/debounce';
-
-function SearchInput() {
-  const debouncedSearch = useMemo(
-    () => debounce((term: string) => {
-      performSearch(term);
-    }, 300),
-    []
-  );
-
-  return (
-    <input
-      onChange={(e) => debouncedSearch(e.target.value)}
-      placeholder="Search..."
-    />
-  );
-}
-```
+| Pattern | Use for |
+|---------|---------|
+| Debounce | Search inputs, resize handlers |
+| Throttle | Scroll handlers, frequent events |
+| Virtualization | Lists > 100 items |
+| Web Workers | Heavy computations |
 
 ---
 
-## Virtualization (Long Lists)
+## Quick Checklist
 
-```tsx
-import { FixedSizeList } from 'react-window';
+### Loading (LCP)
+- [ ] Critical CSS inlined
+- [ ] Images optimized (WebP/AVIF, proper sizing)
+- [ ] Fonts preloaded
+- [ ] Heavy libraries dynamically imported
 
-<FixedSizeList
-  height={400}
-  itemCount={items.length}
-  itemSize={35}
-  width="100%"
->
-  {({ index, style }) => (
-    <div style={style}>{items[index].name}</div>
-  )}
-</FixedSizeList>
-```
+### Responsiveness (INP)
+- [ ] Click handlers are fast
+- [ ] Heavy work deferred
+- [ ] Expensive operations debounced
 
----
+### Stability (CLS)
+- [ ] Images have width/height
+- [ ] Dynamic content has reserved space
+- [ ] Fonts use font-display: swap
+- [ ] No layout-shifting ads/embeds
 
-## Checklist
-
-- [ ] Code split by route
-- [ ] Lazy load below-fold content
-- [ ] Use modern image formats (WebP/AVIF)
-- [ ] Set image dimensions (prevent CLS)
-- [ ] Replace heavy libraries with lighter alternatives
-- [ ] Enable caching (TanStack Query staleTime)
-- [ ] Debounce expensive operations
-- [ ] Virtualize long lists
-- [ ] Measure Core Web Vitals
+### Bundle
+- [ ] No full lodash/moment imports
+- [ ] Large components code-split
+- [ ] Bundle analyzed for bloat

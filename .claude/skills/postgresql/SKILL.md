@@ -1,11 +1,17 @@
 ---
 name: postgresql
-description: PostgreSQL problem-solving patterns. For basic syntax, use context7 MCP. This skill covers optimization, concurrency, migrations, and architectural decisions.
+description: |
+  PostgreSQL problem-solving patterns for production systems.
+  Use when: query optimization, concurrency issues, zero-downtime migrations, scaling decisions, debugging slow queries, implementing patterns from data-modeling skill.
+  Do not use for: basic DDL/DML syntax (use context7 MCP), schema design decisions (use data-modeling skill first).
+  Workflow: data-modeling skill (design) → this skill (implement).
 ---
 
 # PostgreSQL Patterns
 
 For basic DDL/DML syntax, use `context7` MCP. This skill focuses on **solving specific problems**.
+
+**Prerequisite**: Schema should be designed using `data-modeling` skill first. This skill implements those designs.
 
 ---
 

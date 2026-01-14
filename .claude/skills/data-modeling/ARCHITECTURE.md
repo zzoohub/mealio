@@ -1,213 +1,334 @@
 # Architecture Documentation Templates
 
-Templates for documenting data model decisions.
+Templates for documenting data model decisions. Good documentation prevents future mistakes and helps onboarding.
 
 ---
 
 ## Database Architecture Document
 
+Use this template for new projects or major redesigns.
+
 ```markdown
 # [Project Name] Database Architecture
 
 ## Overview
+
 [One paragraph: What does this database support? What's the bounded context?]
 
+## Target Database
+
+[PostgreSQL / SQLite] — [Why this choice]
+
 ## Design Principles
+
 1. [e.g., "Soft deletes for all user-generated content"]
 2. [e.g., "UTC timestamps everywhere"]
 3. [e.g., "Tenant isolation via tenant_id on all tables"]
+4. [e.g., "UUIDv7 for all primary keys"]
 
 ## Entity Overview
 
 | Entity | Purpose | Owner | Est. Volume (Year 1) |
 |--------|---------|-------|----------------------|
-| users | User accounts | Auth | 100K |
-| posts | User content | Content | 1M |
+| users | User accounts | Auth Team | 100K |
+| posts | User content | Content Team | 1M |
+| orders | Purchase records | Commerce Team | 500K |
 
 ## Entity Details
 
 ### [Entity Name]
 
-**Purpose**: [What this represents]
+**Purpose**: [What this entity represents in business terms]
 
 **Key Decisions**:
-- [Decision]: [Rationale]
+| Decision | Rationale |
+|----------|-----------|
+| [Decision] | [Why this choice] |
 
 **Access Patterns**:
-- [Query] - [Frequency]
+| Query | Frequency | Index |
+|-------|-----------|-------|
+| [Query description] | [High/Medium/Low] | [Index name] |
 
-**Growth**: [Current] → [2-year estimate]
+**Growth Projection**: [Current] → [2-year estimate]
 
 ## Relationships
 
 | From | To | Type | On Delete | Rationale |
 |------|----|------|-----------|-----------|
-| posts | users | N:1 | CASCADE | Posts meaningless without author |
+| orders | users | N:1 | RESTRICT | Orders are legal records |
+| order_items | orders | N:1 | CASCADE | Items meaningless without order |
+| posts | users | N:1 | SET NULL | Preserve content if user leaves |
+
+## Patterns Selected
+
+| Pattern | Choice | Rationale | Implementation |
+|---------|--------|-----------|----------------|
+| Soft delete | Yes, User/Order | Retention requirements | PATTERNS_[DB].md |
+| Audit trail | Level 2 | Need accountability | PATTERNS_[DB].md |
+| Hierarchy | Closure Table | Complex ancestor queries | PATTERNS_[DB].md |
+| ID strategy | UUIDv7 | Distributed-ready | PATTERNS_[DB].md |
 
 ## Denormalization Log
 
-| Field | Source | Sync Method | Staleness OK? |
-|-------|--------|-------------|---------------|
-| posts.comment_count | COUNT(comments) | Trigger | No |
+| Field | Source | Sync Method | Staleness OK | Recovery |
+|-------|--------|-------------|--------------|----------|
+| users.post_count | COUNT(posts) | Trigger | Yes | Recalculate script |
+| orders.total | SUM(order_items) | App code | No | Must match |
 
 ## Indexing Strategy
 
-| Index | Supports Query |
-|-------|----------------|
-| posts(user_id) | User's posts |
-| posts(created_at) | Recent posts feed |
+| Table | Index | Supports Query | Notes |
+|-------|-------|----------------|-------|
+| posts | posts_user_id_idx | User's posts | Most common query |
+| posts | posts_created_at_idx | Recent posts feed | Descending |
+| orders | orders_tenant_status_idx | Tenant dashboard | Composite |
 
 ## Security
 
-**PII Columns**: users.email, users.phone
+**PII Columns**: 
+- users.email
+- users.phone
+- users.address
 
-**Row-Level Security**: [Yes/No, how?]
+**Row-Level Security**: [Describe RLS policy if used, or "Application-enforced" for SQLite]
+
+**Encryption**: [At-rest, in-transit, column-level]
 ```
 
 ---
 
 ## Architecture Decision Record (ADR)
 
+Use ADRs for significant decisions that future developers need to understand.
+
 ```markdown
 # ADR-[NUMBER]: [Title]
 
 ## Status
+
 [Proposed | Accepted | Deprecated | Superseded by ADR-XXX]
 
+## Date
+
+[YYYY-MM-DD]
+
 ## Context
-[What is the issue? What forces are at play?]
+
+[What is the issue? What forces are at play? Why does this decision need to be made?]
 
 ## Decision
-[What was decided?]
+
+[What was decided? Be specific.]
 
 ## Alternatives Considered
 
 ### Option A: [Name]
-- Pros: ...
-- Cons: ...
+- **Pros**: ...
+- **Cons**: ...
 
 ### Option B: [Name]
-- Pros: ...
-- Cons: ...
+- **Pros**: ...
+- **Cons**: ...
 
 ## Consequences
 
-**Positive**: [Benefits]
+**Positive**:
+- [Benefit 1]
+- [Benefit 2]
 
-**Negative**: [Drawbacks]
+**Negative**:
+- [Drawback 1]
+- [Drawback 2]
 
-**Risks**: [Risk and mitigation]
+**Risks and Mitigations**:
+- [Risk]: [Mitigation]
 ```
 
 ---
 
 ## Example ADRs
 
-### ADR-001: Soft Delete Strategy
+### ADR-001: Database Selection
 
-**Status**: Accepted
+**Status**: Accepted  
+**Date**: 2024-01-15
 
-**Context**: Need to handle data deletion. Regulatory requires 90-day retention. Users expect undo.
+**Context**: 
+Starting new project. Need to choose between PostgreSQL and SQLite. Expected load is moderate (<50 writes/sec), single server deployment, but may scale later.
 
-**Decision**: Soft deletes via `deleted_at` for user content. Hard delete for sessions/tokens.
+**Decision**: 
+Use PostgreSQL from the start.
 
-**Alternatives**:
-- Hard delete: Simple, but no undo, no audit
-- Archive tables: Clean separation, but complex queries
+**Alternatives Considered**:
+
+*Option A: SQLite*
+- Pros: Zero config, embedded, simple deployment
+- Cons: Single writer, no RLS, limited ALTER TABLE, migration path to PG is painful
+
+*Option B: PostgreSQL*
+- Pros: Full SQL features, RLS, concurrent writes, scales horizontally
+- Cons: Requires server setup, more operational overhead
 
 **Consequences**:
-- Positive: Undo possible, audit preserved
-- Negative: All queries need `deleted_at IS NULL`
-- Risk: Forgotten filter → mitigate with query builder defaults
+- Positive: No migration needed if we scale, full feature set available
+- Negative: More initial setup, need to manage database server
+- Risk: Over-engineering for MVP → Mitigate by using managed PostgreSQL (Supabase/Neon)
 
 ---
 
-### ADR-002: ID Strategy
+### ADR-002: Soft Delete Strategy
 
-**Status**: Accepted
+**Status**: Accepted  
+**Date**: 2024-01-15
 
-**Context**: Need globally unique IDs. Distributed system. IDs exposed in URLs.
+**Context**: 
+Need to handle data deletion. Regulatory requires 90-day retention. Users expect undo. Support needs recovery capability.
 
-**Decision**: UUIDv7 for all primary keys.
+**Decision**: 
+Soft deletes via `deleted_at` for user-generated content. Hard delete for ephemeral data.
 
-**Alternatives**:
-- Auto-increment: Compact but predictable, coordination needed
-- UUIDv4: Unique but random (poor index locality)
-- UUIDv7: Unique + time-sortable + good locality
+**Alternatives Considered**:
+
+*Option A: Hard delete everything*
+- Pros: Simple, clean, GDPR-friendly
+- Cons: No undo, no audit trail, no recovery
+
+*Option B: Archive tables*
+- Pros: Clean separation, no WHERE clause pollution
+- Cons: Complex queries, migration overhead
+
+**Consequences**:
+- Positive: Undo possible, audit preserved, support can recover
+- Negative: Every query needs `WHERE deleted_at IS NULL`
+- Risk: Developer forgets filter → Mitigate with query builder defaults
+
+---
+
+### ADR-003: ID Strategy
+
+**Status**: Accepted  
+**Date**: 2024-01-15
+
+**Context**: 
+Need globally unique IDs. May distribute across regions later. IDs exposed in URLs.
+
+**Decision**: 
+UUIDv7 for all primary keys.
+
+**Alternatives Considered**:
+
+*Option A: Auto-increment BIGINT*
+- Pros: Compact, human-readable, fast
+- Cons: Predictable, requires coordination, reveals volume
+
+*Option B: UUIDv4*
+- Pros: Globally unique, no coordination
+- Cons: Random (poor index locality), not sortable
+
+*Option C: UUIDv7*
+- Pros: Globally unique, time-sortable, good locality
+- Cons: 16 bytes, requires library
 
 **Consequences**:
 - Positive: No conflicts across regions, natural ordering
-- Negative: 16 bytes vs 8 for BIGINT
-- Risk: Library support → use well-maintained lib
-
----
-
-### ADR-003: Multi-Tenancy
-
-**Status**: Accepted
-
-**Context**: SaaS with hundreds of tenants. Most small (<1K records), some large (>1M).
-
-**Decision**: Shared schema with `tenant_id`. Option to migrate large tenants later.
-
-**Alternatives**:
-- DB per tenant: Complete isolation, high ops cost
-- Schema per tenant: Good isolation, migration overhead
-
-**Consequences**:
-- Positive: Simple deployment, easy onboarding
-- Negative: Must enforce tenant_id in every query
-- Risk: Data leak → mitigate with query middleware
+- Negative: Larger storage (16 vs 8 bytes)
+- Risk: Library compatibility → Use well-maintained library
 
 ---
 
 ## Denormalization Decision Template
 
+Use when adding any denormalized field.
+
 ```markdown
 ## Denormalized Field: [table.column]
 
-**Source**: [Original location of truth]
+**Date Added**: [YYYY-MM-DD]
 
-**Reason**: [Why denormalized - performance, query simplicity]
+**Source of Truth**: [Original table.column or calculation]
+
+**Reason**: [Performance? Query simplicity?]
 
 **Sync Method**: 
-- [ ] Trigger
-- [ ] Application code
-- [ ] Scheduled job
+- [ ] Database trigger
+- [ ] Application code (which service?)
+- [ ] Scheduled job (frequency?)
 
-**Staleness Tolerance**: [Immediate | Minutes | Hours]
+**Staleness Tolerance**: [Immediate | Seconds | Minutes | Hours]
 
-**Recovery Procedure**: [How to fix if out of sync]
+**Consistency Check**:
+```sql
+-- Query to detect drift
+SELECT id FROM [table] 
+WHERE [denormalized_column] != ([calculation]);
+```
 
-**Monitoring**: [How to detect drift]
+**Recovery Procedure**:
+```sql
+-- Query to fix drift
+UPDATE [table] SET [denormalized_column] = ([calculation]);
+```
+
+**Monitoring**: [How to detect sync failure?]
 ```
 
 ---
 
-## Migration Checklist Template
+## Migration Checklist
+
+Use for any schema change.
 
 ```markdown
 ## Migration: [Description]
 
+**Date**: [YYYY-MM-DD]
+**Author**: [Name]
 **Risk Level**: [Low | Medium | High]
-
-**Rollback Plan**: [How to reverse]
+**Target Database**: [PostgreSQL | SQLite]
 
 ### Pre-Migration
-- [ ] Backup taken
-- [ ] Tested on production-size data
+
+- [ ] Tested on production-size dataset
 - [ ] Estimated duration: [X minutes]
+- [ ] Backup verified
+- [ ] Rollback script tested
 - [ ] Maintenance window scheduled (if needed)
 
-### Steps
-1. [Step with expected duration]
+### Changes
+
+| Change | Duration | Locking | Notes |
+|--------|----------|---------|-------|
+| [Change 1] | [Est.] | [Yes/No] | [DB-specific notes] |
+
+### Migration Steps
+
+1. [Step]
 2. [Step]
 
 ### Post-Migration
-- [ ] Verify data integrity
-- [ ] Check application functionality
-- [ ] Monitor for errors
 
-### Rollback Steps (if needed)
+- [ ] Verify row counts
+- [ ] Verify data integrity
+- [ ] Application health check
+- [ ] Monitor error rates
+
+### Rollback Steps
+
 1. [Step]
+2. [Step]
 ```
+
+---
+
+## Quick Reference: What to Document
+
+| Change Type | Required Documentation |
+|-------------|----------------------|
+| New entity | Entity details in Architecture Doc |
+| New relationship | Relationships table + rationale |
+| Denormalization | Denormalization Decision Template |
+| Pattern choice | ADR |
+| ID strategy | ADR |
+| Database selection | ADR |
+| Schema migration | Migration Checklist |

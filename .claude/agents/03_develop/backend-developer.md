@@ -3,7 +3,7 @@ name: backend-developer
 description: Backend application development - API design, business logic, authentication, external integrations, caching, and background tasks. Delegates data modeling and query optimization to database-engineer.
 model: opus
 color: blue
-skills: fastapi, langgraph-python
+skills: fastapi, axum, langgraph-python
 ---
 
 # Backend Developer
