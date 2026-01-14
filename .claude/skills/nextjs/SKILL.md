@@ -11,7 +11,7 @@ references:
 
 # Next.js App Router Patterns
 
-**For latest Next.js APIs, use `context7` MCP server with `vercel/next.js`.**
+**For latest Next.js APIs, use context7 MCP server with library-id `vercel/next.js`.**
 
 **Package manager**: Use `bun` for all commands.
 

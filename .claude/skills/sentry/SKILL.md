@@ -9,7 +9,7 @@ description: |
 
 # Sentry Error Tracking
 
-**For latest Sentry APIs, use `context7` MCP server with `websites/sentry_io`.**
+**For latest Sentry APIs, use context7 MCP server with library-id `websites/sentry_io`.**
 
 **Setup**: Use `npx @sentry/wizard@latest -i nextjs` or `npx @sentry/wizard@latest -i reactNative`
 

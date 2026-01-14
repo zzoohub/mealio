@@ -10,7 +10,7 @@ description: |
 
 # SQLite Patterns
 
-For basic DDL/DML syntax, use `context7` MCP. This skill focuses on **SQLite-specific problems and solutions**.
+For basic DDL/DML syntax, use context7 MCP. This skill focuses on **SQLite-specific problems and solutions**.
 
 **Prerequisite**: Schema should be designed using `data-modeling` skill first. This skill implements those designs with SQLite-specific adaptations.
 

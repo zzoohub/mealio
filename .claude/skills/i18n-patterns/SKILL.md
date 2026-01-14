@@ -9,7 +9,7 @@ description: |
 
 # i18n Patterns
 
-**For latest APIs, use `context7` MCP server with `i18next/react-i18next` or `amannn/next-intl`.**
+**For latest APIs, use context7 MCP server with library-id `i18next/react-i18next` or `amannn/next-intl`.**
 
 | Platform | Library |
 |----------|---------|

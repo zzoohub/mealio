@@ -9,7 +9,7 @@ description: |
 
 # PostgreSQL Patterns
 
-For basic DDL/DML syntax, use `context7` MCP. This skill focuses on **solving specific problems**.
+For basic DDL/DML syntax, use context7 MCP. This skill focuses on **solving specific problems**.
 
 **Prerequisite**: Schema should be designed using `data-modeling` skill first. This skill implements those designs.
 

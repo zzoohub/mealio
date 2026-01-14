@@ -9,7 +9,7 @@ description: |
 
 # Playwright E2E Testing
 
-**For latest Playwright APIs, use `context7` MCP server with `microsoft/playwright`.**
+**For latest Playwright APIs, use context7 MCP server with library-id `microsoft/playwright`.**
 
 E2E tests are expensive. **Focus on critical business flows only** - the paths where bugs cost real money or users.
 

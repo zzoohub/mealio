@@ -9,7 +9,7 @@ description: |
 
 # SEO Patterns
 
-**For latest Next.js metadata APIs, use `context7` MCP server with `vercel/next.js`.**
+**For latest Next.js metadata APIs, use context7 MCP server with library-id `vercel/next.js`.**
 
 ---
 

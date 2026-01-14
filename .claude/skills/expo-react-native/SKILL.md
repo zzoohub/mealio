@@ -11,7 +11,7 @@ references:
 
 # Expo & React Native Patterns
 
-**For latest APIs, use `context7` MCP server with `facebook/react-native` or `expo/expo` .**
+**For latest APIs, use context7 MCP server with library-id `facebook/react-native` or `expo/expo` .**
 
 **Package manager**: Use `bun` for all commands.
 
