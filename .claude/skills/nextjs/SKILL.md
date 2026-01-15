@@ -2,7 +2,7 @@
 name: nextjs
 description: |
   Next.js 15+ App Router patterns and conventions.
-  Use when: building web apps with Next.js, server components, server actions.
+  Use when: building web apps with Next.js.
   Do not use for: UX decisions (use ux-design), token/component design (use design-system), mobile apps.
   Workflow: ux-design → design-system → this skill (web integration).
 references:
@@ -23,6 +23,10 @@ references:
 
 ```
 app/                 # Next.js App Router (file-based routing)
+├── layout.tsx       # Root layout
+├── page.tsx         # Home (/)
+└── some-page/
+    └── page.tsx     # /some-page
 src/
 ├── app/             # App-wide settings, providers, global styles
 │   └── providers/

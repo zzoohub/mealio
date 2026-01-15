@@ -23,6 +23,10 @@ references:
 
 ```
 app/                 # Expo Router (file-based routing)
+├── _layout.tsx      # Root layout
+├── index.tsx        # Home (/)
+└── some-page/
+    └── index.tsx    # /some-page
 src/
 ├── app/             # App-wide settings, providers, global styles
 │   └── providers/
