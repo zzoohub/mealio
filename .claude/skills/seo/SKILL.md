@@ -9,6 +9,7 @@ description: |
 
 # SEO Patterns
 
+**For framework-specific implementation, use context7 MCP server with the relevant library.**
 **For latest Next.js metadata APIs, use context7 MCP server with library-id `vercel/next.js`.**
 
 ---
@@ -35,7 +36,7 @@ description: |
 ## Next.js Metadata
 
 **For latest Next.js metadata APIs:**
-- Use `context7` MCP server
+- Use context7 MCP server
 - Or see: [Next.js Metadata & OG Images](https://nextjs.org/docs/app/getting-started/metadata-and-og-images)
 
 ---

@@ -171,7 +171,7 @@ export function useDialog({ isOpen, onClose }: UseDialogProps) {
 ```tsx
 // styled/Button.tsx
 import { useButton } from '../headless/useButton';
-import { tokens } from '@/tokens';
+import { tokens } from '@/shared/ui/tokens';
 
 const variants = {
   solid: {

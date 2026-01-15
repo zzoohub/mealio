@@ -25,7 +25,7 @@ This file covers **when and why** to use each pattern. For **how to implement**,
 
 | Decision | Options | Trade-off |
 |----------|---------|-----------|
-| Unique constraints | Partial index vs Anonymize vs Composite | Query complexity vs Data preservation |
+| Unique constraints | Partial index vs Anonymize | Query complexity vs Data preservation |
 | Cascade behavior | Soft delete children too? | Consistency vs Orphaned soft-deleted children |
 | Query default | Always filter vs Explicit | Safety vs Verbosity |
 

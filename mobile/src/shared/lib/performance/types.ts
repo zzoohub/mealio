@@ -1,0 +1,39 @@
+import { ComponentType } from "react";
+
+// Cache types
+export interface CacheConfig {
+  maxSize: number;
+  ttl: number;
+}
+
+export interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  hitCount: number;
+}
+
+// Performance monitoring types
+export interface PerformanceMetric {
+  name: string;
+  startTime: number;
+  endTime?: number;
+  duration?: number;
+  metadata?: Record<string, any>;
+}
+
+// Bundle types
+export type DomainModules = {
+  camera: ComponentType<any>;
+  diary: ComponentType<any>;
+};
+
+// Constants
+export const DEFAULT_CACHE_CONFIG: CacheConfig = {
+  maxSize: 1000,
+  ttl: 5 * 60 * 1000,
+};
+
+export const DOMAIN_IMPORT_MAP = {
+  camera: () => import("@/features/capture-meal/ui/Camera"),
+  diary: () => import("@/features/diary-feed"),
+} as const;

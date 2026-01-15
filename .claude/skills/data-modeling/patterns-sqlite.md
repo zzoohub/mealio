@@ -28,7 +28,7 @@ CREATE INDEX users_active_idx ON users(id) WHERE deleted_at IS NULL;
 
 ### Unique Constraint with Soft Delete
 
-**Option A: Partial unique index** (SQLite 3.8+)
+**Option A: Partial unique index** (SQLite 3.8+, recommended)
 
 ```sql
 CREATE UNIQUE INDEX users_email_active_idx 
@@ -36,20 +36,7 @@ CREATE UNIQUE INDEX users_email_active_idx
   WHERE deleted_at IS NULL;
 ```
 
-**Option B: Composite unique with sentinel**
-
-```sql
--- Use epoch 0 as "not deleted" sentinel
--- Requires table rebuild to add
-CREATE TABLE users_new (
-  id INTEGER PRIMARY KEY,
-  email TEXT NOT NULL,
-  deleted_at TEXT DEFAULT '1970-01-01T00:00:00Z',
-  UNIQUE(email, deleted_at)
-);
-```
-
-**Option C: Anonymize on delete**
+**Option B: Anonymize on delete**
 
 ```sql
 UPDATE users SET 

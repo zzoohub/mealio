@@ -1,0 +1,1 @@
+export { useEntryDetail } from './useEntryDetail';

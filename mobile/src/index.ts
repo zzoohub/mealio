@@ -1,35 +1,35 @@
-// Core exports for better tree-shaking and module resolution
+// Core exports for FSD architecture
+// This file provides convenient re-exports from FSD layers
 
-// Common Types (always import types only)
-export type { PaginatedResponse, ApiResponse, ThemeColors, BaseComponentProps, LoadingStateType } from "./types";
+// =============================================================================
+// SHARED LAYER
+// =============================================================================
 
-// Domain-specific Types
-export type { User } from "./domains/auth/types";
+// Types
+export type { PaginatedResponse, ApiResponse, ThemeColors, BaseComponentProps, LoadingStateType } from "./shared/types";
 
-export type {
-  MealType,
-  NutritionInfo,
-  Location,
-  AIAnalysis,
-  CapturedPhoto,
-  CameraSettings,
-  Meal,
-  Entry,
-  EntryFilter,
-} from "./domains/diary";
-
-export type { UserPreferences } from "./domains/settings/types";
-
-// Constants
-export { CAMERA_SETTINGS, APP_CONFIG, API_CONFIG, STORAGE_KEYS, QUERY_KEYS, MUTATION_KEYS } from "./constants";
+// Config/Constants
+export { CAMERA_SETTINGS, APP_CONFIG, API_CONFIG, STORAGE_KEYS, QUERY_KEYS, MUTATION_KEYS } from "./shared/config";
 
 // Design System
-export * from "./design-system";
+export * from "./shared/ui/design-system";
 
-// Domains (feature-based exports)
-export { useAuthStore } from "./domains/auth/stores/authStore";
-export { useSettingsStore } from "./domains/settings/stores/settingsStore";
+// i18n
+export { default as i18n } from "./shared/lib/i18n/config";
+export { useI18n } from "./shared/lib/i18n";
 
-// Core libraries
-export { default as i18n } from "./lib/i18n/config";
-export { useI18n } from "./lib/i18n";
+// =============================================================================
+// ENTITIES LAYER
+// =============================================================================
+
+export type { User, AuthCredential } from "./entities/user";
+export { MealType } from "./entities/meal";
+export type { NutritionInfo, AIAnalysis, CapturedPhoto, CameraSettings, Meal } from "./entities/meal";
+export type { Location, Entry, EntryFilter, SortMethod, EntryStatistics } from "./entities/entry";
+
+// =============================================================================
+// FEATURES LAYER
+// =============================================================================
+
+export { useAuthStore, selectIsAuthenticated } from "./features/auth/model/authStore";
+export { useSettingsStore, flushSettingsStorage } from "./features/settings/model/settingsStore";

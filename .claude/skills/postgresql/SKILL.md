@@ -240,7 +240,7 @@ REFRESH MATERIALIZED VIEW CONCURRENTLY monthly_sales;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY tenant_isolation ON orders
-  USING (tenant_id = current_setting('app.tenant')::INT);
+  USING (tenant_id = current_setting('app.tenant_id')::INT);
 
 -- Set per connection
 SET app.tenant = '123';

@@ -1,4 +1,4 @@
-import Camera from "@/domains/camera/components/Camera";
+import { Camera } from "@/features/capture-meal";
 
 export default function HomeScreen() {
   return <Camera />;

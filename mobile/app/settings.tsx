@@ -3,13 +3,12 @@ import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useTheme, createStyles, useStyles } from "@/design-system/theme";
-import { Card, Text, HStack, VStack, Toggle } from "@/design-system/styled";
-import { SelectionModal, SettingsLayout } from "@/domains/settings/components";
-import { useSettingsScreen } from "@/domains/settings/hooks/useSettingsScreen";
-import { useSettingsI18n } from "@/lib/i18n";
-import { tokens } from "@/design-system/tokens";
-import { useOverlayHelpers } from "@/providers/overlay";
+import { useTheme, createStyles, useStyles } from "@/shared/ui/design-system/theme";
+import { Card, Text, HStack, VStack, Toggle } from "@/shared/ui/design-system/styled";
+import { SelectionModal, SettingsLayout, useSettingsScreen } from "@/features/settings";
+import { useSettingsI18n } from "@/shared/lib/i18n";
+import { tokens } from "@/shared/ui/design-system/tokens";
+import { useOverlayHelpers } from "@/app/providers/overlay";
 
 // =============================================================================
 // USER PROFILE CARD (Logged In)

@@ -11,18 +11,18 @@ import {
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import type { Entry } from "@/entities/entry";
 import {
-  Entry,
   useDiarySearchPage,
   MealTypeFilterChips,
   DateQuickFilters,
   ActiveFilters,
   SearchGridItem,
   EntryDateRangeModal,
-} from "@/domains/diary";
-import { useTheme } from "@/design-system/theme";
-import { tokens } from "@/design-system/tokens";
-import { useOverlayHelpers } from "@/providers/overlay";
+} from "@/features/search-entries";
+import { useTheme } from "@/shared/ui/design-system/theme";
+import { tokens } from "@/shared/ui/design-system/tokens";
+import { useOverlayHelpers } from "@/app/providers/overlay";
 
 // =============================================================================
 // CONSTANTS

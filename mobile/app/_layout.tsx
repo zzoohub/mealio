@@ -1,8 +1,8 @@
 import { StatusBar } from "expo-status-bar";
 import { Stack } from "expo-router";
-import { AppProvider } from "@/providers";
+import { AppProvider } from "@/app/providers";
 import "react-native-reanimated";
-import "@/lib/i18n";
+import "@/shared/lib/i18n";
 
 export default function RootLayout() {
   return (

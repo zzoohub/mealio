@@ -4,12 +4,13 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Calendar } from "react-native-calendars";
 import * as ImagePicker from "expo-image-picker";
-import { Entry, useDiaryPage, WeekDaySelector, EntryFeedItem } from "@/domains/diary";
-import { formatDateToString, isSameDay } from "@/domains/diary/utils/dateUtils";
-import { useDiaryI18n } from "@/lib/i18n";
-import { useTheme } from "@/design-system/theme";
-import { tokens } from "@/design-system/tokens";
-import { useOverlayHelpers } from "@/providers/overlay";
+import type { Entry } from "@/entities/entry";
+import { useDiaryPage, WeekDaySelector, EntryFeedItem } from "@/features/diary-feed";
+import { formatDateToString, isSameDay } from "@/shared/lib/utils";
+import { useDiaryI18n } from "@/shared/lib/i18n";
+import { useTheme } from "@/shared/ui/design-system/theme";
+import { tokens } from "@/shared/ui/design-system/tokens";
+import { useOverlayHelpers } from "@/app/providers/overlay";
 
 // =============================================================================
 // MAIN COMPONENT

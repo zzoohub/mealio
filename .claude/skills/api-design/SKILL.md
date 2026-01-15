@@ -13,8 +13,6 @@ references:
 
 # API Design
 
----
-
 ## Resource Naming
 
 **Rule: Model nouns, not verbs. HTTP methods express actions.**
@@ -171,28 +169,35 @@ GET /users?fields=id,name,email
 
 ---
 
-## Authentication
+## Security
 
-| API Type | Pattern |
-|----------|---------|
-| User-facing | JWT or Sessions |
+| Item | Recommended |
+|------|-------------|
+| Password hashing | argon2id (64MB, 3 iter, 4 parallel) |
+| JWT algorithm | ES256 or EdDSA |
+| JWT access token | 15-30 minutes |
+| JWT refresh token (web) | 90 days |
+| JWT refresh token (mobile) | 1 year |
+| TLS | 1.3+ only |
+| CORS | Explicit origins only |
+| Rate limit (auth) | 5/min |
+| Rate limit (API) | 100/min baseline |
+
+| API Type | Auth Pattern |
+|----------|--------------|
+| User-facing | JWT |
 | Public API | API keys, OAuth 2.0 |
-| Service-to-service | mTLS, signed tokens |
+| Service-to-service | mTLS |
 | Webhooks | HMAC signature |
 
-**Rule: Stateless auth enables horizontal scaling.**
-
----
-
-## Rate Limiting
-
+**Rate limit headers:**
 ```http
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 75
 Retry-After: 30
 ```
 
-**Rule: Return `Retry-After` with 429.**
+**Rule: Stateless auth enables horizontal scaling. Return `Retry-After` with 429.**
 
 ---
 
@@ -203,11 +208,7 @@ Retry-After: 30
 /v2/users
 ```
 
-**Rule: Version in URL. Only for breaking changes.**
-
-```http
-Sunset: Tue, 31 Dec 2024 23:59:59 GMT
-```
+**Rule: Version in URL. Only for breaking changes. Use `Sunset` header for deprecation.**
 
 ---
 

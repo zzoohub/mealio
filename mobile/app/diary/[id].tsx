@@ -2,10 +2,10 @@ import React from "react";
 import { View, ScrollView, useWindowDimensions } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { createStyles, useStyles } from "@/design-system/theme";
+import { createStyles, useStyles } from "@/shared/ui/design-system/theme";
+import type { Entry } from "@/entities/entry";
+import { MealType } from "@/entities/meal";
 import {
-  Entry,
-  MealType,
   useEntryDetail,
   EntryDetailHeader,
   MealHeroImage,
@@ -14,7 +14,7 @@ import {
   EntryNotesSection,
   AIAnalysisSection,
   EntryDeleteButton,
-} from "@/domains/diary";
+} from "@/features/entry-detail";
 
 // =============================================================================
 // CONSTANTS

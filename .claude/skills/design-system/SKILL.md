@@ -84,7 +84,8 @@ button.bg.primary           (component, optional)
 ### File Structure
 
 ```
-components/
+src/shared/ui/
+├── tokens/          # primitive, semantic, themes
 ├── headless/        # useButton, useToggle, useDialog
 ├── styled/          # Button, Toggle, Dialog (uses headless)
 ├── primitives/      # Box, Text, Stack

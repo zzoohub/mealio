@@ -7,12 +7,12 @@ W3C Design Token Community Group (DTCG) format examples.
 ## File Structure
 
 ```
-tokens/
-├── primitive.tokens.json    # Raw values
-├── semantic.tokens.json     # Intent-based
+src/shared/ui/tokens/
+├── primitive.tokens.json
+├── semantic.tokens.json
 └── themes/
-    ├── light.tokens.json    # Light theme overrides
-    └── dark.tokens.json     # Dark theme overrides
+    ├── light.tokens.json
+    └── dark.tokens.json
 ```
 
 ---
