@@ -2,9 +2,9 @@ import React from "react";
 import { SafeAreaView, ScrollView, TouchableOpacity } from "react-native";
 import { Stack, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { createStyles, useStyles, useTheme } from "@/shared/ui/design-system/theme";
-import { Box, Text } from "@/shared/ui/design-system/styled";
-import { tokens } from "@/shared/ui/design-system/tokens";
+import { createStyles, useStyles, useTheme } from "@/shared/ui/theme";
+import { Box, Text } from "@/shared/ui/styled";
+import { tokens } from "@/shared/ui/tokens";
 import * as Haptics from "expo-haptics";
 
 interface SettingsLayoutProps {

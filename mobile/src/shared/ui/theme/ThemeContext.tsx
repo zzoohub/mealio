@@ -7,7 +7,7 @@
  *
  * @example
  * ```tsx
- * import { ThemeProvider, useTheme } from '@/design-system/theme';
+ * import { ThemeProvider, useTheme } from '@/shared/ui/theme';
  *
  * // Wrap your app
  * <ThemeProvider>
@@ -145,7 +145,7 @@ const defaultContextValue: ThemeContextValue = {
  * @example
  * ```tsx
  * // Direct context usage (prefer useTheme hook instead)
- * import { ThemeContext } from '@/design-system/theme';
+ * import { ThemeContext } from '@/shared/ui/theme';
  *
  * function MyComponent() {
  *   const themeContext = useContext(ThemeContext);

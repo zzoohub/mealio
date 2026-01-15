@@ -11,7 +11,7 @@ import { ErrorBoundary } from "./error";
 import { OverlayProvider } from "./overlay";
 import { queryClient } from "./query";
 import { preloadCriticalModules, markPerformance, measurePerformance } from "@/shared/lib/performance";
-import { ThemeProvider, type ThemePreference } from "@/shared/ui/design-system/theme";
+import { ThemeProvider, type ThemePreference } from "@/shared/ui/theme";
 
 function AppInitializer() {
   const loadUserFromStorage = useAuthStore(state => state.loadUserFromStorage);

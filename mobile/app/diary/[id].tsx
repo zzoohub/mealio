@@ -2,7 +2,7 @@ import React from "react";
 import { View, ScrollView, useWindowDimensions } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { createStyles, useStyles } from "@/shared/ui/design-system/theme";
+import { createStyles, useStyles } from "@/shared/ui/theme";
 import type { Entry } from "@/entities/entry";
 import { MealType } from "@/entities/meal";
 import {

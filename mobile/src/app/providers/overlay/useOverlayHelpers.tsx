@@ -2,7 +2,7 @@ import React, { useCallback } from "react";
 import { useOverlayController } from "./OverlayProvider";
 import { Toast, ToastProps, ToastType, ToastPosition } from "./Toast";
 import { ConfirmDialog, ConfirmDialogProps } from "./ConfirmDialog";
-import { BottomSheet } from "@/shared/ui/design-system/styled";
+import { BottomSheet } from "@/shared/ui/styled";
 
 // Toast options
 export interface ToastOptions {

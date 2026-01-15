@@ -24,7 +24,6 @@
       "@/features/*": ["./src/features/*"],
       "@/entities/*": ["./src/entities/*"],
       "@/shared/*": ["./src/shared/*"],
-      "@/design-system/*": ["./src/shared/ui/design-system/*"],
       "@/lib/*": ["./src/shared/lib/*"],
       "@/constants/*": ["./src/shared/config/*"],
       "@/types/*": ["./src/shared/types/*"],

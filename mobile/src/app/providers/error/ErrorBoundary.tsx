@@ -1,7 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { tokens, darkColors } from '@/shared/ui/design-system/tokens';
+import { tokens, darkColors } from '@/shared/ui/tokens';
 
 interface Props {
   children: ReactNode;

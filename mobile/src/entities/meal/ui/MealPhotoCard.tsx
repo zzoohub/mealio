@@ -31,9 +31,9 @@ import {
   Pressable,
   AccessibilityProps,
 } from 'react-native';
-import { Box, Text } from '@/shared/ui/design-system/styled';
-import { createStyles, useStyles } from '@/shared/ui/design-system/theme';
-import { tokens } from '@/shared/ui/design-system/tokens';
+import { Box, Text } from '@/shared/ui/styled';
+import { createStyles, useStyles } from '@/shared/ui/theme';
+import { tokens } from '@/shared/ui/tokens';
 import type { BaseComponentProps } from '@/shared/types';
 
 /**

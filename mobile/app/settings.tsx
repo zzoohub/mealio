@@ -3,11 +3,11 @@ import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useTheme, createStyles, useStyles } from "@/shared/ui/design-system/theme";
-import { Card, Text, HStack, VStack, Toggle } from "@/shared/ui/design-system/styled";
+import { useTheme, createStyles, useStyles } from "@/shared/ui/theme";
+import { Card, Text, HStack, VStack, Toggle } from "@/shared/ui/styled";
 import { SelectionModal, SettingsLayout, useSettingsScreen } from "@/features/settings";
 import { useSettingsI18n } from "@/shared/lib/i18n";
-import { tokens } from "@/shared/ui/design-system/tokens";
+import { tokens } from "@/shared/ui/tokens";
 import { useOverlayHelpers } from "@/app/providers/overlay";
 
 // =============================================================================

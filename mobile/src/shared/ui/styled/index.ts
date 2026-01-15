@@ -38,7 +38,7 @@
  *   Stack,
  *   HStack,
  *   VStack,
- * } from '@/design-system/styled';
+ * } from '@/shared/ui/styled';
  *
  * function MyScreen() {
  *   return (

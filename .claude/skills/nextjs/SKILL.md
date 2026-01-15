@@ -43,7 +43,7 @@ src/
 │       ├── model/
 │       └── api/
 └── shared/          # Reusable infrastructure
-    ├── ui/          # Design system components
+    ├── ui/          # Design system
     ├── lib/         # Utilities, helpers
     ├── api/         # API client
     └── config/      # Environment, constants

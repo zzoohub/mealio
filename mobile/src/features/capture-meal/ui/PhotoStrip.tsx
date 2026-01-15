@@ -1,8 +1,8 @@
 import React from "react";
 import { View, Text, Image, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { createStyles, useStyles } from "@/shared/ui/design-system/theme";
-import { iconSizes } from "@/shared/ui/design-system/tokens";
+import { createStyles, useStyles } from "@/shared/ui/theme";
+import { iconSizes } from "@/shared/ui/tokens";
 
 // =============================================================================
 // TYPES

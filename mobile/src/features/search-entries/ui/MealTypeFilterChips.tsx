@@ -8,8 +8,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/design-system/theme';
-import { tokens } from '@/design-system/tokens';
+import { useTheme } from '@/shared/ui/theme';
+import { tokens } from '@/shared/ui/tokens';
 import { MealType } from '@/entities/meal';
 
 // =============================================================================

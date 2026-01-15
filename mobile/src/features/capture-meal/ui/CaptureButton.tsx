@@ -1,6 +1,6 @@
 import React from "react";
 import { View, TouchableOpacity, Animated, StyleSheet } from "react-native";
-import { createStyles, useStyles } from "@/shared/ui/design-system/theme";
+import { createStyles, useStyles } from "@/shared/ui/theme";
 
 // =============================================================================
 // TYPES

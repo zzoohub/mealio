@@ -2,8 +2,8 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "@/shared/ui/design-system/theme";
-import { tokens } from "@/shared/ui/design-system/tokens";
+import { useTheme } from "@/shared/ui/theme";
+import { tokens } from "@/shared/ui/tokens";
 import { CalendarRangeState } from "../model/useEntrySearch";
 
 // =============================================================================

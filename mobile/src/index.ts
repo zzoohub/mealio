@@ -12,7 +12,7 @@ export type { PaginatedResponse, ApiResponse, ThemeColors, BaseComponentProps, L
 export { CAMERA_SETTINGS, APP_CONFIG, API_CONFIG, STORAGE_KEYS, QUERY_KEYS, MUTATION_KEYS } from "./shared/config";
 
 // Design System
-export * from "./shared/ui/design-system";
+export * from "./shared/ui";
 
 // i18n
 export { default as i18n } from "./shared/lib/i18n/config";

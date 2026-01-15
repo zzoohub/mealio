@@ -19,8 +19,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { tokens } from '@/design-system/tokens';
-import { createStyles, useStyles, useTheme } from '@/design-system/theme';
+import { tokens } from '@/shared/ui/tokens';
+import { createStyles, useStyles, useTheme } from '@/shared/ui/theme';
 import type { NutritionInfo } from '@/entities/meal';
 
 // =============================================================================

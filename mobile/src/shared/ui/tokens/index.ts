@@ -16,7 +16,7 @@
  *
  * @example
  * // In components, use semantic tokens:
- * import { tokens } from '@/design-system/tokens';
+ * import { tokens } from '@/shared/ui/tokens';
  *
  * const styles = StyleSheet.create({
  *   container: {
@@ -26,7 +26,7 @@
  * });
  *
  * // For themed colors, use theme context:
- * import { useTheme } from '@/design-system/theme';
+ * import { useTheme } from '@/shared/ui/theme';
  *
  * function MyComponent() {
  *   const { colors } = useTheme();
@@ -163,7 +163,7 @@ import { primitives } from './primitive.tokens';
  * For theme-specific colors, use the useTheme() hook instead.
  *
  * @example
- * import { tokens } from '@/design-system/tokens';
+ * import { tokens } from '@/shared/ui/tokens';
  *
  * const styles = StyleSheet.create({
  *   button: {

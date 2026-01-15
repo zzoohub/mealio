@@ -10,7 +10,7 @@
  * @example
  * ```tsx
  * // Basic usage (standalone)
- * import { ThemeProvider } from '@/design-system/theme';
+ * import { ThemeProvider } from '@/shared/ui/theme';
  *
  * function App() {
  *   return (

@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useEffect, useMemo, memo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, FlatList } from "react-native";
-import { useTheme } from "@/shared/ui/design-system/theme";
-import { tokens } from "@/shared/ui/design-system/tokens";
+import { useTheme } from "@/shared/ui/theme";
+import { tokens } from "@/shared/ui/tokens";
 import { isSameDay, getDayName, getWeekDays } from "@/shared/lib/utils";
 
 // =============================================================================

@@ -13,7 +13,7 @@
  *
  * @example
  * ```tsx
- * import { useButton, useToggle, useInput } from '@/design-system/headless';
+ * import { useButton, useToggle, useInput } from '@/shared/ui/headless';
  *
  * // Use hooks in your styled components
  * function MyButton(props) {

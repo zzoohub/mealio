@@ -5,8 +5,8 @@
  *
  * @example
  * ```tsx
- * import { createStyles, useStyles, useTheme } from '@/design-system/theme';
- * import { tokens } from '@/design-system/tokens';
+ * import { createStyles, useStyles, useTheme } from '@/shared/ui/theme';
+ * import { tokens } from '@/shared/ui/tokens';
  *
  * // Component FIRST (logic is important)
  * export function MyComponent() {

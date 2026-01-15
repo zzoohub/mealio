@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { createStyles, useStyles, useTheme } from '@/shared/ui/design-system/theme';
-import { Text, Card, Button } from '@/shared/ui/design-system/styled';
-import { tokens } from '@/shared/ui/design-system/tokens';
+import { createStyles, useStyles, useTheme } from '@/shared/ui/theme';
+import { Text, Card, Button } from '@/shared/ui/styled';
+import { tokens } from '@/shared/ui/tokens';
 import * as Haptics from 'expo-haptics';
 
 interface SelectionOption {

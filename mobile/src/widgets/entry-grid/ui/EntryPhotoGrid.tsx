@@ -27,7 +27,7 @@
 
 import React from 'react';
 import { View } from 'react-native';
-import { Stack } from '@/shared/ui/design-system/styled';
+import { Stack } from '@/shared/ui/styled';
 import { MealPhotoCard, type MealPhotoData } from '@/entities/meal';
 import type { BaseComponentProps } from '@/shared/types';
 

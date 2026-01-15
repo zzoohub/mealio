@@ -21,8 +21,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, TextInput, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { tokens } from '@/design-system/tokens';
-import { createStyles, useStyles, useTheme } from '@/design-system/theme';
+import { tokens } from '@/shared/ui/tokens';
+import { createStyles, useStyles, useTheme } from '@/shared/ui/theme';
 
 // =============================================================================
 // TYPES

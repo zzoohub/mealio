@@ -19,8 +19,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ActionSheetIOS, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { tokens } from '@/design-system/tokens';
-import { createStyles, useStyles } from '@/design-system/theme';
+import { tokens } from '@/shared/ui/tokens';
+import { createStyles, useStyles } from '@/shared/ui/theme';
 import { MealType } from '@/entities/meal';
 import type { Location } from '@/entities/entry';
 

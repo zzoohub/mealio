@@ -8,8 +8,8 @@ import type { Entry } from "@/entities/entry";
 import { useDiaryPage, WeekDaySelector, EntryFeedItem } from "@/features/diary-feed";
 import { formatDateToString, isSameDay } from "@/shared/lib/utils";
 import { useDiaryI18n } from "@/shared/lib/i18n";
-import { useTheme } from "@/shared/ui/design-system/theme";
-import { tokens } from "@/shared/ui/design-system/tokens";
+import { useTheme } from "@/shared/ui/theme";
+import { tokens } from "@/shared/ui/tokens";
 import { useOverlayHelpers } from "@/app/providers/overlay";
 
 // =============================================================================

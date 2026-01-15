@@ -1,7 +1,7 @@
 import React from "react";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { iconSizes } from "@/shared/ui/design-system/tokens";
+import { iconSizes } from "@/shared/ui/tokens";
 
 // =============================================================================
 // TYPES

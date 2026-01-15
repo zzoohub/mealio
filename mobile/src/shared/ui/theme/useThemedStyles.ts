@@ -6,8 +6,8 @@
  *
  * @example
  * ```tsx
- * import { createStyles, useStyles } from '@/design-system/theme';
- * import { tokens } from '@/design-system/tokens';
+ * import { createStyles, useStyles } from '@/shared/ui/theme';
+ * import { tokens } from '@/shared/ui/tokens';
  *
  * // Component FIRST (logic is important)
  * export function MyComponent() {
@@ -80,8 +80,8 @@ export type { ThemeColors } from "./ThemeContext";
  *
  * @example
  * ```tsx
- * import { tokens } from '@/design-system/tokens';
- * import { createStyles } from '@/design-system/theme';
+ * import { tokens } from '@/shared/ui/tokens';
+ * import { createStyles } from '@/shared/ui/theme';
  *
  * // Define at module level
  * const styles = createStyles((colors) => ({
@@ -128,8 +128,8 @@ export function createStyles<T extends NamedStyles<T>>(factory: StyleFactory<T>)
  *
  * @example
  * ```tsx
- * import { createStyles, useStyles } from '@/design-system/theme';
- * import { tokens } from '@/design-system/tokens';
+ * import { createStyles, useStyles } from '@/shared/ui/theme';
+ * import { tokens } from '@/shared/ui/tokens';
  *
  * // Outside component
  * const styles = createStyles((colors) => ({

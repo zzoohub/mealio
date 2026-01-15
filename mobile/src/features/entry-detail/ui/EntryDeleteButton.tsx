@@ -16,8 +16,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { tokens } from '@/design-system/tokens';
-import { createStyles, useStyles } from '@/design-system/theme';
+import { tokens } from '@/shared/ui/tokens';
+import { createStyles, useStyles } from '@/shared/ui/theme';
 
 // =============================================================================
 // TYPES

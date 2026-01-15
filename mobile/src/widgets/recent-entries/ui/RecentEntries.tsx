@@ -20,9 +20,9 @@ import React, { useState, useEffect } from 'react';
 import { ScrollView, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Box, Text, HStack, VStack, Card } from '@/shared/ui/design-system/styled';
-import { createStyles, useStyles } from '@/shared/ui/design-system/theme';
-import { tokens } from '@/shared/ui/design-system/tokens';
+import { Box, Text, HStack, VStack, Card } from '@/shared/ui/styled';
+import { createStyles, useStyles } from '@/shared/ui/theme';
+import { tokens } from '@/shared/ui/tokens';
 import type { Entry } from '@/entities/entry';
 import { entryStorageUtils, generateMockEntries } from '@/features/diary-feed/model/useEntryStorage';
 

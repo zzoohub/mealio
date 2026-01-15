@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Pressable } from "react-native";
-import { useTheme } from "@/shared/ui/design-system/theme";
+import { useTheme } from "@/shared/ui/theme";
 import * as Haptics from "expo-haptics";
 
 export interface ConfirmDialogProps {

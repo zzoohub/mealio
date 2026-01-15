@@ -6,8 +6,8 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useTheme } from '@/design-system/theme';
-import { tokens } from '@/design-system/tokens';
+import { useTheme } from '@/shared/ui/theme';
+import { tokens } from '@/shared/ui/tokens';
 
 // =============================================================================
 // TYPES

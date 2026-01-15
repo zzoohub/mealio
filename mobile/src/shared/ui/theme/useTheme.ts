@@ -6,7 +6,7 @@
  *
  * @example
  * ```tsx
- * import { useTheme } from '@/design-system/theme';
+ * import { useTheme } from '@/shared/ui/theme';
  *
  * function MyComponent() {
  *   const { colors, isDark, setTheme } = useTheme();
