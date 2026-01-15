@@ -26,7 +26,7 @@ app/                 # Next.js App Router (file-based routing)
 ├── layout.tsx       # Root layout
 ├── page.tsx         # Home (/)
 └── some-page/
-    └── page.tsx     # /some-page
+    └── page.tsx     # /some-page (routing + page composition)
 src/
 ├── app/             # App-wide settings, providers, global styles
 │   └── providers/
