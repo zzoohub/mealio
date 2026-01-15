@@ -180,3 +180,14 @@ PgPoolOptions::new()
 ### Errors
 - [ ] `AppError` implements `IntoResponse`
 - [ ] Map `sqlx::Error` to proper HTTP status
+
+## Security Configuration
+
+| Item | Value |
+|------|-------|
+| Password hashing | argon2id (64MB memory) or bcrypt 12 rounds |
+| JWT access token | 1 hour |
+| JWT refresh token (web) | 90 days |
+| JWT refresh token (mobile) | 1 year |
+| JWT algorithm | HS256 |
+| CORS | Explicit origins only |

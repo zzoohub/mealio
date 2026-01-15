@@ -152,3 +152,12 @@ const { selected, toggle, clear } = useSelection();
 ### Design System
 - [ ] Using tokens from design-system (no hardcoded values)
 - [ ] Touch targets 44pt+
+
+## Security Configuration
+
+| Item | Value |
+|------|-------|
+| Token storage | SecureStore (not AsyncStorage) |
+| JWT access token | 1 hour |
+| JWT refresh token | 1 year |
+| Certificate pinning | Required for sensitive APIs |

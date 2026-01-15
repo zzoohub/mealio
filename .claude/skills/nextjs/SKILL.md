@@ -217,3 +217,18 @@ See `examples.md` for full implementation.
 ### Design System
 - [ ] Using tokens from design-system (no hardcoded values)
 - [ ] Proper loading/error states
+
+## Security Configuration
+
+| Header | Value |
+|--------|-------|
+| HSTS | `max-age=63072000; includeSubDomains; preload` |
+| X-Frame-Options | `SAMEORIGIN` |
+| X-Content-Type-Options | `nosniff` |
+| Referrer-Policy | `strict-origin-when-cross-origin` |
+
+| Item | Value |
+|------|-------|
+| Cookies httpOnly | `true` |
+| Cookies secure | `true` |
+| Cookies sameSite | `strict` |

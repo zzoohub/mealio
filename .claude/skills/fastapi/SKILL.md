@@ -169,3 +169,16 @@ async def validation_handler(request, exc):
 ### Auth
 - [ ] `OAuth2PasswordBearer` for JWT
 - [ ] `Depends(get_current_user)` on protected routes
+
+## Security Configuration
+
+| Item | Value |
+|------|-------|
+| Password hashing | bcrypt, 12 rounds |
+| JWT access token | 1 hour |
+| JWT refresh token (web) | 90 days |
+| JWT refresh token (mobile) | 1 year |
+| JWT algorithm | HS256 |
+| Rate limit (auth) | 5/min |
+| Rate limit (API) | 100/min |
+| CORS | Explicit origins only (no wildcard) |
