@@ -32,7 +32,6 @@ const MOCK_ENTRY: Entry = {
     latitude: 37.5665,
     longitude: 126.978,
     address: "서울시 강남구",
-    restaurantName: "맛있는 식당",
   },
   meal: {
     photoUri: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800",
@@ -40,8 +39,8 @@ const MOCK_ENTRY: Entry = {
     nutrition: {
       calories: 485,
       protein: 32,
-      carbs: 45,
       fat: 18,
+      sugar: 8,
     },
     aiAnalysis: {
       detectedMeals: ["닭가슴살 샐러드"],
@@ -49,8 +48,8 @@ const MOCK_ENTRY: Entry = {
       nutrition: {
         calories: 485,
         protein: 32,
-        carbs: 45,
         fat: 18,
+        sugar: 8,
       },
       mealCategory: MealType.LUNCH,
       ingredients: ["닭가슴살", "양상추", "방울토마토", "아보카도", "올리브오일", "발사믹"],

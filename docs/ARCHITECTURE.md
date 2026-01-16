@@ -60,17 +60,17 @@ This document describes the database schema design for Mealio, a meal tracking a
 #### entry_locations
 - **Purpose**: Geolocation data for entries
 - **Relationship**: 1:1 with diary_entries
-- **Fields**: latitude, longitude, address, restaurant_name
+- **Fields**: latitude, longitude, address
 
 #### entry_photos
 - **Purpose**: Multiple photos per entry
 - **Relationship**: N:1 with diary_entries (up to 10 photos)
 - **Fields**: photo_uri, thumbnail_uri, dimensions, ordering
 
-#### nutrition_info
-- **Purpose**: Nutritional data per entry
+#### user_nutrition
+- **Purpose**: User-entered nutrition (optional override of AI estimates)
 - **Relationship**: 1:1 with diary_entries
-- **Fields**: calories, protein, carbs, fat, plus optional micronutrients
+- **Fields**: calories, protein, fat, sugar (all nullable)
 
 #### ai_analyses
 - **Purpose**: AI-generated meal analysis
@@ -81,13 +81,6 @@ This document describes the database schema design for Mealio, a meal tracking a
 - **Purpose**: Master ingredient list
 - **Relationship**: N:M with diary_entries via entry_ingredients
 - **Fields**: name (English), name_ko (Korean)
-
-### Analytics Entities
-
-#### daily_nutrition_summary
-- **Purpose**: Pre-aggregated daily statistics
-- **Type**: Denormalized cache table
-- **Sync Strategy**: Update on entry create/update/delete
 
 ## Design Decisions
 
@@ -139,13 +132,13 @@ CREATE INDEX ... WHERE deleted_at IS NULL
 
 ### 4. Nutrition as Separate Table
 
-**Decision**: Store nutrition in `nutrition_info` table rather than diary_entries.
+**Decision**: Store user-editable nutrition in `user_nutrition` table rather than diary_entries.
 
 **Rationale**:
-- Not all entries will have nutrition data initially
-- Nutrition data changes independently (user corrections)
-- Allows tracking verification status (AI vs user-verified)
-- Cleaner schema for a complex data structure
+- Not all entries will have user-overridden nutrition data
+- User corrections are optional (AI estimates stored in `ai_analyses.nutrition` JSONB)
+- Keeps `diary_entries` lean for feed queries
+- Only stores user overrides, not duplicating AI data
 
 ### 5. JSONB for Flexible AI Data
 
@@ -173,22 +166,6 @@ CREATE INDEX ... WHERE deleted_at IS NULL
 
 **Trade-off**: Slightly more complex queries. Mitigated by proper indexing.
 
-### 7. Pre-Aggregated Daily Statistics
-
-**Decision**: Maintain `daily_nutrition_summary` as a denormalized table.
-
-**Rationale**:
-- Dashboard queries are frequent
-- Calculating aggregates on-the-fly is expensive
-- Mobile app needs fast response times
-
-**Sync Strategy**:
-1. Update via application code on entry changes
-2. Or: Implement as a materialized view with periodic refresh
-3. Or: Use triggers (shown in SQL file)
-
-**Staleness Tolerance**: Acceptable for dashboard display (real-time not required)
-
 ## Relationships Summary
 
 | Relationship | Type | On Delete | Notes |
@@ -198,7 +175,7 @@ CREATE INDEX ... WHERE deleted_at IS NULL
 | users -> auth_tokens | 1:N | CASCADE | Multiple sessions allowed |
 | diary_entries -> entry_locations | 1:1 | CASCADE | Optional location |
 | diary_entries -> entry_photos | 1:N | CASCADE | Up to 10 photos |
-| diary_entries -> nutrition_info | 1:1 | CASCADE | Optional nutrition |
+| diary_entries -> user_nutrition | 1:1 | CASCADE | User-entered overrides |
 | diary_entries -> ai_analyses | 1:1 | CASCADE | Optional AI analysis |
 | diary_entries -> entry_ingredients | N:M | CASCADE | Via junction table |
 | ai_analyses -> ai_recommendations | 1:N | CASCADE | Multiple recommendations |
@@ -220,10 +197,10 @@ CREATE INDEX ... WHERE deleted_at IS NULL
    WHERE user_id = ? AND meal_type = ?
    ```
 
-3. **Daily nutrition dashboard**
+3. **Daily nutrition aggregation**
    ```sql
-   -- Uses: daily_nutrition_summary_user_date_idx
-   WHERE user_id = ? AND date BETWEEN ? AND ?
+   -- Aggregates from ai_analyses.nutrition JSONB on-demand
+   -- Or cache at application level if performance requires
    ```
 
 ### Partial Indexes for Common Filters

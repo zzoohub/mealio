@@ -1,6 +1,6 @@
 # Next.js Examples
 
-Code examples for common patterns.
+Code examples for common patterns with Vercel React Best Practices applied.
 
 ---
 
@@ -63,28 +63,31 @@ export function ContactForm() {
 
   return (
     <form action={dispatch} className="space-y-4">
-      <div>
-        <label htmlFor="name">Name</label>
-        <input id="name" name="name" required />
-      </div>
-      
-      <div>
-        <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" required />
-      </div>
-      
-      <div>
-        <label htmlFor="message">Message</label>
-        <textarea id="message" name="message" required />
-      </div>
+      {/* Disable all inputs during submission */}
+      <fieldset disabled={isPending}>
+        <div>
+          <label htmlFor="name">Name</label>
+          <input id="name" name="name" required />
+        </div>
+        
+        <div>
+          <label htmlFor="email">Email</label>
+          <input id="email" name="email" type="email" required />
+        </div>
+        
+        <div>
+          <label htmlFor="message">Message</label>
+          <textarea id="message" name="message" required />
+        </div>
 
-      {state.error && (
-        <p className="text-red-500">{state.error}</p>
-      )}
+        {state.error && (
+          <p className="text-red-500">{state.error}</p>
+        )}
 
-      <button type="submit" disabled={isPending}>
-        {isPending ? 'Sending...' : 'Send Message'}
-      </button>
+        <button type="submit">
+          {isPending ? 'Sending...' : 'Send Message'}
+        </button>
+      </fieldset>
     </form>
   );
 }
@@ -136,6 +139,10 @@ export async function deletePost(id: string) {
 ```tsx
 'use client';
 
+import { useTransition } from 'react';
+import { toast } from 'sonner';
+import { deletePost } from '../actions/deletePost';
+
 export function DeleteButton({ postId }: { postId: string }) {
   const [isPending, startTransition] = useTransition();
 
@@ -143,7 +150,11 @@ export function DeleteButton({ postId }: { postId: string }) {
     if (!confirm('Are you sure?')) return;
     
     startTransition(async () => {
-      await deletePost(postId);
+      try {
+        await deletePost(postId);
+      } catch (e) {
+        toast.error('Failed to delete post');
+      }
     });
   };
 
@@ -164,7 +175,7 @@ export function DeleteButton({ postId }: { postId: string }) {
 ```tsx
 // app/dashboard/page.tsx
 async function DashboardPage() {
-  // Parallel fetching - both start immediately
+  // Parallel fetching - all start immediately
   const [stats, recentOrders, topProducts] = await Promise.all([
     getStats(),
     getRecentOrders(),
@@ -363,6 +374,7 @@ export function useProducts(filters: Filters) {
     queryKey: ['products', filters],
     queryFn: () => fetchProducts(filters),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000,   // 10 minutes garbage collection
   });
 }
 
@@ -395,17 +407,23 @@ function ProductsPage() {
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
 interface CartStore {
   items: CartItem[];
   addItem: (item: CartItem) => void;
   removeItem: (id: string) => void;
   clearCart: () => void;
-  total: () => number;
 }
 
 export const useCartStore = create<CartStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       items: [],
       addItem: (item) => set((state) => ({ 
         items: [...state.items, item] 
@@ -414,9 +432,60 @@ export const useCartStore = create<CartStore>()(
         items: state.items.filter((i) => i.id !== id) 
       })),
       clearCart: () => set({ items: [] }),
-      total: () => get().items.reduce((sum, item) => sum + item.price, 0),
     }),
     { name: 'cart-storage' }
   )
 );
+
+// Derived state selectors - subscribe only to computed values
+// Components using these will only re-render when the derived value changes
+export const useCartTotal = () => 
+  useCartStore((state) => 
+    state.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  );
+
+export const useCartCount = () => 
+  useCartStore((state) => 
+    state.items.reduce((sum, item) => sum + item.quantity, 0)
+  );
+
+export const useCartEmpty = () => 
+  useCartStore((state) => state.items.length === 0);
+```
+
+```tsx
+// Usage example - each component subscribes only to what it needs
+'use client';
+
+import { useCartStore, useCartTotal, useCartCount } from '@/shared/store/cartStore';
+
+// Only re-renders when total changes
+function CartTotal() {
+  const total = useCartTotal();
+  return <span>${total.toFixed(2)}</span>;
+}
+
+// Only re-renders when count changes
+function CartBadge() {
+  const count = useCartCount();
+  if (count === 0) return null;
+  return <span className="badge">{count}</span>;
+}
+
+// Only re-renders when items array changes
+function CartItems() {
+  const items = useCartStore((state) => state.items);
+  const removeItem = useCartStore((state) => state.removeItem);
+  
+  return (
+    <ul>
+      {items.map((item) => (
+        <li key={item.id}>
+          {item.name} - ${item.price}
+          <button onClick={() => removeItem(item.id)}>Remove</button>
+        </li>
+      ))}
+    </ul>
+  );
+}
 ```

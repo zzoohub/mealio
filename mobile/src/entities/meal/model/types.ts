@@ -19,10 +19,9 @@ export enum MealType {
 export interface NutritionInfo {
   calories: number;
   protein: number;
-  carbs: number;
   fat: number;
+  sugar: number;
   fiber?: number;
-  sugar?: number;
   sodium?: number;
   water?: number;
 }

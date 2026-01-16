@@ -186,12 +186,15 @@ CREATE TABLE entry_photos (
     is_primary BOOLEAN NOT NULL DEFAULT FALSE,
 
     -- Timestamps
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX entry_photos_entry_id_idx ON entry_photos(entry_id);
-CREATE INDEX entry_photos_primary_idx ON entry_photos(entry_id, is_primary) WHERE is_primary = TRUE;
 CREATE INDEX entry_photos_order_idx ON entry_photos(entry_id, sort_order);
+
+-- Ensure only one primary photo per entry
+CREATE UNIQUE INDEX entry_photos_one_primary_idx ON entry_photos(entry_id) WHERE is_primary = TRUE;
 
 COMMENT ON TABLE entry_photos IS 'Photos attached to diary entries (up to 10 per entry)';
 COMMENT ON COLUMN entry_photos.photo_uri IS 'S3/CloudStorage URI';
@@ -343,6 +346,10 @@ CREATE TRIGGER diary_entries_updated_at
 
 CREATE TRIGGER user_nutrition_updated_at
     BEFORE UPDATE ON user_nutrition
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER entry_photos_updated_at
+    BEFORE UPDATE ON entry_photos
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- =============================================================================

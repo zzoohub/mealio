@@ -181,18 +181,18 @@ Table entry_photos {
 
   // Ordering
   sort_order smallint [not null, default: 0]
-  is_primary boolean [not null, default: false]
+  is_primary boolean [not null, default: false, note: 'Only one per entry (enforced by unique index)']
 
   // Timestamps
   created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   indexes {
     entry_id
-    (entry_id, is_primary)
     (entry_id, sort_order)
   }
 
-  Note: 'Photos attached to diary entries (up to 10 per entry)'
+  Note: 'Photos attached to diary entries (up to 10 per entry). Unique partial index ensures only one primary photo per entry.'
 }
 
 // =============================================================================

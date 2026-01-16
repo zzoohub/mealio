@@ -105,7 +105,7 @@ function formatTime(date: Date): string {
  */
 function getLocationLabel(location?: Location | null): string | null {
   if (!location) return null;
-  return location.restaurantName || location.address?.split(',')[0] || null;
+  return location.address?.split(',')[0] || null;
 }
 
 // =============================================================================

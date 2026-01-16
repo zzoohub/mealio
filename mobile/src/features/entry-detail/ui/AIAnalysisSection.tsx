@@ -9,7 +9,7 @@
  * ```tsx
  * <AIAnalysisSection
  *   ingredients={['닭가슴살', '현미밥', '브로콜리']}
- *   nutrition={{ calories: 450, protein: 35, carbs: 40, fat: 12 }}
+ *   nutrition={{ calories: 450, protein: 35, fat: 12, sugar: 8 }}
  *   onIngredientsChange={(ingredients) => update({ ingredients })}
  *   onNutritionChange={(nutrition) => update({ nutrition })}
  * />
@@ -49,7 +49,6 @@ export interface AIAnalysisSectionProps {
 const NUTRITION_LABELS: Record<keyof NutritionInfo, { label: string; unit: string }> = {
   calories: { label: '칼로리', unit: 'kcal' },
   protein: { label: '단백질', unit: 'g' },
-  carbs: { label: '탄수화물', unit: 'g' },
   fat: { label: '지방', unit: 'g' },
   fiber: { label: '식이섬유', unit: 'g' },
   sugar: { label: '당류', unit: 'g' },
@@ -58,7 +57,7 @@ const NUTRITION_LABELS: Record<keyof NutritionInfo, { label: string; unit: strin
 };
 
 // Primary nutrients to always show first
-const PRIMARY_NUTRIENTS: (keyof NutritionInfo)[] = ['calories', 'protein', 'carbs', 'fat'];
+const PRIMARY_NUTRIENTS: (keyof NutritionInfo)[] = ['calories', 'protein', 'fat', 'sugar'];
 
 // =============================================================================
 // COMPONENT
@@ -78,7 +77,7 @@ export function AIAnalysisSection({
   const [isEditing, setIsEditing] = useState(false);
   const [localIngredients, setLocalIngredients] = useState<string[]>(ingredients || []);
   const [localNutrition, setLocalNutrition] = useState<NutritionInfo>(
-    nutrition || { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    nutrition || { calories: 0, protein: 0, fat: 0, sugar: 0 }
   );
   const [newIngredient, setNewIngredient] = useState('');
 

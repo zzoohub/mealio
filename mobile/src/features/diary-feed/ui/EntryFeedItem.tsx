@@ -70,7 +70,7 @@ export function EntryFeedItem({ entry, onPress }: EntryFeedItemProps) {
   };
 
   const hasNotes = entry.notes && entry.notes.trim().length > 0;
-  const locationLabel = entry.location?.restaurantName || entry.location?.address?.split(",")[0];
+  const locationLabel = entry.location?.address?.split(",")[0];
 
   return (
     <TouchableOpacity style={styles.container} onPress={handlePress} activeOpacity={0.95}>

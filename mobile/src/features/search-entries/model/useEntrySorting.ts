@@ -138,7 +138,7 @@ export const entrySortingUtils = {
     if (!nutrition) return 0;
 
     // Calculate basic health score based on nutrition balance
-    const { calories = 0, protein = 0, carbs = 0, fat = 0, fiber = 0 } = nutrition;
+    const { calories = 0, protein = 0, fat = 0, fiber = 0 } = nutrition;
 
     if (calories === 0) return 0;
 

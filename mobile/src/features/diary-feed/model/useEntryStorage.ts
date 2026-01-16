@@ -253,7 +253,7 @@ export const entryStorageUtils = {
         return {
           totalEntries: 0,
           averageCalories: 0,
-          totalNutrition: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+          totalNutrition: { calories: 0, protein: 0, fat: 0, sugar: 0 },
         };
       }
 
@@ -261,11 +261,11 @@ export const entryStorageUtils = {
         (acc, entry) => ({
           calories: acc.calories + (entry.meal.nutrition?.calories || 0),
           protein: acc.protein + (entry.meal.nutrition?.protein || 0),
-          carbs: acc.carbs + (entry.meal.nutrition?.carbs || 0),
           fat: acc.fat + (entry.meal.nutrition?.fat || 0),
+          sugar: acc.sugar + (entry.meal.nutrition?.sugar || 0),
           fiber: (acc.fiber || 0) + (entry.meal.nutrition?.fiber || 0),
         }),
-        { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
+        { calories: 0, protein: 0, fat: 0, sugar: 0, fiber: 0 }
       );
 
       return {
@@ -278,7 +278,7 @@ export const entryStorageUtils = {
       return {
         totalEntries: 0,
         averageCalories: 0,
-        totalNutrition: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+        totalNutrition: { calories: 0, protein: 0, fat: 0, sugar: 0 },
       };
     }
   },
@@ -495,7 +495,7 @@ export function generateMockEntries(): Entry[] {
       meal: {
         photoUri: "https://via.placeholder.com/300x200",
         mealType: MealType.LUNCH,
-        nutrition: { calories: 380, protein: 32, carbs: 18, fat: 22, fiber: 8 },
+        nutrition: { calories: 380, protein: 32, fat: 22, sugar: 5, fiber: 8 },
         ingredients: ["Grilled chicken", "Mixed greens", "Tomatoes"],
       },
       createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
@@ -509,7 +509,7 @@ export function generateMockEntries(): Entry[] {
       meal: {
         photoUri: "https://via.placeholder.com/300x200",
         mealType: MealType.BREAKFAST,
-        nutrition: { calories: 320, protein: 12, carbs: 45, fat: 8, fiber: 6 },
+        nutrition: { calories: 320, protein: 12, fat: 8, sugar: 15, fiber: 6 },
         ingredients: ["Oats", "Yogurt", "Berries"],
       },
       createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
