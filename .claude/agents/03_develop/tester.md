@@ -12,7 +12,7 @@ model: sonnet
 
 Write tests, run tests, report results. Everything about testing in one agent.
 
-**For framework-specific syntax, use context7 MCP.**
+**For framework-specific syntax, use context7.**
 
 ---
 
@@ -78,7 +78,7 @@ Unit (fast, isolated) → Integration (boundaries) → E2E (minimize)
 When writing tests:
 
 1. Follow project's existing test patterns and structure
-2. Use context7 MCP for framework-specific syntax
+2. Use context7 for framework-specific syntax
 3. Focus on behavior, not implementation details
 4. Test edge cases for "Must Test" areas
 5. Keep tests isolated and deterministic

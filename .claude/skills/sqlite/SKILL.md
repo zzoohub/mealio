@@ -3,14 +3,14 @@ name: sqlite
 description: |
   SQLite problem-solving patterns for embedded/edge deployments.
   Use when: connection setup, "database locked" errors, ALTER TABLE workarounds, concurrency problems, FTS setup, SQLite-specific gotchas.
-  Do not use for: basic DDL/DML syntax (use context7 MCP), schema design decisions (use data-modeling skill first).
+  Do not use for: basic DDL/DML syntax (use context7), schema design decisions (use data-modeling skill first).
   Workflow: data-modeling skill (design) → this skill (implement).
   Decision: If asking "should I use PostgreSQL instead?" — see comparison section at bottom.
 ---
 
 # SQLite Patterns
 
-For basic DDL/DML syntax, use context7 MCP. This skill focuses on **SQLite-specific problems and solutions**.
+For basic DDL/DML syntax, use context7. This skill focuses on **SQLite-specific problems and solutions**.
 
 **Prerequisite**: Schema should be designed using `data-modeling` skill first. This skill implements those designs with SQLite-specific adaptations.
 

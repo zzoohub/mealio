@@ -11,8 +11,8 @@ references:
 
 # Axum + SQLx
 
-**For latest axum APIs, use context7 MCP server with library-id `tokio-rs/axum`.**
-**For latest sqlx APIs, use context7 MCP server with library-id `launchbadge/sqlx`.**
+**For latest axum APIs, use context7.**
+**For latest sqlx APIs, use context7.**
 ---
 
 ## Project Structure

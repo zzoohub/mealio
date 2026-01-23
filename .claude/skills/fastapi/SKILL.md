@@ -11,7 +11,7 @@ references:
 
 # FastAPI
 
-**For latest FastAPI/Pydantic APIs, use context7 MCP server with library-id `fastapi/fastapi`.**
+**For latest FastAPI/Pydantic APIs, use context7.**
 
 ---
 

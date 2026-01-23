@@ -9,7 +9,7 @@ description: |
 
 # Performance Patterns
 
-**For latest framework APIs, use context7 MCP server with library-id (e.g., `vercel/next.js`, `websites/tanstack_query`).**
+**For latest framework APIs, use context7.**
 
 ---
 

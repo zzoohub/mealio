@@ -11,7 +11,7 @@ references:
 
 # LangGraph
 
-**For latest LangGraph APIs, use context7 MCP server with library-id `langchain-ai/langgraph`.**
+**For latest LangGraph APIs, use context7.**
 
 ---
 

@@ -11,7 +11,7 @@ references:
 
 # Expo & React Native Patterns
 
-**For latest APIs, use context7 MCP server with library-id `facebook/react-native` or `expo/expo` .**
+**For latest APIs, use context7.**
 
 **Package manager**: Use `bun` for all commands.
 
@@ -19,7 +19,7 @@ references:
 
 ## Project Structure (Feature-Sliced Design)
 
-**Use Context7 MCP server with `websites/feature-sliced_github_io`**
+**For Feature-Sliced Design structure use Context7**
 
 ```
 app/                 # Expo Router (file-based routing)

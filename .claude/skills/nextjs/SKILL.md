@@ -11,7 +11,7 @@ references:
 
 # Next.js App Router Patterns
 
-**For latest Next.js APIs, use context7 MCP server with library-id `vercel/next.js`.**
+**For latest Next.js APIs, use context7.**
 
 **Package manager**: Use `bun` for all commands.
 
@@ -19,7 +19,7 @@ references:
 
 ## Project Structure (Feature-Sliced Design)
 
-**Use Context7 MCP server with `websites/feature-sliced_github_io`**
+**For Feature-Sliced Design use Context7.**
 
 ```
 app/                 # Next.js App Router (file-based routing)
