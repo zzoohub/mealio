@@ -1,172 +1,356 @@
 # Axum + SQLx Examples
 
-Transaction patterns, error handling, and testing.
-
 ---
 
-## Error Handling (thiserror + IntoResponse)
+## Foundation
 
-### AppError Definition
+### AppState
 
 ```rust
+// src/lib.rs
+use sqlx::PgPool;
+
+pub mod error;
+pub mod extractors;
+pub mod response;
+pub mod features;
+
+#[derive(Clone)]
+pub struct AppState {
+    pub db: PgPool,
+}
+```
+
+### Response Types
+
+```rust
+// src/response.rs
+use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
+use serde::Serialize;
+
+pub struct Created<T>(pub T);
+pub struct Ok<T>(pub T);
+pub struct NoContent;
+
+impl<T: Serialize> IntoResponse for Created<T> {
+    fn into_response(self) -> Response {
+        (StatusCode::CREATED, Json(self.0)).into_response()
+    }
+}
+
+impl<T: Serialize> IntoResponse for Ok<T> {
+    fn into_response(self) -> Response {
+        Json(self.0).into_response()
+    }
+}
+
+impl IntoResponse for NoContent {
+    fn into_response(self) -> Response {
+        StatusCode::NO_CONTENT.into_response()
+    }
+}
+```
+
+### Db Extractor
+
+```rust
+// src/extractors.rs
+use axum::extract::FromRef;
+use sqlx::PgPool;
+use std::convert::Infallible;
+use crate::AppState;
+
+pub struct Db(pub PgPool);
+
+impl<S> axum::extract::FromRequestParts<S> for Db
+where
+    AppState: FromRef<S>,
+    S: Send + Sync,
+{
+    type Rejection = Infallible;
+
+    async fn from_request_parts(
+        _: &mut axum::http::request::Parts,
+        state: &S,
+    ) -> Result<Self, Self::Rejection> {
+        Ok(Db(AppState::from_ref(state).db.clone()))
+    }
+}
+```
+
+### AppError (RFC 9457)
+
+```rust
+// src/error.rs
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
-use serde_json::json;
+use serde::Serialize;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum AppError {
-    #[error("resource not found")]
+    #[error("not found")]
     NotFound,
-
-    #[error("conflict: {0}")]
+    #[error("{0}")]
     Conflict(String),
-
-    #[error("bad request: {0}")]
+    #[error("{0}")]
     BadRequest(String),
-
     #[error("unauthorized")]
     Unauthorized,
-
-    #[error("forbidden")]
-    Forbidden,
-
     #[error(transparent)]
     Database(#[from] sqlx::Error),
-
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
 }
 
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        let (status, error_type, message) = match &self {
-            AppError::NotFound => (
-                StatusCode::NOT_FOUND,
-                "not_found",
-                self.to_string(),
-            ),
-            AppError::Conflict(msg) => (
-                StatusCode::CONFLICT,
-                "conflict",
-                msg.clone(),
-            ),
-            AppError::BadRequest(msg) => (
-                StatusCode::BAD_REQUEST,
-                "bad_request",
-                msg.clone(),
-            ),
-            AppError::Unauthorized => (
-                StatusCode::UNAUTHORIZED,
-                "unauthorized",
-                self.to_string(),
-            ),
-            AppError::Forbidden => (
-                StatusCode::FORBIDDEN,
-                "forbidden",
-                self.to_string(),
-            ),
+#[derive(Serialize)]
+struct ProblemDetails {
+    r#type: String,
+    title: String,
+    status: u16,
+    detail: String,
+}
+
+impl AppError {
+    fn to_problem(&self) -> (StatusCode, ProblemDetails) {
+        let (status, error_type, title) = match self {
+            AppError::NotFound => (StatusCode::NOT_FOUND, "not-found", "Not Found"),
+            AppError::Conflict(_) => (StatusCode::CONFLICT, "conflict", "Conflict"),
+            AppError::BadRequest(_) => (StatusCode::BAD_REQUEST, "bad-request", "Bad Request"),
+            AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "unauthorized", "Unauthorized"),
             AppError::Database(e) => {
-                // Map specific SQLx errors
-                if let sqlx::Error::RowNotFound = e {
-                    return AppError::NotFound.into_response();
+                if matches!(e, sqlx::Error::RowNotFound) {
+                    return AppError::NotFound.to_problem();
                 }
                 if let Some(db_err) = e.as_database_error() {
                     if db_err.is_unique_violation() {
-                        return AppError::Conflict("already exists".into()).into_response();
+                        return AppError::Conflict("Resource already exists".into()).to_problem();
                     }
                     if db_err.is_foreign_key_violation() {
-                        return AppError::BadRequest("invalid reference".into()).into_response();
+                        return AppError::BadRequest("Invalid reference".into()).to_problem();
                     }
                 }
                 tracing::error!("Database error: {:?}", e);
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "internal_error",
-                    "internal server error".to_string(),
-                )
+                (StatusCode::INTERNAL_SERVER_ERROR, "internal-error", "Internal Server Error")
             }
             AppError::Internal(e) => {
                 tracing::error!("Internal error: {:?}", e);
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "internal_error",
-                    "internal server error".to_string(),
-                )
+                (StatusCode::INTERNAL_SERVER_ERROR, "internal-error", "Internal Server Error")
             }
         };
 
-        let body = json!({
-            "type": format!("https://api.example.com/errors/{}", error_type),
-            "title": error_type.replace('_', " "),
-            "status": status.as_u16(),
-            "detail": message,
-        });
+        let detail = match self {
+            AppError::Database(_) | AppError::Internal(_) => "An unexpected error occurred".into(),
+            _ => self.to_string(),
+        };
 
-        (status, Json(body)).into_response()
+        (
+            status,
+            ProblemDetails {
+                r#type: format!("https://api.example.com/errors/{}", error_type),
+                title: title.into(),
+                status: status.as_u16(),
+                detail,
+            },
+        )
     }
 }
-```
 
-### Usage in Handlers
-
-```rust
-pub async fn get_user(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> Result<Json<User>, AppError> {
-    let user = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1", id)
-        .fetch_optional(&state.db)
-        .await?  // Database errors auto-convert
-        .ok_or(AppError::NotFound)?;  // None -> NotFound
-
-    Ok(Json(user))
-}
-
-pub async fn create_user(
-    State(state): State<AppState>,
-    Json(input): Json<CreateUserInput>,
-) -> Result<(StatusCode, Json<User>), AppError> {
-    let user = sqlx::query_as!(
-        User,
-        "INSERT INTO users (id, email, name) VALUES ($1, $2, $3) RETURNING *",
-        Uuid::new_v4(),
-        input.email,
-        input.name
-    )
-    .fetch_one(&state.db)
-    .await?;  // Unique violation -> Conflict automatically
-
-    Ok((StatusCode::CREATED, Json(user)))
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        let (status, problem) = self.to_problem();
+        (status, Json(problem)).into_response()
+    }
 }
 ```
 
 ---
 
-## Transaction Patterns
+## CRUD
 
-### Basic Transaction
+### Model + Repository
 
 ```rust
-pub async fn transfer_money(
-    State(state): State<AppState>,
-    Json(input): Json<TransferInput>,
-) -> Result<Json<Transfer>, AppError> {
-    let mut tx = state.db.begin().await?;
+// src/features/users/models.rs
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
+use uuid::Uuid;
+use crate::error::AppError;
 
-    // Debit from source
-    sqlx::query!(
-        "UPDATE accounts SET balance = balance - $1 WHERE id = $2",
+#[derive(Debug, Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct User {
+    pub id: Uuid,
+    pub email: String,
+    pub name: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateUser {
+    pub email: String,
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateUser {
+    pub name: Option<String>,
+}
+
+impl User {
+    pub async fn find(db: &PgPool, id: Uuid) -> Result<Option<Self>, AppError> {
+        sqlx::query_as!(Self, "SELECT * FROM users WHERE id = $1", id)
+            .fetch_optional(db)
+            .await
+            .map_err(Into::into)
+    }
+
+    pub async fn find_or_404(db: &PgPool, id: Uuid) -> Result<Self, AppError> {
+        Self::find(db, id).await?.ok_or(AppError::NotFound)
+    }
+
+    pub async fn list(db: &PgPool, limit: i64, offset: i64) -> Result<Vec<Self>, AppError> {
+        sqlx::query_as!(
+            Self,
+            "SELECT * FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2",
+            limit, offset
+        )
+        .fetch_all(db)
+        .await
+        .map_err(Into::into)
+    }
+
+    pub async fn create(db: &PgPool, input: CreateUser) -> Result<Self, AppError> {
+        sqlx::query_as!(
+            Self,
+            r#"
+            INSERT INTO users (id, email, name, created_at)
+            VALUES ($1, $2, $3, NOW())
+            RETURNING *
+            "#,
+            Uuid::new_v4(),
+            input.email,
+            input.name
+        )
+        .fetch_one(db)
+        .await
+        .map_err(Into::into)
+    }
+
+    pub async fn update(db: &PgPool, id: Uuid, input: UpdateUser) -> Result<Self, AppError> {
+        sqlx::query_as!(
+            Self,
+            "UPDATE users SET name = COALESCE($2, name) WHERE id = $1 RETURNING *",
+            id, input.name
+        )
+        .fetch_optional(db)
+        .await?
+        .ok_or(AppError::NotFound)
+    }
+
+    pub async fn delete(db: &PgPool, id: Uuid) -> Result<(), AppError> {
+        let result = sqlx::query!("DELETE FROM users WHERE id = $1", id)
+            .execute(db)
+            .await?;
+        
+        if result.rows_affected() == 0 {
+            return Err(AppError::NotFound);
+        }
+        Ok(())
+    }
+}
+```
+
+### Handlers
+
+```rust
+// src/features/users/handlers.rs
+use axum::{extract::{Path, Query}, Json};
+use serde::Deserialize;
+use uuid::Uuid;
+use crate::{extractors::Db, response::{Created, Ok, NoContent}, error::AppError};
+use super::models::{CreateUser, UpdateUser, User};
+
+#[derive(Deserialize)]
+pub struct ListParams {
+    #[serde(default = "default_limit")]
+    limit: i64,
+    #[serde(default)]
+    offset: i64,
+}
+
+fn default_limit() -> i64 { 20 }
+
+pub async fn list(Db(db): Db, Query(params): Query<ListParams>) -> Result<Ok<Vec<User>>, AppError> {
+    User::list(&db, params.limit, params.offset).await.map(Ok)
+}
+
+pub async fn get(Db(db): Db, Path(id): Path<Uuid>) -> Result<Ok<User>, AppError> {
+    User::find_or_404(&db, id).await.map(Ok)
+}
+
+pub async fn create(Db(db): Db, Json(input): Json<CreateUser>) -> Result<Created<User>, AppError> {
+    User::create(&db, input).await.map(Created)
+}
+
+pub async fn update(
+    Db(db): Db,
+    Path(id): Path<Uuid>,
+    Json(input): Json<UpdateUser>,
+) -> Result<Ok<User>, AppError> {
+    User::update(&db, id, input).await.map(Ok)
+}
+
+pub async fn delete(Db(db): Db, Path(id): Path<Uuid>) -> Result<NoContent, AppError> {
+    User::delete(&db, id).await.map(|_| NoContent)
+}
+```
+
+### Router
+
+```rust
+// src/features/users/router.rs
+use axum::{routing::get, Router};
+use super::handlers;
+
+pub fn router() -> Router<crate::AppState> {
+    Router::new()
+        .route("/users", get(handlers::list).post(handlers::create))
+        .route("/users/{id}", get(handlers::get).put(handlers::update).delete(handlers::delete))
+}
+```
+
+---
+
+## Transactions
+
+### With Validation
+
+```rust
+pub async fn transfer(
+    Db(db): Db,
+    Json(input): Json<TransferInput>,
+) -> Result<Created<Transfer>, AppError> {
+    let mut tx = db.begin().await?;
+
+    // Debit with balance check
+    let result = sqlx::query!(
+        "UPDATE accounts SET balance = balance - $1 WHERE id = $2 AND balance >= $1",
         input.amount,
         input.from_account
     )
     .execute(&mut *tx)
     .await?;
 
-    // Credit to destination
+    if result.rows_affected() == 0 {
+        return Err(AppError::BadRequest("Insufficient balance".into()));
+    }
+
+    // Credit
     sqlx::query!(
         "UPDATE accounts SET balance = balance + $1 WHERE id = $2",
         input.amount,
@@ -175,14 +359,10 @@ pub async fn transfer_money(
     .execute(&mut *tx)
     .await?;
 
-    // Record transfer
+    // Record
     let transfer = sqlx::query_as!(
         Transfer,
-        r#"
-        INSERT INTO transfers (id, from_account, to_account, amount)
-        VALUES ($1, $2, $3, $4)
-        RETURNING *
-        "#,
+        "INSERT INTO transfers (id, from_account, to_account, amount) VALUES ($1, $2, $3, $4) RETURNING *",
         Uuid::new_v4(),
         input.from_account,
         input.to_account,
@@ -192,21 +372,17 @@ pub async fn transfer_money(
     .await?;
 
     tx.commit().await?;
-
-    Ok(Json(transfer))
+    Ok(Created(transfer))
 }
 ```
 
-### Transaction with Validation
+### Row Locking
 
 ```rust
-pub async fn create_order(
-    State(state): State<AppState>,
-    Json(input): Json<CreateOrderInput>,
-) -> Result<Json<Order>, AppError> {
-    let mut tx = state.db.begin().await?;
+pub async fn create_order(db: &PgPool, input: CreateOrderInput) -> Result<Order, AppError> {
+    let mut tx = db.begin().await?;
 
-    // Check inventory (with row lock)
+    // Lock row
     let product = sqlx::query_as!(
         Product,
         "SELECT * FROM products WHERE id = $1 FOR UPDATE",
@@ -217,10 +393,9 @@ pub async fn create_order(
     .ok_or(AppError::NotFound)?;
 
     if product.stock < input.quantity {
-        return Err(AppError::BadRequest("insufficient stock".into()));
+        return Err(AppError::BadRequest("Insufficient stock".into()));
     }
 
-    // Decrement stock
     sqlx::query!(
         "UPDATE products SET stock = stock - $1 WHERE id = $2",
         input.quantity,
@@ -229,233 +404,68 @@ pub async fn create_order(
     .execute(&mut *tx)
     .await?;
 
-    // Create order
     let order = sqlx::query_as!(
         Order,
-        r#"
-        INSERT INTO orders (id, product_id, quantity, total)
-        VALUES ($1, $2, $3, $4)
-        RETURNING *
-        "#,
+        "INSERT INTO orders (id, product_id, quantity, total) VALUES ($1, $2, $3, $4) RETURNING *",
         Uuid::new_v4(),
         input.product_id,
         input.quantity,
-        product.price * input.quantity as f64
+        product.price * input.quantity as i64
     )
     .fetch_one(&mut *tx)
     .await?;
 
     tx.commit().await?;
-
-    Ok(Json(order))
+    Ok(order)
 }
 ```
 
 ---
 
-## Testing
+## Middleware (Tower Layers)
 
-### Test Setup with #[sqlx::test]
-
-```rust
-// tests/users.rs
-use sqlx::PgPool;
-
-#[sqlx::test]
-async fn test_create_user(pool: PgPool) {
-    // Test runs in transaction, auto-rollback after
-    let user = sqlx::query_as!(
-        User,
-        "INSERT INTO users (id, email, name) VALUES ($1, $2, $3) RETURNING *",
-        Uuid::new_v4(),
-        "test@example.com",
-        "Test User"
-    )
-    .fetch_one(&pool)
-    .await
-    .unwrap();
-
-    assert_eq!(user.email, "test@example.com");
-    // No cleanup needed - transaction rolls back
-}
-
-#[sqlx::test]
-async fn test_duplicate_email_fails(pool: PgPool) {
-    let id = Uuid::new_v4();
-    
-    // First insert
-    sqlx::query!(
-        "INSERT INTO users (id, email, name) VALUES ($1, $2, $3)",
-        id,
-        "dupe@example.com",
-        "First"
-    )
-    .execute(&pool)
-    .await
-    .unwrap();
-
-    // Second insert with same email should fail
-    let result = sqlx::query!(
-        "INSERT INTO users (id, email, name) VALUES ($1, $2, $3)",
-        Uuid::new_v4(),
-        "dupe@example.com",
-        "Second"
-    )
-    .execute(&pool)
-    .await;
-
-    assert!(result.is_err());
-    let err = result.unwrap_err();
-    assert!(err.as_database_error().unwrap().is_unique_violation());
-}
-```
-
-### Integration Test with Axum
+### App Composition
 
 ```rust
-use axum::{
-    body::Body,
-    http::{Request, StatusCode},
+// src/main.rs
+use axum::Router;
+use std::time::Duration;
+use tower::ServiceBuilder;
+use tower_http::{
+    compression::CompressionLayer,
+    cors::{Any, CorsLayer},
+    timeout::TimeoutLayer,
+    trace::TraceLayer,
 };
-use tower::ServiceExt;  // for oneshot
 
-async fn setup_test_app() -> (Router, PgPool) {
-    let pool = PgPoolOptions::new()
-        .connect(&std::env::var("TEST_DATABASE_URL").unwrap())
-        .await
-        .unwrap();
+#[tokio::main]
+async fn main() {
+    tracing_subscriber::fmt::init();
 
-    let state = AppState { db: pool.clone() };
-    let app = create_router(state);
+    let db = db::connect().await;
+    let state = AppState { db };
 
-    (app, pool)
-}
-
-#[tokio::test]
-async fn test_get_user_not_found() {
-    let (app, _pool) = setup_test_app().await;
-
-    let response = app
-        .oneshot(
-            Request::builder()
-                .uri("/users/00000000-0000-0000-0000-000000000000")
-                .body(Body::empty())
-                .unwrap(),
+    let app = Router::new()
+        .merge(users::router())
+        .layer(
+            ServiceBuilder::new()
+                .layer(TraceLayer::new_for_http())
+                .layer(TimeoutLayer::new(Duration::from_secs(10)))
+                .layer(CompressionLayer::new())
+                .layer(
+                    CorsLayer::new()
+                        .allow_origin(["https://example.com".parse().unwrap()])
+                        .allow_methods(Any),
+                ),
         )
-        .await
-        .unwrap();
+        .with_state(state);
 
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
-}
-
-#[tokio::test]
-async fn test_create_user_success() {
-    let (app, _pool) = setup_test_app().await;
-
-    let response = app
-        .oneshot(
-            Request::builder()
-                .method("POST")
-                .uri("/users")
-                .header("Content-Type", "application/json")
-                .body(Body::from(
-                    r#"{"email": "new@example.com", "name": "New User"}"#,
-                ))
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::CREATED);
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 ```
 
-### Test Fixtures
-
-```rust
-// tests/fixtures.rs
-use sqlx::PgPool;
-
-pub struct TestFixtures {
-    pub user_id: Uuid,
-    pub product_id: Uuid,
-}
-
-impl TestFixtures {
-    pub async fn create(pool: &PgPool) -> Self {
-        let user_id = Uuid::new_v4();
-        let product_id = Uuid::new_v4();
-
-        sqlx::query!(
-            "INSERT INTO users (id, email, name) VALUES ($1, $2, $3)",
-            user_id,
-            "fixture@example.com",
-            "Fixture User"
-        )
-        .execute(pool)
-        .await
-        .unwrap();
-
-        sqlx::query!(
-            "INSERT INTO products (id, name, price, stock) VALUES ($1, $2, $3, $4)",
-            product_id,
-            "Test Product",
-            99.99,
-            100
-        )
-        .execute(pool)
-        .await
-        .unwrap();
-
-        Self { user_id, product_id }
-    }
-}
-
-#[sqlx::test]
-async fn test_create_order_with_fixtures(pool: PgPool) {
-    let fixtures = TestFixtures::create(&pool).await;
-
-    // Now use fixtures.user_id, fixtures.product_id in tests
-}
-```
-
----
-
-## Middleware Patterns
-
-### Request ID Middleware
-
-```rust
-use axum::{
-    extract::Request,
-    middleware::Next,
-    response::Response,
-};
-use uuid::Uuid;
-
-pub async fn request_id_middleware(mut request: Request, next: Next) -> Response {
-    let request_id = Uuid::new_v4().to_string();
-    
-    request
-        .headers_mut()
-        .insert("x-request-id", request_id.parse().unwrap());
-
-    let mut response = next.run(request).await;
-    
-    response
-        .headers_mut()
-        .insert("x-request-id", request_id.parse().unwrap());
-
-    response
-}
-
-// Apply to router
-let app = Router::new()
-    .route("/users", get(list_users))
-    .layer(middleware::from_fn(request_id_middleware));
-```
-
-### Auth Middleware
+### Auth Layer
 
 ```rust
 use axum::{
@@ -463,35 +473,135 @@ use axum::{
     middleware::Next,
     response::Response,
 };
+use crate::{AppState, error::AppError};
 
-pub async fn auth_middleware(
+pub async fn require_auth(
     State(state): State<AppState>,
-    mut request: Request,
+    mut req: Request,
     next: Next,
 ) -> Result<Response, AppError> {
-    let auth_header = request
+    let token = req
         .headers()
         .get("Authorization")
         .and_then(|h| h.to_str().ok())
+        .and_then(|h| h.strip_prefix("Bearer "))
         .ok_or(AppError::Unauthorized)?;
 
-    let token = auth_header
-        .strip_prefix("Bearer ")
-        .ok_or(AppError::Unauthorized)?;
-
-    let user = verify_token_and_get_user(&state.db, token)
+    let user = verify_token(&state.db, token)
         .await?
         .ok_or(AppError::Unauthorized)?;
 
-    request.extensions_mut().insert(user);
-
-    Ok(next.run(request).await)
+    req.extensions_mut().insert(user);
+    Ok(next.run(req).await)
 }
 
-// Extract user in handler
-pub async fn protected_handler(
-    Extension(user): Extension<User>,
-) -> impl IntoResponse {
-    Json(user)
+// Compose: wrap routes with auth layer
+use axum::middleware;
+
+let protected = Router::new()
+    .route("/me", get(get_current_user))
+    .route("/settings", put(update_settings))
+    .layer(middleware::from_fn_with_state(state.clone(), require_auth));
+
+let public = Router::new()
+    .route("/health", get(health_check));
+
+let app = Router::new()
+    .merge(protected)
+    .merge(public)
+    .with_state(state);
+```
+
+### Request ID Layer
+
+```rust
+use axum::{extract::Request, middleware::Next, response::Response};
+use uuid::Uuid;
+
+pub async fn request_id(mut req: Request, next: Next) -> Response {
+    let id = Uuid::new_v4().to_string();
+    req.headers_mut().insert("x-request-id", id.parse().unwrap());
+
+    let mut res = next.run(req).await;
+    res.headers_mut().insert("x-request-id", id.parse().unwrap());
+    res
+}
+```
+
+---
+
+## Testing
+
+### Repository Tests
+
+```rust
+#[sqlx::test]
+async fn test_create_user(pool: PgPool) {
+    let user = User::create(&pool, CreateUser {
+        email: "test@example.com".into(),
+        name: "Test".into(),
+    })
+    .await
+    .unwrap();
+
+    assert_eq!(user.email, "test@example.com");
+}
+
+#[sqlx::test]
+async fn test_duplicate_email_returns_conflict(pool: PgPool) {
+    let input = CreateUser {
+        email: "dupe@example.com".into(),
+        name: "First".into(),
+    };
+    User::create(&pool, input.clone()).await.unwrap();
+
+    let err = User::create(&pool, input).await.unwrap_err();
+    assert!(matches!(err, AppError::Conflict(_)));
+}
+
+#[sqlx::test]
+async fn test_delete_nonexistent_returns_not_found(pool: PgPool) {
+    let err = User::delete(&pool, Uuid::new_v4()).await.unwrap_err();
+    assert!(matches!(err, AppError::NotFound));
+}
+```
+
+### HTTP Tests
+
+```rust
+use axum::{body::Body, http::{Request, StatusCode}};
+use tower::ServiceExt;
+
+#[tokio::test]
+async fn test_get_returns_404_for_nonexistent() {
+    let app = test_app().await;
+
+    let res = app
+        .oneshot(
+            Request::get("/users/00000000-0000-0000-0000-000000000000")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn test_create_returns_201() {
+    let app = test_app().await;
+
+    let res = app
+        .oneshot(
+            Request::post("/users")
+                .header("Content-Type", "application/json")
+                .body(Body::from(r#"{"email":"new@test.com","name":"New"}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::CREATED);
 }
 ```

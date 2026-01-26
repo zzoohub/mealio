@@ -6,13 +6,37 @@ description: |
   Do not use for: API design decisions (use api-design skill).
   Workflow: api-design (design) → this skill (implementation).
 references:
-  - examples.md    # Transaction, testing, error handling patterns
+  - examples.md
 ---
 
 # Axum + SQLx
 
-**For latest axum APIs, use context7.**
-**For latest sqlx APIs, use context7.**
+**For latest APIs, use context7.**
+
+---
+
+## Core Philosophy
+
+Axum is built on **Tower** - a composable middleware stack.
+
+```
+Request → [Layer₁ → Layer₂ → ... → Handler] → Response
+```
+
+Everything is a **Service** (request → response). Layers wrap services to add behavior. This enables:
+- Reusable middleware
+- Type-safe composition
+- Zero-cost abstractions
+
+```rust
+// Each layer wraps the inner service, forming a pipeline
+Router::new()
+    .route("/users/{id}", get(get_user))
+    .layer(CompressionLayer::new())   // Layer 3: outermost
+    .layer(TimeoutLayer::new(...))    // Layer 2
+    .layer(TraceLayer::new_for_http()) // Layer 1: innermost
+```
+
 ---
 
 ## Project Structure
@@ -20,174 +44,106 @@ references:
 ```
 src/
 ├── main.rs
-├── config.rs
-├── db.rs                # Pool setup
-├── error.rs             # AppError + IntoResponse
+├── lib.rs             # AppState, re-exports
+├── error.rs           # AppError (RFC 9457)
+├── extractors.rs      # Db, ValidatedJson
+├── response.rs        # Created<T>, Ok<T>
 └── features/
     └── users/
         ├── mod.rs
         ├── router.rs
         ├── handlers.rs
-        ├── models.rs
-        └── service.rs
+        └── models.rs  # Entity + repository
 migrations/
-.sqlx/                   # Offline cache (COMMIT THIS)
+.sqlx/                 # Commit this
 ```
 
 ---
 
-## Critical Patterns
+## Abstractions
 
-### State (Don't Double-Arc)
+### Response Types
 
 ```rust
-// PgPool is Arc internally - NEVER wrap again
-#[derive(Clone)]
-pub struct AppState {
-    pub db: PgPool,  // ✅ Direct
-    // pub db: Arc<PgPool>,  // ❌ Double Arc
-}
+async fn create(...) -> Result<Created<User>, AppError>  // 201
+async fn get(...) -> Result<Ok<User>, AppError>          // 200
+async fn delete(...) -> Result<NoContent, AppError>      // 204
 ```
 
-**Rule: `PgPool` is already `Arc`. Wrapping again wastes memory.**
-
-### Route Syntax (Axum 0.8+)
+### Db Extractor
 
 ```rust
-// ❌ Old syntax (0.7 and below)
-.route("/users/:id", get(get_user))
-
-// ✅ New syntax (0.8+)
-.route("/users/{id}", get(get_user))
+async fn handler(Db(db): Db, Path(id): Path<Uuid>) -> Result<Ok<User>, AppError>
 ```
 
-**Rule: Axum 0.8 uses `{id}`, not `:id`.**
-
-### Transaction Dereference
+### Repository
 
 ```rust
-let mut tx = state.db.begin().await?;
+User::find_or_404(&db, id).await?
+User::create(&db, input).await?
+```
 
-// ❌ Won't compile
-sqlx::query!(...).fetch_one(tx).await?;
+---
 
-// ✅ Dereference with &mut *tx
-sqlx::query!(...).fetch_one(&mut *tx).await?;
+## Decision Guide
 
+### Query Method
+
+| Situation | Method |
+|-----------|--------|
+| Must exist | `fetch_one` |
+| May not exist | `fetch_optional` → `.ok_or(AppError::NotFound)` |
+| List | `fetch_all` |
+
+### Transaction Scope
+
+Keep transactions short. No external calls inside tx.
+
+```rust
+// ✅ External call outside tx
+let external = api.call().await?;
+let mut tx = db.begin().await?;
+// DB only
 tx.commit().await?;
 ```
 
-**Rule: Always use `&mut *tx` when passing transaction to queries.**
-
-### Query Method Selection
-
-| Method | Returns | Use when |
-|--------|---------|----------|
-| `fetch_one` | Row or `RowNotFound` | Row MUST exist |
-| `fetch_optional` | `Option<Row>` | Row might not exist |
-| `fetch_all` | `Vec<Row>` (empty ok) | List |
-
-```rust
-// ❌ Errors if user doesn't exist
-let user = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1", id)
-    .fetch_one(&state.db)
-    .await?;
-
-// ✅ Handle missing gracefully
-let user = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1", id)
-    .fetch_optional(&state.db)
-    .await?
-    .ok_or(AppError::NotFound)?;
-```
-
-**Rule: Use `fetch_optional` for lookups. `fetch_one` only when row must exist.**
-
----
-
-## SQLx Type Mapping
-
-| Postgres | Rust | Required Feature |
-|----------|------|------------------|
-| `UUID` | `uuid::Uuid` | `sqlx/uuid` |
-| `TIMESTAMPTZ` | `chrono::DateTime<Utc>` | `sqlx/chrono` |
-| `JSONB` | `serde_json::Value` | `sqlx/json` |
-| `BIGINT` | `i64` | - |
-| Nullable column | `Option<T>` | - |
-
-**Rule: Nullable column must be `Option<T>`. Mismatch = runtime panic.**
-
----
-
-## Offline Mode (CI/CD)
-
-```bash
-# 1. Generate cache locally (requires DATABASE_URL)
-cargo sqlx prepare
-
-# 2. Commit .sqlx/ directory
-git add .sqlx/
-
-# 3. In CI (no database needed)
-SQLX_OFFLINE=true cargo build
-```
-
-**Rule: Always commit `.sqlx/`. Run `cargo sqlx prepare` before pushing.**
-
----
-
-## Common Gotchas
-
-| Problem | Cause | Fix |
-|---------|-------|-----|
-| Pool timeout | Connections exhausted | Add `acquire_timeout`, check long txns |
-| Compile error (no DB) | DATABASE_URL missing | `cargo sqlx prepare` + `SQLX_OFFLINE=true` |
-| RowNotFound | `fetch_one` on missing | Use `fetch_optional` |
-| Checksum error | Migration modified | Never modify applied migrations |
-| Type mismatch panic | Nullable without Option | Match nullability exactly |
-
-### Pool Configuration
+### Pool Config
 
 ```rust
 PgPoolOptions::new()
     .max_connections(10)
-    .acquire_timeout(Duration::from_secs(3))  // Fail fast
-    .idle_timeout(Duration::from_secs(600))
-    .connect(database_url)
-    .await?
+    .acquire_timeout(Duration::from_secs(3))  // Required
 ```
-
-**Rule: Always set `acquire_timeout`. Silent hangs are worse than errors.**
 
 ---
 
-## Quick Checklist
-
-### Syntax
-- [ ] `{id}` for path params (not `:id`)
-- [ ] `&mut *tx` for transactions
-
-### SQLx
-- [ ] `fetch_optional` for lookups
-- [ ] Nullable columns are `Option<T>`
-- [ ] `.sqlx/` committed
-- [ ] `cargo sqlx prepare` before CI
-
-### Pool
-- [ ] No double Arc on PgPool
-- [ ] `acquire_timeout` set
-- [ ] Don't hold transactions long
-
-### Errors
-- [ ] `AppError` implements `IntoResponse`
-- [ ] Map `sqlx::Error` to proper HTTP status
-
-## Security Configuration
+## Security
 
 | Item | Value |
 |------|-------|
-| Password hashing | argon2id (64MB memory) or bcrypt 12 rounds |
-| JWT access token | 1 hour |
-| JWT refresh token (web) | 90 days |
-| JWT refresh token (mobile) | 1 year |
-| JWT algorithm | HS256 |
-| CORS | Explicit origins only |
+| Password | argon2id (64MB) |
+| JWT access | 15-30 min |
+| JWT refresh | 90 days (web), 1 year (mobile) |
+| CORS | Explicit origins |
+
+---
+
+## CI/CD
+
+```bash
+cargo sqlx prepare
+git add .sqlx/
+SQLX_OFFLINE=true cargo build
+```
+
+---
+
+## Checklist
+
+- [ ] Response types (`Created`, `Ok`, `NoContent`)
+- [ ] RFC 9457 error responses
+- [ ] `Db` extractor
+- [ ] Repository pattern
+- [ ] Tower layers for cross-cutting concerns
+- [ ] `acquire_timeout` set
+- [ ] `.sqlx/` committed
