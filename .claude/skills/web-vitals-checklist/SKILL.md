@@ -1,15 +1,14 @@
 ---
-name: web-performance-check
+name: web-vitals-checklist
 description: |
-  Core Web Vitals targets and performance verification checklist.
-  Use when: verifying performance after optimization, auditing web performance, checking CWV targets.
-  Do not use for: implementation details (use vercel-react-best-practices or framework-specific skills).
-  Workflow: Use as final verification after feature implementation and code optimization.
+  Core Web Vitals targets and performance checklist.
+  Use when: reviewing code for performance, setting performance targets, defining budgets.
+  For automated measurement: use web-vitals-auditor sub-agent.
 ---
 
-# Web Performance Check
+# Web Vitals Checklist
 
-Framework-agnostic performance audit checklist. Focuses on **what to verify**, not how to implement.
+Framework-agnostic performance criteria. Focuses on **what to verify**, not how to measure.
 
 ---
 
@@ -234,32 +233,3 @@ Framework-agnostic performance audit checklist. Focuses on **what to verify**, n
 | Images (above-fold) | < 500KB |
 | Fonts | < 100KB |
 | Third-party (total) | < 100KB |
-
----
-
-## Measurement Tools
-
-### Lab Testing
-- Lighthouse (Chrome DevTools)
-- WebPageTest
-- PageSpeed Insights
-
-### Field Data
-- Chrome UX Report (CrUX)
-- Google Search Console (Core Web Vitals report)
-- RUM providers
-
-### Debugging
-- Chrome DevTools Performance panel
-- Chrome DevTools Coverage panel
-- Network waterfall analysis
-
----
-
-## Audit Workflow
-
-1. **Measure**: Run Lighthouse, review CrUX field data
-2. **Identify**: Find largest contributors to each metric
-3. **Prioritize**: Address highest-impact issues first
-4. **Verify**: Re-measure after each change
-5. **Monitor**: Track field metrics continuously
