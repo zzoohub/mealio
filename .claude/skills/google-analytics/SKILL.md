@@ -3,7 +3,7 @@ name: google-analytics
 description: |
   GA4 event tracking patterns and taxonomy.
   Use when: implementing analytics, tracking user events, e-commerce tracking.
-  Do not use for: general performance optimization (use performance-patterns skill).
+  Do not use for: general performance optimization.
   Workflow: Set up after core features are built.
 ---
 

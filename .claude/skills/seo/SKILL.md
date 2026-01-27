@@ -3,7 +3,7 @@ name: seo
 description: |
   SEO checklist and structured data patterns.
   Use when: setting up metadata, structured data, OG images, multi-language SEO.
-  Do not use for: general web performance (use performance-patterns skill).
+  Do not use for: general web performance.
   Workflow: Use alongside nextjs skill.
 ---
 

@@ -1,129 +1,265 @@
 ---
-name: performance-patterns
+name: web-performance-check
 description: |
-  Web performance patterns and Core Web Vitals optimization.
-  Use when: optimizing load times, fixing CWV issues, code splitting.
-  Do not use for: SEO (use seo skill), general React patterns (use nextjs skill).
-  Workflow: Use after core features are built.
+  Core Web Vitals targets and performance verification checklist.
+  Use when: verifying performance after optimization, auditing web performance, checking CWV targets.
+  Do not use for: implementation details (use vercel-react-best-practices or framework-specific skills).
+  Workflow: Use as final verification after feature implementation and code optimization.
 ---
 
-# Performance Patterns
+# Web Performance Check
 
-**For latest framework APIs, use context7.**
+Framework-agnostic performance audit checklist. Focuses on **what to verify**, not how to implement.
 
 ---
 
 ## Core Web Vitals Targets
 
-| Metric | Target | Measures |
-|--------|--------|----------|
-| LCP (Largest Contentful Paint) | < 2.5s | Loading |
-| INP (Interaction to Next Paint) | < 200ms | Responsiveness |
-| CLS (Cumulative Layout Shift) | < 0.1 | Visual stability |
+| Metric | Pass | Excellent |
+|--------|------|-----------|
+| LCP (Largest Contentful Paint) | < 2.5s | < 1.5s |
+| INP (Interaction to Next Paint) | < 200ms | < 100ms |
+| CLS (Cumulative Layout Shift) | < 0.1 | < 0.05 |
+| TTFB (Time to First Byte) | < 800ms | < 400ms |
+| FCP (First Contentful Paint) | < 1.8s | < 1.0s |
+
+- **Pass**: Google official threshold. No SEO penalty.
+- **Excellent**: Top-tier site performance. Unofficial target.
 
 ---
 
-## Quick Wins
+## 1. Loading Performance (LCP)
 
-### 1. Lighter Alternatives
+### Critical Path
+- [ ] No render-blocking resources in document head
+- [ ] Critical resources load before non-critical
+- [ ] Document response starts within TTFB target
 
-| Heavy | Light | Savings |
-|-------|-------|---------|
-| moment.js | date-fns, dayjs | ~300KB → ~2KB |
-| lodash (full) | lodash-es (tree-shake) | ~70KB → ~5KB |
-| axios | fetch (native) | ~13KB → 0 |
+### LCP Element
+- [ ] LCP element identified and loads early
+- [ ] LCP element not lazy-loaded
+- [ ] LCP image prioritized over other resources
+- [ ] No client-side rendering delays for LCP content
 
-**Rule: Import only what you need.**
-
-```typescript
-// ❌ Imports entire lodash
-import _ from 'lodash';
-
-// ✅ Import only what you need
-import debounce from 'lodash/debounce';
-```
-
-### 2. Code Splitting
-
-**Rule: Split large components that aren't needed on initial load.**
-
-- Route-based: Automatic in Next.js App Router, Expo Router
-- Component-based: Use dynamic imports for heavy components
-- Library-based: Import heavy libraries only when needed
-
-**For implementation, use `context7` MCP or see:**
-- [Next.js Dynamic Imports](https://nextjs.org/docs/app/building-your-application/optimizing/lazy-loading)
-- [React.lazy](https://react.dev/reference/react/lazy)
-
-### 3. Dynamic Import for Libraries
-
-**Rule: Load heavy libraries only when user triggers the action.**
-
-```typescript
-async function exportToPDF() {
-  const { jsPDF } = await import('jspdf');
-  // use jsPDF...
-}
-```
+### Resource Loading
+- [ ] Critical third-party origins connected early
+- [ ] Above-fold images load without delay
+- [ ] No unnecessary redirects in critical path
 
 ---
 
-## Layout Stability (CLS)
+## 2. Interactivity (INP)
 
-**Rule: Always reserve space for dynamic content.**
+### Main Thread
+- [ ] No long tasks (> 50ms) during interaction
+- [ ] Heavy computation offloaded from main thread
+- [ ] Event handlers complete within 100ms
 
-| Element | Solution |
-|---------|----------|
-| Images | Set width/height or aspect-ratio |
-| Dynamic content | Set minHeight, use skeleton |
-| Fonts | Use font-display: swap |
-| Ads/embeds | Reserve container space |
+### Input Response
+- [ ] Visual feedback appears immediately on interaction
+- [ ] Input events not blocked by other scripts
+- [ ] Frequent events (scroll, input) properly throttled
 
----
-
-## Data Fetching
-
-**Rule: Cache aggressively, prefetch on intent.**
-
-| Pattern | When |
-|---------|------|
-| staleTime | Data that doesn't change often |
-| Prefetch on hover | Links user is likely to click |
-| Background refetch | Keep data fresh without blocking |
+### Script Execution
+- [ ] Third-party scripts don't block user interaction
+- [ ] No synchronous storage access in interaction handlers
+- [ ] DOM updates batched efficiently
 
 ---
 
-## Expensive Operations
+## 3. Visual Stability (CLS)
 
-| Pattern | Use for |
-|---------|---------|
-| Debounce | Search inputs, resize handlers |
-| Throttle | Scroll handlers, frequent events |
-| Virtualization | Lists > 100 items |
-| Web Workers | Heavy computations |
+### Layout Reservation
+- [ ] Images have dimensions before load
+- [ ] Videos and iframes have reserved space
+- [ ] Ads and embeds don't shift content
+- [ ] Dynamic content has minimum space reserved
+
+### Font Stability
+- [ ] Text doesn't reflow after font load
+- [ ] Fallback font size matches web font
+- [ ] No invisible text during font load (unless intended)
+
+### Content Injection
+- [ ] No content inserted above existing content
+- [ ] Animations don't trigger layout shifts
+- [ ] Skeleton/placeholder matches final content size
 
 ---
 
-## Quick Checklist
+## 4. Network & Caching
 
-### Loading (LCP)
-- [ ] Critical CSS inlined
-- [ ] Images optimized (WebP/AVIF, proper sizing)
-- [ ] Fonts preloaded
-- [ ] Heavy libraries dynamically imported
+### Cache Effectiveness
+- [ ] Static assets cached long-term
+- [ ] Cache hit rate > 80% for repeat visits
+- [ ] API responses cached appropriately
+- [ ] No unnecessary network requests on repeat visits
 
-### Responsiveness (INP)
-- [ ] Click handlers are fast
-- [ ] Heavy work deferred
-- [ ] Expensive operations debounced
+### Compression
+- [ ] Text resources compressed (Brotli preferred)
+- [ ] Compression ratio reasonable for content type
 
-### Stability (CLS)
-- [ ] Images have width/height
-- [ ] Dynamic content has reserved space
-- [ ] Fonts use font-display: swap
-- [ ] No layout-shifting ads/embeds
+### Protocol
+- [ ] HTTP/2 or HTTP/3 in use
+- [ ] Connection reuse effective
+- [ ] No excessive parallel connections to same origin
 
-### Bundle
-- [ ] No full lodash/moment imports
-- [ ] Large components code-split
-- [ ] Bundle analyzed for bloat
+### CDN
+- [ ] Static assets served from edge locations
+- [ ] Cache headers set correctly at edge
+- [ ] Geographic latency acceptable for target users
+
+---
+
+## 5. Images
+
+### Format Efficiency
+- [ ] Modern formats used where supported (WebP, AVIF)
+- [ ] Format appropriate for content type
+- [ ] No unnecessarily high quality settings
+
+### Sizing
+- [ ] Images not larger than display size
+- [ ] Responsive images serve appropriate sizes
+- [ ] No oversized images on mobile
+
+### Loading Behavior
+- [ ] Below-fold images lazy-loaded
+- [ ] Above-fold images load immediately
+- [ ] No layout shift when images load
+
+---
+
+## 6. JavaScript
+
+### Bundle Size
+- [ ] Total JS size within budget
+- [ ] No duplicate dependencies in bundle
+- [ ] Dead code eliminated
+
+### Loading Behavior
+- [ ] Critical JS loads first
+- [ ] Non-critical JS deferred
+- [ ] Third-party scripts don't block page load
+
+### Code Splitting
+- [ ] Routes load only required code
+- [ ] Large features split into separate chunks
+- [ ] Initial bundle minimal
+
+### Dependencies
+- [ ] No unused dependencies in bundle
+- [ ] Heavy libraries loaded only when needed
+- [ ] No full library imports when subset sufficient
+
+---
+
+## 7. CSS
+
+### Delivery
+- [ ] Critical CSS available immediately
+- [ ] Non-critical CSS doesn't block render
+- [ ] Total CSS size within budget
+
+### Efficiency
+- [ ] No unused CSS in critical path
+- [ ] Selector complexity reasonable
+- [ ] No excessive specificity wars
+
+### Animation Performance
+- [ ] Animations don't trigger layout recalculation
+- [ ] Animations run at 60fps
+- [ ] Off-screen content rendering optimized
+
+---
+
+## 8. Fonts
+
+### Loading Impact
+- [ ] Fonts don't block text rendering excessively
+- [ ] Font files load within LCP budget
+- [ ] No visible font swap flash (or acceptable)
+
+### Efficiency
+- [ ] Font files reasonably sized
+- [ ] Only necessary font weights loaded
+- [ ] Font family count minimal
+
+---
+
+## 9. Third-Party Scripts
+
+### Audit
+- [ ] All third-party scripts justified and necessary
+- [ ] Third-party impact measured and acceptable
+- [ ] Unused third-party scripts removed
+
+### Performance Impact
+- [ ] Third-party scripts don't block page load
+- [ ] Third-party scripts don't degrade INP
+- [ ] Third-party content doesn't cause CLS
+
+### Resilience
+- [ ] Page functional if third-party fails
+- [ ] Third-party timeouts don't block critical path
+
+---
+
+## 10. Server Performance
+
+### Response Time
+- [ ] Server response within TTFB target
+- [ ] Database queries not blocking response
+- [ ] Server-side caching effective
+
+### Infrastructure
+- [ ] Server located near target users (or edge deployed)
+- [ ] Server resources adequate for load
+- [ ] No bottlenecks under normal traffic
+
+### Monitoring
+- [ ] Real User Monitoring (RUM) active
+- [ ] Core Web Vitals tracked in production
+- [ ] Performance regression alerts configured
+
+---
+
+## Performance Budget
+
+| Resource | Budget |
+|----------|--------|
+| Total page weight | < 1.5MB |
+| JavaScript (compressed) | < 300KB |
+| CSS (compressed) | < 100KB |
+| Images (above-fold) | < 500KB |
+| Fonts | < 100KB |
+| Third-party (total) | < 100KB |
+
+---
+
+## Measurement Tools
+
+### Lab Testing
+- Lighthouse (Chrome DevTools)
+- WebPageTest
+- PageSpeed Insights
+
+### Field Data
+- Chrome UX Report (CrUX)
+- Google Search Console (Core Web Vitals report)
+- RUM providers
+
+### Debugging
+- Chrome DevTools Performance panel
+- Chrome DevTools Coverage panel
+- Network waterfall analysis
+
+---
+
+## Audit Workflow
+
+1. **Measure**: Run Lighthouse, review CrUX field data
+2. **Identify**: Find largest contributors to each metric
+3. **Prioritize**: Address highest-impact issues first
+4. **Verify**: Re-measure after each change
+5. **Monitor**: Track field metrics continuously
