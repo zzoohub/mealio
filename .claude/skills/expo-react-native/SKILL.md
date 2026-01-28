@@ -4,7 +4,7 @@ description: |
   Expo/React Native project conventions and patterns.
   Use when: building cross-platform mobile apps with Expo, React Native screens, mobile-specific logic.
   Do not use for: UX decisions (use ux-design), token/component design (use design-system), web-only features.
-  Workflow: this skill (mobile integration) -> velcel-react-native-skills (performance optimization).
+  Workflow: this skill (building mobile apps) -> velcel-react-native-skills (refactoring and performance optimization if needed).
 references:
   - examples.md    # Auth Guard, State Persistence, Forms, Animations code
 ---
