@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/shared/ui/theme';
 import { tokens } from '@/shared/ui/tokens';
@@ -63,7 +63,7 @@ export function MealTypeFilterChips({
       {MEAL_TYPE_OPTIONS.map((option) => {
         const active = isSelected(option.value);
         return (
-          <TouchableOpacity
+          <Pressable
             key={option.value}
             style={[
               styles.chip,
@@ -74,7 +74,6 @@ export function MealTypeFilterChips({
             ]}
             onPress={() => handlePress(option.value)}
             disabled={disabled}
-            activeOpacity={0.7}
           >
             <Ionicons
               name={option.icon as any}
@@ -89,7 +88,7 @@ export function MealTypeFilterChips({
             >
               {option.label}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         );
       })}
     </View>

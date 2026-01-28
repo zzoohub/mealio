@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { createStyles, useStyles } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
@@ -29,9 +29,9 @@ export function CameraPermissionScreen({ onRequestPermission, labels }: CameraPe
       <Ionicons name="camera-outline" size={80} color={s.icon.color} />
       <Text style={[styles.title, s.title]}>{labels.title}</Text>
       <Text style={[styles.message, s.message]}>{labels.message}</Text>
-      <TouchableOpacity style={[styles.button, s.button]} onPress={onRequestPermission}>
+      <Pressable style={[styles.button, s.button]} onPress={onRequestPermission}>
         <Text style={styles.buttonText}>{labels.buttonText}</Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }

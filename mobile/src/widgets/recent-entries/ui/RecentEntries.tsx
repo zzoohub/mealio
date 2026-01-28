@@ -17,8 +17,10 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Image, TouchableOpacity } from 'react-native';
+import { Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Box, Text, HStack, VStack, Card } from '@/shared/ui/styled';
 import { createStyles, useStyles } from '@/shared/ui/theme';
@@ -100,7 +102,7 @@ function Header({ onSeeAll }: HeaderProps) {
         Recent Meals
       </Text>
       {onSeeAll && (
-        <TouchableOpacity onPress={onSeeAll}>
+        <Pressable onPress={onSeeAll}>
           <HStack gap="xs" align="center">
             <Text variant="bodySmall" color="link">
               See All
@@ -111,7 +113,7 @@ function Header({ onSeeAll }: HeaderProps) {
               color={s.chevron.color}
             />
           </HStack>
-        </TouchableOpacity>
+        </Pressable>
       )}
     </HStack>
   );
@@ -228,20 +230,20 @@ export default function RecentEntries({ onSeeAll }: RecentEntriesProps) {
   return (
     <Box mb="lg">
       <Header onSeeAll={onSeeAll} />
-      <ScrollView
+      <FlashList
         horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingLeft: 0 }}
-      >
-        {recentEntries.map((entry) => (
+        data={recentEntries}
+        renderItem={({ item }) => (
           <EntryCardItem
-            key={entry.id}
-            entry={entry}
-            onPress={() => handleEntryPress(entry)}
+            entry={item}
+            onPress={() => handleEntryPress(item)}
             formatTime={formatRelativeTime}
           />
-        ))}
-      </ScrollView>
+        )}
+        keyExtractor={(item) => item.id}
+        estimatedItemSize={156}
+        showsHorizontalScrollIndicator={false}
+      />
     </Box>
   );
 }

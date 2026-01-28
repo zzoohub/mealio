@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Pressable, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -66,7 +66,7 @@ function SignInCard({ title, description, onPress }: SignInCardProps) {
   const { colors } = useTheme();
 
   return (
-    <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
+    <Pressable onPress={onPress}>
       <View style={[s.profileCard, { borderColor: colors.interactive.primary + "40" }]}>
         <HStack gap="md" align="center" style={s.profileContent}>
           <View style={[s.signInAvatar, { backgroundColor: colors.interactive.primary + "15" }]}>
@@ -83,7 +83,7 @@ function SignInCard({ title, description, onPress }: SignInCardProps) {
           <Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />
         </HStack>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -163,9 +163,9 @@ function SettingsRow({
   }
 
   return (
-    <TouchableOpacity activeOpacity={0.7} onPress={onPress} disabled={disabled} style={{ opacity: disabled ? 0.5 : 1 }}>
+    <Pressable onPress={onPress} disabled={disabled} style={{ opacity: disabled ? 0.5 : 1 }}>
       {content}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

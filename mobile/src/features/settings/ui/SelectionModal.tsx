@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { createStyles, useStyles, useTheme } from '@/shared/ui/theme';
 import { Text, Card, Button } from '@/shared/ui/styled';
@@ -56,10 +56,9 @@ export function SelectionModal({
 
     return (
       <Card key={option.value} variant="filled" style={s.optionCard}>
-        <TouchableOpacity
+        <Pressable
           style={s.optionContent}
           onPress={() => handleSelect(option.value)}
-          activeOpacity={0.7}
         >
           <View style={s.optionLeft}>
             <Text style={s.optionLabel}>{option.label}</Text>
@@ -74,7 +73,7 @@ export function SelectionModal({
               color={colors.interactive.primary}
             />
           )}
-        </TouchableOpacity>
+        </Pressable>
       </Card>
     );
   };
@@ -83,13 +82,13 @@ export function SelectionModal({
     <>
       <View style={s.header}>
         <Text style={s.title}>{title}</Text>
-        <TouchableOpacity style={s.closeButton} onPress={handleClose}>
+        <Pressable style={s.closeButton} onPress={handleClose}>
           <Ionicons
             name="close"
             size={tokens.size.icon.sm}
             color={colors.text.primary}
           />
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       <ScrollView style={s.content}>{options.map(renderOption)}</ScrollView>

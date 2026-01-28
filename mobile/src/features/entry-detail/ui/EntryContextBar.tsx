@@ -17,7 +17,7 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, ActionSheetIOS, Platform, Alert } from 'react-native';
+import { View, Text, Pressable, ActionSheetIOS, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles } from '@/shared/ui/theme';
@@ -176,11 +176,10 @@ export function EntryContextBar({
       accessibilityLabel={`${getMealTypeLabel(mealType)} at ${formatTime(timestamp)}${locationLabel ? `, at ${locationLabel}` : ''}`}
     >
       {/* Meal Type - Tappable */}
-      <TouchableOpacity
+      <Pressable
         style={s.mealTypeButton}
         onPress={handleMealTypePress}
         disabled={disabled || !onMealTypeChange}
-        activeOpacity={0.7}
         accessibilityLabel={`식사 종류: ${getMealTypeLabel(mealType)}, 탭하여 변경`}
         accessibilityRole="button"
       >
@@ -197,7 +196,7 @@ export function EntryContextBar({
             color={s.iconColor.color as string}
           />
         )}
-      </TouchableOpacity>
+      </Pressable>
 
       {/* Divider */}
       <View style={s.divider} />

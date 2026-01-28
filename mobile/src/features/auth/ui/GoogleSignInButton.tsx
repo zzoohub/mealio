@@ -1,4 +1,4 @@
-import { TouchableOpacity, ActivityIndicator, View } from "react-native";
+import { Pressable, ActivityIndicator, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { createStyles, useStyles, useTheme } from "@/shared/ui/theme";
 import { Text } from "@/shared/ui/styled";
@@ -31,11 +31,10 @@ export function GoogleSignInButton({
   const isDisabled = disabled || isLoading;
 
   return (
-    <TouchableOpacity
+    <Pressable
       style={[s.button, isDisabled && s.buttonDisabled]}
       onPress={onPress}
       disabled={isDisabled}
-      activeOpacity={0.7}
     >
       {isLoading ? (
         <ActivityIndicator size="small" color={colors.text.primary} style={s.icon} />
@@ -46,7 +45,7 @@ export function GoogleSignInButton({
       )}
       <Text style={s.label}>{label}</Text>
       <View style={s.spacer} />
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

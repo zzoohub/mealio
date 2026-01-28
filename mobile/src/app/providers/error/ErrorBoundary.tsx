@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens, darkColors } from '@/shared/ui/tokens';
 
@@ -89,23 +89,21 @@ export class ErrorBoundary extends Component<Props, State> {
             </Text>
 
             <View style={styles.buttonContainer}>
-              <TouchableOpacity 
+              <Pressable 
                 style={styles.retryButton} 
                 onPress={this.handleRetry}
-                activeOpacity={0.7}
               >
                 <Ionicons name="refresh" size={20} color="white" />
                 <Text style={styles.retryButtonText}>Try Again</Text>
-              </TouchableOpacity>
+              </Pressable>
               
-              <TouchableOpacity
+              <Pressable
                 style={styles.reloadButton}
                 onPress={this.handleReload}
-                activeOpacity={0.7}
               >
                 <Ionicons name="reload" size={20} color={tokens.color.interactive.primary} />
                 <Text style={styles.reloadButtonText}>Reload App</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
             {__DEV__ && this.state.error && (

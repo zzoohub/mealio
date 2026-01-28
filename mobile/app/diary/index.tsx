@@ -1,5 +1,6 @@
 import React, { useCallback } from "react";
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, StyleSheet, SafeAreaView, Pressable, ActivityIndicator } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Calendar } from "react-native-calendars";
@@ -54,9 +55,9 @@ export default function DiaryPage() {
     bottomSheet(({ close }) => (
       <>
         <View style={[styles.modalHeader, { borderBottomColor: colors.border.default }]}>
-          <TouchableOpacity onPress={close} style={styles.modalCloseButton}>
+          <Pressable onPress={close} style={styles.modalCloseButton}>
             <Ionicons name="close" size={24} color={colors.text.secondary} />
-          </TouchableOpacity>
+          </Pressable>
           <Text style={[styles.modalTitle, { color: colors.text.primary }]}>{diary.selectDate}</Text>
           <View style={styles.modalCloseButton} />
         </View>
@@ -120,18 +121,18 @@ export default function DiaryPage() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg.primary }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerSideButton}>
+        <Pressable onPress={() => router.back()} style={styles.headerSideButton}>
           <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
+        </Pressable>
 
-        <TouchableOpacity style={styles.headerTitleContainer} onPress={handleOpenCalendar}>
+        <Pressable style={styles.headerTitleContainer} onPress={handleOpenCalendar}>
           <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{formattedMonthYear}</Text>
           <Ionicons name="chevron-down" size={18} color={colors.text.secondary} />
-        </TouchableOpacity>
+        </Pressable>
 
-        <TouchableOpacity onPress={() => router.push("/diary/search")} style={styles.headerSideButton}>
+        <Pressable onPress={() => router.push("/diary/search")} style={styles.headerSideButton}>
           <Ionicons name="search" size={22} color={colors.text.primary} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {/* Week Navigation */}
@@ -160,44 +161,46 @@ export default function DiaryPage() {
                 weekday: "long",
               })}
             </Text>
-            <TouchableOpacity
+            <Pressable
               style={[styles.addMealButton, { backgroundColor: colors.interactive.primary }]}
               onPress={isToday ? () => router.push("/") : handleLoadFromAlbum}
             >
               <Ionicons name={isToday ? "camera" : "images-outline"} size={20} color="white" />
               <Text style={styles.addMealButtonText}>{isToday ? diary.recordMeal : diary.loadFromAlbum}</Text>
-            </TouchableOpacity>
+            </Pressable>
             <View style={styles.secondaryLink}>
               {isToday ? (
-                <TouchableOpacity onPress={handleLoadFromAlbum}>
+                <Pressable onPress={handleLoadFromAlbum}>
                   <Text style={[styles.secondaryLinkText, { color: colors.text.secondary }]}>
                     {diary.orSelectFromPhotos}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               ) : (
                 <Text style={styles.secondaryLinkText}> </Text>
               )}
             </View>
           </View>
         ) : (
-          <ScrollView style={styles.contentScroll} showsVerticalScrollIndicator={false}>
-            {/* Feed - edge-to-edge */}
-            {entries.map(entry => (
-              <EntryFeedItem key={entry.id} entry={entry} onPress={handleEntryPress} />
-            ))}
-          </ScrollView>
+          <FlashList
+            data={entries}
+            renderItem={({ item }) => (
+              <EntryFeedItem entry={item} onPress={handleEntryPress} />
+            )}
+            keyExtractor={(item) => item.id}
+            estimatedItemSize={120}
+            showsVerticalScrollIndicator={false}
+          />
         )}
       </View>
 
       {/* FAB - show when entries exist */}
       {!isLoading && entries.length > 0 && (
-        <TouchableOpacity
+        <Pressable
           style={[styles.fab, { backgroundColor: colors.interactive.primary }]}
           onPress={isToday ? () => router.push("/") : handleLoadFromAlbum}
-          activeOpacity={0.8}
         >
           <Ionicons name={isToday ? "camera" : "images-outline"} size={22} color="white" />
-        </TouchableOpacity>
+        </Pressable>
       )}
     </SafeAreaView>
   );

@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { View, Alert, TouchableOpacity } from "react-native";
+import { View, Alert, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -65,9 +65,9 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
   return (
     <SafeAreaView style={s.container}>
       <View style={s.header}>
-        <TouchableOpacity onPress={handleBack} style={s.backButton} activeOpacity={0.7}>
+        <Pressable onPress={handleBack} style={s.backButton}>
           <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       <View style={s.content}>

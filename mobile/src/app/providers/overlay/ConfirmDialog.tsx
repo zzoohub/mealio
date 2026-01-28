@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
 import { useTheme } from "@/shared/ui/theme";
 import * as Haptics from "expo-haptics";
 
@@ -108,20 +108,20 @@ export function ConfirmDialog({
         </View>
 
         <View style={[styles.buttonContainer, { borderTopColor: colors.border.default }]}>
-          <TouchableOpacity
+          <Pressable
             style={[styles.button, styles.cancelButton, { borderRightColor: colors.border.default }]}
             onPress={handleCancel}
           >
             <Text style={[styles.buttonText, { color: colors.interactive.primary }]}>
               {cancelText}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
 
-          <TouchableOpacity style={[styles.button, styles.confirmButton]} onPress={handleConfirm}>
+          <Pressable style={[styles.button, styles.confirmButton]} onPress={handleConfirm}>
             <Text style={[styles.buttonText, styles.confirmText, { color: confirmButtonColor }]}>
               {confirmText}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </Animated.View>
     </View>

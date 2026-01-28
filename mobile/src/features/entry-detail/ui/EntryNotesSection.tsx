@@ -19,7 +19,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { View, TextInput, Text, TouchableOpacity } from 'react-native';
+import { View, TextInput, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles, useTheme } from '@/shared/ui/theme';
@@ -119,7 +119,7 @@ export function EntryNotesSection({
           const isFilled = rating ? thumbValue <= rating : false;
 
           return (
-            <TouchableOpacity
+            <Pressable
               key={thumbValue}
               onPress={() => handleThumbPress(thumbValue)}
               disabled={disabled}
@@ -132,13 +132,13 @@ export function EntryNotesSection({
                 size={20}
                 color={isFilled ? colors.interactive.primary : colors.text.tertiary}
               />
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </View>
 
       {/* Bookmark Toggle */}
-      <TouchableOpacity
+      <Pressable
         onPress={handleHeartPress}
         disabled={disabled}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -151,7 +151,7 @@ export function EntryNotesSection({
           size={18}
           color={wouldEatAgain ? colors.interactive.primary : colors.text.tertiary}
         />
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 
@@ -179,18 +179,17 @@ export function EntryNotesSection({
 
   return (
     <View style={s.container} testID={testID}>
-      <TouchableOpacity
+      <Pressable
         style={s.notesArea}
         onPress={handlePress}
         disabled={disabled}
-        activeOpacity={0.7}
         accessibilityLabel={hasNotes ? `메모: ${localNotes}` : '메모 없음, 탭하여 입력'}
         accessibilityRole="button"
       >
         <Text style={[s.notesText, !hasNotes && s.placeholderText]}>
           {hasNotes ? localNotes : placeholder}
         </Text>
-      </TouchableOpacity>
+      </Pressable>
       <FeedbackRow />
     </View>
   );

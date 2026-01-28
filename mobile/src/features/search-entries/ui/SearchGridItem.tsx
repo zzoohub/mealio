@@ -6,7 +6,9 @@
  */
 
 import React from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
+import { Pressable } from "react-native-gesture-handler";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
@@ -50,15 +52,14 @@ export function SearchGridItem({ entry, size, onPress }: SearchGridItemProps) {
   };
 
   return (
-    <TouchableOpacity
+    <Pressable
       style={[styles.container, { width: size, height: size }]}
       onPress={handlePress}
-      activeOpacity={0.8}
     >
       {/* Photo */}
       <View style={[styles.imageContainer, { backgroundColor: colors.bg.secondary }]}>
         {entry.meal.photoUri ? (
-          <Image source={{ uri: entry.meal.photoUri }} style={styles.image} resizeMode="cover" />
+          <Image source={{ uri: entry.meal.photoUri }} style={styles.image} contentFit="cover" />
         ) : (
           <Ionicons name="image-outline" size={24} color={colors.text.tertiary} />
         )}
@@ -70,7 +71,7 @@ export function SearchGridItem({ entry, size, onPress }: SearchGridItemProps) {
           {formatDateTime(entry.timestamp)}
         </Text>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

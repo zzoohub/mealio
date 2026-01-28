@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, Image, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
+import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { createStyles, useStyles } from "@/shared/ui/theme";
 import { iconSizes } from "@/shared/ui/tokens";
@@ -26,12 +27,12 @@ export function PhotoStrip({ photos, onRemovePhoto, onDone, onPickFromGallery, p
   return (
     <>
       {/* Gallery Button - Right side */}
-      <TouchableOpacity style={styles.galleryButtonFloating} onPress={onPickFromGallery}>
+      <Pressable style={styles.galleryButtonFloating} onPress={onPickFromGallery}>
         <Ionicons name="images-outline" size={iconSizes.md} color="white" />
         <View style={[styles.photoCountBadge, s.photoCountBadge]}>
           <Text style={styles.photoCountText}>{photoCount}</Text>
         </View>
-      </TouchableOpacity>
+      </Pressable>
 
       {/* Thumbnail Strip - Bottom */}
       <View style={styles.thumbnailContainer}>
@@ -44,9 +45,9 @@ export function PhotoStrip({ photos, onRemovePhoto, onDone, onPickFromGallery, p
           {photos.map((uri, index) => (
             <View key={uri} style={styles.thumbnailWrapper}>
               <Image source={{ uri }} style={styles.thumbnail} />
-              <TouchableOpacity style={styles.removeButton} onPress={() => onRemovePhoto(index)}>
+              <Pressable style={styles.removeButton} onPress={() => onRemovePhoto(index)}>
                 <Ionicons name="close-circle" size={20} color="white" />
-              </TouchableOpacity>
+              </Pressable>
               <View style={styles.thumbnailIndex}>
                 <Text style={styles.thumbnailIndexText}>{index + 1}</Text>
               </View>
@@ -54,9 +55,9 @@ export function PhotoStrip({ photos, onRemovePhoto, onDone, onPickFromGallery, p
           ))}
         </ScrollView>
 
-        <TouchableOpacity style={[styles.doneButton, s.doneButton]} onPress={onDone}>
+        <Pressable style={[styles.doneButton, s.doneButton]} onPress={onDone}>
           <Ionicons name="checkmark" size={22} color="white" />
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </>
   );

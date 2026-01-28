@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { View, Text, Pressable, StyleSheet, ScrollView } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/shared/ui/theme";
@@ -47,9 +47,9 @@ export function EntryDateRangeModal({
     <>
       <View style={[styles.header, { borderBottomColor: colors.border.default }]}>
         <Text style={[styles.title, { color: colors.text.primary }]}>Select Date Range</Text>
-        <TouchableOpacity onPress={onClose}>
+        <Pressable onPress={onClose}>
           <Ionicons name="close" size={24} color={colors.text.secondary} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       <ScrollView style={styles.scrollContent}>
@@ -57,36 +57,36 @@ export function EntryDateRangeModal({
         <View style={[styles.presetsContainer, { borderBottomColor: colors.border.default }]}>
           <Text style={[styles.presetsTitle, { color: colors.text.primary }]}>Quick Select</Text>
           <View style={styles.presetsGrid}>
-            <TouchableOpacity
+            <Pressable
               style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
               onPress={handleClearAll}
             >
               <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>All Time</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </Pressable>
+            <Pressable
               style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
               onPress={() => handlePreset(1)}
             >
               <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>Today</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </Pressable>
+            <Pressable
               style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
               onPress={() => handlePreset(7)}
             >
               <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>Last 7 Days</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </Pressable>
+            <Pressable
               style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
               onPress={() => handlePreset(30)}
             >
               <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>Last 30 Days</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </Pressable>
+            <Pressable
               style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
               onPress={() => handlePreset(90)}
             >
               <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>Last 3 Months</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
 
@@ -125,14 +125,14 @@ export function EntryDateRangeModal({
           />
 
           {/* Clear Selection Button */}
-          <TouchableOpacity
+          <Pressable
             style={[styles.clearButton, { opacity: hasSelection ? 1 : 0 }]}
             onPress={onClear}
             disabled={!hasSelection}
           >
             <Ionicons name="trash-outline" size={16} color={colors.text.secondary} />
             <Text style={[styles.clearButtonText, { color: colors.interactive.primary }]}>Clear Selection</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </ScrollView>
     </>

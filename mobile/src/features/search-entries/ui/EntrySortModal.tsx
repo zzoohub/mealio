@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Modal, FlatList, StyleSheet } from "react-native";
+import { View, Text, Pressable, Modal, FlatList, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
@@ -35,7 +35,7 @@ export function EntrySortModal({
     const isSelected = currentSortMethod === item.key;
 
     return (
-      <TouchableOpacity
+      <Pressable
         style={[
           styles.sortOption,
           isSelected && { backgroundColor: colors.interactive.primary + "20" },
@@ -67,7 +67,7 @@ export function EntrySortModal({
         {isSelected && (
           <Ionicons name="checkmark" size={20} color={colors.interactive.primary} />
         )}
-      </TouchableOpacity>
+      </Pressable>
     );
   };
 
@@ -82,9 +82,9 @@ export function EntrySortModal({
         <View style={[styles.modal, { backgroundColor: colors.bg.primary }]}>
           <View style={[styles.header, { borderBottomColor: colors.border.default }]}>
             <Text style={[styles.title, { color: colors.text.primary }]}>Sort By</Text>
-            <TouchableOpacity onPress={onClose}>
+            <Pressable onPress={onClose}>
               <Ionicons name="close" size={24} color={colors.text.secondary} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           <FlatList

@@ -1,4 +1,4 @@
-import { Platform, View, ActivityIndicator, TouchableOpacity } from "react-native";
+import { Platform, View, ActivityIndicator, Pressable } from "react-native";
 import { useEffect, useState } from "react";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Ionicons } from "@expo/vector-icons";
@@ -45,11 +45,10 @@ export function AppleSignInButton({
   const isDisabled = disabled || isLoading;
 
   return (
-    <TouchableOpacity
+    <Pressable
       style={[s.button, isDisabled && s.buttonDisabled]}
       onPress={onPress}
       disabled={isDisabled}
-      activeOpacity={0.7}
     >
       {isLoading ? (
         <ActivityIndicator size="small" color={colors.text.primary} style={s.icon} />
@@ -60,7 +59,7 @@ export function AppleSignInButton({
       )}
       <Text style={s.label}>{label}</Text>
       <View style={s.spacer} />
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

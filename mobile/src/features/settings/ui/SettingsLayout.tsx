@@ -1,5 +1,5 @@
 import React from "react";
-import { SafeAreaView, ScrollView, TouchableOpacity } from "react-native";
+import { SafeAreaView, ScrollView, Pressable } from "react-native";
 import { Stack, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { createStyles, useStyles, useTheme } from "@/shared/ui/theme";
@@ -37,13 +37,13 @@ export function SettingsLayout({ title, children, showBackButton = true }: Setti
       {/* Header */}
       <Box style={s.header}>
         {showBackButton && (
-          <TouchableOpacity
+          <Pressable
             style={s.backButton}
             onPress={handleBack}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="chevron-back" size={tokens.size.icon.md} color={colors.text.primary} />
-          </TouchableOpacity>
+          </Pressable>
         )}
 
         <Box style={s.headerContent}>

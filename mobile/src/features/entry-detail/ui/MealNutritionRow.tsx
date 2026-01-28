@@ -13,7 +13,7 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles } from '@/shared/ui/theme';
@@ -46,11 +46,10 @@ export function MealNutritionRow({
   const s = useStyles(styles);
 
   return (
-    <TouchableOpacity
+    <Pressable
       style={[s.container, disabled && s.containerDisabled]}
       onPress={onPress}
       disabled={disabled || !onPress}
-      activeOpacity={0.7}
       accessibilityLabel="View AI-generated nutrition information"
       accessibilityRole="button"
       accessibilityState={{ disabled }}
@@ -75,7 +74,7 @@ export function MealNutritionRow({
           color={disabled ? s.chevronDisabled.color as string : s.chevron.color as string}
         />
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

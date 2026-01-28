@@ -17,7 +17,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, Pressable, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles, useTheme } from '@/shared/ui/theme';
@@ -144,7 +144,7 @@ export function AIAnalysisSection({
           <Text style={s.headerText}>AI 분석</Text>
         </View>
         {!disabled && (onIngredientsChange || onNutritionChange) && (
-          <TouchableOpacity
+          <Pressable
             style={s.editButton}
             onPress={handleEditToggle}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -154,7 +154,7 @@ export function AIAnalysisSection({
             <Text style={s.editButtonText}>
               {isEditing ? '완료' : '수정'}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
 
@@ -168,7 +168,7 @@ export function AIAnalysisSection({
                 <Text style={s.ingredientText}>{ingredient}</Text>
               </View>
               {isEditing && (
-                <TouchableOpacity
+                <Pressable
                   onPress={() => handleRemoveIngredient(index)}
                   hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                   style={s.removeButton}
@@ -176,7 +176,7 @@ export function AIAnalysisSection({
                   <View style={s.removeButtonInner}>
                     <Ionicons name="close" size={10} color={colors.bg.primary} />
                   </View>
-                </TouchableOpacity>
+                </Pressable>
               )}
             </View>
           ))}
@@ -192,9 +192,9 @@ export function AIAnalysisSection({
                 returnKeyType="done"
               />
               {newIngredient.trim() && (
-                <TouchableOpacity onPress={handleAddIngredient} style={s.addButton}>
+                <Pressable onPress={handleAddIngredient} style={s.addButton}>
                   <Ionicons name="add" size={16} color={colors.interactive.primary} />
-                </TouchableOpacity>
+                </Pressable>
               )}
             </View>
           )}

@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '@/shared/ui/theme';
 import { tokens } from '@/shared/ui/tokens';
 
@@ -63,7 +63,7 @@ export function DateQuickFilters({
       {DATE_PRESETS.map((option) => {
         const active = selected === option.value;
         return (
-          <TouchableOpacity
+          <Pressable
             key={option.value}
             style={[
               styles.chip,
@@ -74,7 +74,6 @@ export function DateQuickFilters({
             ]}
             onPress={() => handlePress(option.value)}
             disabled={disabled}
-            activeOpacity={0.7}
           >
             <Text
               style={[
@@ -84,7 +83,7 @@ export function DateQuickFilters({
             >
               {option.label}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         );
       })}
     </View>

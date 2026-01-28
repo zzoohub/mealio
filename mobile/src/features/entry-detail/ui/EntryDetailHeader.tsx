@@ -14,7 +14,7 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles } from '@/shared/ui/theme';
@@ -55,10 +55,9 @@ export function EntryDetailHeader({
   return (
     <View style={s.container} testID={testID}>
       {/* Back Button */}
-      <TouchableOpacity
+      <Pressable
         style={s.backButton}
         onPress={onBackPress}
-        activeOpacity={0.7}
         accessibilityLabel="뒤로 가기"
         accessibilityRole="button"
       >
@@ -67,26 +66,25 @@ export function EntryDetailHeader({
           size={tokens.size.icon.md}
           color={s.iconColor.color as string}
         />
-      </TouchableOpacity>
+      </Pressable>
 
       {/* Spacer */}
       <View style={s.spacer} />
 
       {/* Edit Button - Only shown if onEditPress is provided */}
       {onEditPress && (
-        <TouchableOpacity
+        <Pressable
           style={[s.editButton, editDisabled && s.editButtonDisabled]}
           onPress={onEditPress}
           disabled={editDisabled}
-          activeOpacity={0.7}
-          accessibilityLabel="수정"
+            accessibilityLabel="수정"
           accessibilityRole="button"
           accessibilityState={{ disabled: editDisabled }}
         >
           <Text style={[s.editText, editDisabled && s.editTextDisabled]}>
             수정
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       )}
     </View>
   );

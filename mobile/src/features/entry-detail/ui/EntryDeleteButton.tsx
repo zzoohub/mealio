@@ -14,7 +14,7 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles } from '@/shared/ui/theme';
@@ -63,11 +63,10 @@ export function EntryDeleteButton({
       testID={testID}
     >
       {/* Delete Button */}
-      <TouchableOpacity
+      <Pressable
         style={[s.button, isDisabled && s.buttonDisabled]}
         onPress={onPress}
         disabled={isDisabled}
-        activeOpacity={0.7}
         accessibilityLabel={label}
         accessibilityRole="button"
         accessibilityState={{ disabled: isDisabled }}
@@ -84,7 +83,7 @@ export function EntryDeleteButton({
             {label}
           </Text>
         )}
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }

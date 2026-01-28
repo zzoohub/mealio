@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { iconSizes } from "@/shared/ui/tokens";
 
@@ -20,14 +20,14 @@ export interface CameraBottomControlsProps {
 export function CameraBottomControls({ onDiaryPress, onGalleryPress, diaryLabel }: CameraBottomControlsProps) {
   return (
     <View style={styles.bottomControls}>
-      <TouchableOpacity style={styles.bottomButton} onPress={onDiaryPress}>
+      <Pressable style={styles.bottomButton} onPress={onDiaryPress}>
         <Ionicons name="book-outline" size={iconSizes.md} color="white" />
         <Text style={styles.bottomButtonText}>{diaryLabel}</Text>
-      </TouchableOpacity>
+      </Pressable>
 
-      <TouchableOpacity style={styles.bottomButton} onPress={onGalleryPress}>
+      <Pressable style={styles.bottomButton} onPress={onGalleryPress}>
         <Ionicons name="images-outline" size={iconSizes.md} color="white" />
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }

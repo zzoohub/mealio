@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   SafeAreaView,
-  TouchableOpacity,
+  Pressable,
   TextInput,
   ActivityIndicator,
   FlatList,
@@ -130,13 +130,13 @@ export default function DiarySearchScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg.primary }]}>
       {/* Search Bar Row */}
       <View style={styles.searchRow}>
-        <TouchableOpacity
+        <Pressable
           onPress={goBack}
           style={styles.backButton}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
+        </Pressable>
 
         <View style={[styles.searchBar, { backgroundColor: colors.bg.secondary }]}>
           <Ionicons name="search" size={18} color={colors.text.tertiary} />
@@ -148,19 +148,19 @@ export default function DiarySearchScreen() {
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={clearSearch}>
+            <Pressable onPress={clearSearch}>
               <Ionicons name="close-circle" size={18} color={colors.text.tertiary} />
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
 
-        <TouchableOpacity
+        <Pressable
           onPress={showSortSheet}
           style={styles.iconButton}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Ionicons name="swap-vertical" size={20} color={colors.text.primary} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {/* Filters */}

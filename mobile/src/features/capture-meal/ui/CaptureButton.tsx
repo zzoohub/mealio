@@ -1,5 +1,5 @@
 import React from "react";
-import { View, TouchableOpacity, Animated, StyleSheet } from "react-native";
+import { View, Pressable, Animated, StyleSheet } from "react-native";
 import { createStyles, useStyles } from "@/shared/ui/theme";
 
 // =============================================================================
@@ -21,18 +21,17 @@ export function CaptureButton({ onCapture, isCapturing, scaleValue, disabled }: 
   const s = useStyles(captureButtonStyles);
 
   return (
-    <TouchableOpacity
+    <Pressable
       style={styles.captureArea}
       onPress={onCapture}
       disabled={disabled || isCapturing}
-      activeOpacity={0.8}
     >
       <Animated.View style={[styles.captureButton, { transform: [{ scale: scaleValue }] }]}>
         <View style={[styles.captureRing, isCapturing && s.capturingRing]}>
           <View style={[styles.captureInner, isCapturing && s.capturingInner]} />
         </View>
       </Animated.View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

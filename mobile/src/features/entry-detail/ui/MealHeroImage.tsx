@@ -14,7 +14,8 @@
  */
 
 import React from 'react';
-import { View, Image, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Pressable, Dimensions, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles } from '@/shared/ui/theme';
@@ -77,26 +78,25 @@ export function MealHeroImage({
     <Image
       source={{ uri: photoUri! }}
       style={s.image}
-      resizeMode="cover"
+      contentFit="cover"
       accessibilityLabel="Meal photo"
     />
   );
 
   const content = photoUri && !loading ? renderImage() : renderPlaceholder();
 
-  // If onPress is provided, wrap in TouchableOpacity
+  // If onPress is provided, wrap in Pressable
   if (onPress) {
     return (
-      <TouchableOpacity
+      <Pressable
         style={s.container}
         onPress={onPress}
-        activeOpacity={0.9}
         accessibilityLabel={photoUri ? 'View meal photo in fullscreen' : 'No meal photo'}
         accessibilityRole="imagebutton"
         testID={testID}
       >
         {content}
-      </TouchableOpacity>
+      </Pressable>
     );
   }
 

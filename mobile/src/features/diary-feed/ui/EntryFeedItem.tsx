@@ -1,5 +1,7 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet, Dimensions } from "react-native";
+import { View, Text, StyleSheet, Dimensions } from "react-native";
+import { Pressable } from "react-native-gesture-handler";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import type { Entry } from "@/entities/entry";
 import { MealType } from "@/entities/meal";
@@ -73,14 +75,14 @@ export function EntryFeedItem({ entry, onPress }: EntryFeedItemProps) {
   const locationLabel = entry.location?.address?.split(",")[0];
 
   return (
-    <TouchableOpacity style={styles.container} onPress={handlePress} activeOpacity={0.95}>
+    <Pressable style={styles.container} onPress={handlePress}>
       {/* Photo */}
       <View style={[styles.photoContainer, { backgroundColor: colors.bg.secondary }]}>
         {entry.meal.photoUri ? (
           <Image
             source={{ uri: entry.meal.photoUri }}
             style={styles.photo}
-            resizeMode="cover"
+            contentFit="cover"
           />
         ) : (
           <Ionicons name="image-outline" size={48} color={colors.text.tertiary} />
@@ -133,7 +135,7 @@ export function EntryFeedItem({ entry, onPress }: EntryFeedItemProps) {
           )}
         </View>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

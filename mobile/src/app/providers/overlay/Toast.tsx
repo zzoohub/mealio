@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from "react-native";
+import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
@@ -114,10 +114,9 @@ export function Toast({
       ]}
       pointerEvents="box-none"
     >
-      <TouchableOpacity
+      <Pressable
         style={styles.toast}
         onPress={handlePress}
-        activeOpacity={0.9}
       >
         <View style={styles.iconContainer}>
           <Ionicons name={TOAST_ICONS[type]} size={24} color={TOAST_COLORS[type]} />
@@ -129,7 +128,7 @@ export function Toast({
         {showArrow && (
           <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.6)" />
         )}
-      </TouchableOpacity>
+      </Pressable>
     </Animated.View>
   );
 }

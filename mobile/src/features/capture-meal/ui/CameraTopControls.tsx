@@ -1,5 +1,5 @@
 import React from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { iconSizes } from "@/shared/ui/tokens";
 
@@ -20,13 +20,13 @@ export interface CameraTopControlsProps {
 export function CameraTopControls({ flashIcon, onToggleFlash, onSettingsPress }: CameraTopControlsProps) {
   return (
     <View style={styles.topControls}>
-      <TouchableOpacity style={styles.controlButton} onPress={onSettingsPress}>
+      <Pressable style={styles.controlButton} onPress={onSettingsPress}>
         <Ionicons name="settings-outline" size={iconSizes.md} color="white" />
-      </TouchableOpacity>
+      </Pressable>
 
-      <TouchableOpacity style={styles.controlButton} onPress={onToggleFlash}>
+      <Pressable style={styles.controlButton} onPress={onToggleFlash}>
         <Ionicons name={flashIcon} size={iconSizes.md} color="white" />
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }

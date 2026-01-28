@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useEffect, useMemo, memo } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, FlatList } from "react-native";
+import { View, Text, StyleSheet, Dimensions, FlatList } from "react-native";
+import { Pressable } from "react-native-gesture-handler";
 import { useTheme } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
 import { isSameDay, getDayName, getWeekDays } from "@/shared/lib/utils";
@@ -99,13 +100,12 @@ const DayItem = memo(function DayItem({
   }, [date, isFuture, onPress]);
 
   return (
-    <TouchableOpacity
+    <Pressable
       style={[
         styles.dayItem,
         isSelected && { backgroundColor: colors.interactive.primary },
       ]}
       onPress={handlePress}
-      activeOpacity={isFuture ? 1 : 0.7}
       disabled={isFuture}
     >
       <Text
@@ -136,7 +136,7 @@ const DayItem = memo(function DayItem({
           },
         ]}
       />
-    </TouchableOpacity>
+    </Pressable>
   );
 });
 

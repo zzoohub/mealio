@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/shared/ui/theme';
 import { tokens } from '@/shared/ui/tokens';
@@ -118,29 +118,27 @@ export function ActiveFilters({
   return (
     <View style={styles.container}>
       {filters.map((filter, index) => (
-        <TouchableOpacity
+        <Pressable
           key={`${filter.type}-${filter.value}-${index}`}
           style={[styles.chip, { backgroundColor: colors.bg.tertiary }]}
           onPress={() => handleRemove(filter)}
-          activeOpacity={0.7}
         >
           <Text style={[styles.chipText, { color: colors.text.secondary }]}>
             {filter.label}
           </Text>
           <Ionicons name="close" size={12} color={colors.text.secondary} />
-        </TouchableOpacity>
+        </Pressable>
       ))}
 
       {filters.length > 1 && onClearAll && (
-        <TouchableOpacity
+        <Pressable
           style={styles.clearAll}
           onPress={onClearAll}
-          activeOpacity={0.7}
         >
           <Text style={[styles.clearAllText, { color: colors.text.tertiary }]}>
             전체 해제
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       )}
     </View>
   );
