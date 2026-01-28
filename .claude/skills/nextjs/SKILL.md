@@ -5,7 +5,7 @@ description: |
   Use when: building web apps with Next.js, setting up project structure, implementing features, 
     creating pages/components, writing Server Actions, data fetching.
   Do not use for: UX decisions (use ux-design), token/component design (use design-system), mobile apps.
-  Workflow: ux-design → design-system → this skill (web integration) -> vercel-react-best-practices (performance optimization).
+  Workflow: this skill (web integration) -> vercel-react-best-practices (performance optimization).
 references:
   - examples.md    # Server Actions, Data Fetching, Auth patterns code
 ---
