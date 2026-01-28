@@ -47,9 +47,12 @@ export default function DiaryPage() {
   // HANDLERS
   // =============================================================================
 
-  const handleEntryPress = (entry: Entry) => {
-    router.push(`/diary/${entry.id}`);
-  };
+  const handleEntryPress = useCallback(
+    (entry: Entry) => {
+      router.push(`/diary/${entry.id}`);
+    },
+    [router]
+  );
 
   const handleOpenCalendar = useCallback(() => {
     bottomSheet(({ close }) => (
@@ -99,7 +102,7 @@ export default function DiaryPage() {
     ));
   }, [bottomSheet, colors, diary.selectDate, selectedDate, markedDates, handleCalendarDayPress]);
 
-  const handleLoadFromAlbum = async () => {
+  const handleLoadFromAlbum = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
@@ -111,7 +114,7 @@ export default function DiaryPage() {
       // TODO: Navigate to processing flow with selected photos
       router.push("/");
     }
-  };
+  }, [router]);
 
   // =============================================================================
   // RENDER
@@ -187,7 +190,6 @@ export default function DiaryPage() {
               <EntryFeedItem entry={item} onPress={handleEntryPress} />
             )}
             keyExtractor={(item) => item.id}
-            estimatedItemSize={120}
             showsVerticalScrollIndicator={false}
           />
         )}

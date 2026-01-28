@@ -1,5 +1,6 @@
-import React from "react";
-import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
+import React, { memo, useCallback } from "react";
+import { View, Text, Pressable, StyleSheet } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { createStyles, useStyles } from "@/shared/ui/theme";
@@ -17,12 +18,49 @@ export interface PhotoStripProps {
   photoCount: number;
 }
 
+interface PhotoItemProps {
+  uri: string;
+  index: number;
+  onRemove: (index: number) => void;
+}
+
+// =============================================================================
+// PHOTO ITEM COMPONENT (Memoized for list performance)
+// =============================================================================
+
+const PhotoItem = memo(function PhotoItem({ uri, index, onRemove }: PhotoItemProps) {
+  const handleRemove = useCallback(() => {
+    onRemove(index);
+  }, [onRemove, index]);
+
+  return (
+    <View style={styles.thumbnailWrapper}>
+      <Image source={{ uri }} style={styles.thumbnail} contentFit="cover" />
+      <Pressable style={styles.removeButton} onPress={handleRemove}>
+        <Ionicons name="close-circle" size={20} color="white" />
+      </Pressable>
+      <View style={styles.thumbnailIndex}>
+        <Text style={styles.thumbnailIndexText}>{index + 1}</Text>
+      </View>
+    </View>
+  );
+});
+
 // =============================================================================
 // COMPONENT
 // =============================================================================
 
 export function PhotoStrip({ photos, onRemovePhoto, onDone, onPickFromGallery, photoCount }: PhotoStripProps) {
   const s = useStyles(photoStripStyles);
+
+  const renderItem = useCallback(
+    ({ item, index }: { item: string; index: number }) => (
+      <PhotoItem uri={item} index={index} onRemove={onRemovePhoto} />
+    ),
+    [onRemovePhoto]
+  );
+
+  const keyExtractor = useCallback((item: string) => item, []);
 
   return (
     <>
@@ -36,24 +74,16 @@ export function PhotoStrip({ photos, onRemovePhoto, onDone, onPickFromGallery, p
 
       {/* Thumbnail Strip - Bottom */}
       <View style={styles.thumbnailContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.thumbnailScrollView}
-          contentContainerStyle={styles.thumbnailScroll}
-        >
-          {photos.map((uri, index) => (
-            <View key={uri} style={styles.thumbnailWrapper}>
-              <Image source={{ uri }} style={styles.thumbnail} />
-              <Pressable style={styles.removeButton} onPress={() => onRemovePhoto(index)}>
-                <Ionicons name="close-circle" size={20} color="white" />
-              </Pressable>
-              <View style={styles.thumbnailIndex}>
-                <Text style={styles.thumbnailIndexText}>{index + 1}</Text>
-              </View>
-            </View>
-          ))}
-        </ScrollView>
+        <View style={styles.thumbnailListContainer}>
+          <FlashList
+            data={photos}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.thumbnailScroll}
+          />
+        </View>
 
         <Pressable style={[styles.doneButton, s.doneButton]} onPress={onDone}>
           <Ionicons name="checkmark" size={22} color="white" />
@@ -104,19 +134,18 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
     paddingRight: 6,
   },
-  thumbnailScrollView: {
+  thumbnailListContainer: {
     flex: 1,
+    height: 66, // Fixed height for FlashList
   },
   thumbnailScroll: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
     paddingRight: 8,
   },
   thumbnailWrapper: {
     position: "relative",
     paddingTop: 6,
     paddingRight: 6,
+    marginRight: 8,
   },
   thumbnail: {
     width: 52,

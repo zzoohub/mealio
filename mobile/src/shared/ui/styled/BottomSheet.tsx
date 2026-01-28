@@ -16,7 +16,7 @@ import {
   Modal,
   Animated,
   Dimensions,
-  TouchableWithoutFeedback,
+  Pressable,
   StyleSheet,
   ViewStyle,
   ModalProps,
@@ -140,7 +140,7 @@ export function BottomSheet({
     >
       <View style={s.container}>
         {/* Animated dim overlay with fade - separate from content */}
-        <TouchableWithoutFeedback onPress={handleClose}>
+        <Pressable onPress={handleClose} style={StyleSheet.absoluteFillObject}>
           <Animated.View
             style={[
               StyleSheet.absoluteFillObject,
@@ -150,7 +150,7 @@ export function BottomSheet({
               },
             ]}
           />
-        </TouchableWithoutFeedback>
+        </Pressable>
 
         {/* Animated sheet content with slide - no opacity applied */}
         <Animated.View

@@ -13,7 +13,7 @@
  * ```
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Pressable, Dimensions, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,7 +46,7 @@ const IMAGE_HEIGHT = SCREEN_WIDTH; // 1:1 square aspect ratio
 // COMPONENT
 // =============================================================================
 
-export function MealHeroImage({
+export const MealHeroImage = memo(function MealHeroImage({
   photoUri,
   loading = false,
   onPress,
@@ -105,7 +105,7 @@ export function MealHeroImage({
       {content}
     </View>
   );
-}
+});
 
 export default MealHeroImage;
 

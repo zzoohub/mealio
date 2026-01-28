@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback } from "react";
-import { Animated } from "react-native";
 import { CameraView, FlashMode } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
+import { useSharedValue, withSequence, withTiming } from "react-native-reanimated";
+import type { SharedValue } from "react-native-reanimated";
 import { useCameraI18n } from "@/shared/lib/i18n";
 import { useOverlayHelpers } from "@/app/providers/overlay";
 
@@ -19,7 +20,8 @@ const MAX_PHOTOS = 10;
 export interface UseCameraReturn {
   // Refs
   cameraRef: React.RefObject<CameraView | null>;
-  captureButtonScale: Animated.Value;
+  /** Shared value for capture button animation (0 = normal, 1 = pressed) */
+  captureButtonPressed: SharedValue<number>;
 
   // State
   flashMode: FlashMode;
@@ -50,7 +52,9 @@ export function useCamera(): UseCameraReturn {
 
   // Refs
   const cameraRef = useRef<CameraView>(null);
-  const captureButtonScale = useRef(new Animated.Value(1)).current;
+
+  // Reanimated shared value for capture button animation
+  const captureButtonPressed = useSharedValue(0);
 
   // State
   const [flashMode, setFlashMode] = useState<FlashMode>("off");
@@ -73,24 +77,14 @@ export function useCamera(): UseCameraReturn {
       setIsCapturing(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      // Capture animation
-      Animated.sequence([
-        Animated.timing(captureButtonScale, {
-          toValue: 0.8,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(captureButtonScale, {
-          toValue: 1.2,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(captureButtonScale, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      // Capture animation using Reanimated
+      captureButtonPressed.set(
+        withSequence(
+          withTiming(1, { duration: 100 }),
+          withTiming(1.2, { duration: 200 }),
+          withTiming(0, { duration: 100 })
+        )
+      );
 
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
@@ -107,7 +101,7 @@ export function useCamera(): UseCameraReturn {
     } finally {
       setIsCapturing(false);
     }
-  }, [isCapturing, canCapture, captureButtonScale]);
+  }, [isCapturing, canCapture, captureButtonPressed]);
 
   const pickFromGallery = useCallback(async () => {
     if (remainingPhotos <= 0) {
@@ -174,7 +168,7 @@ export function useCamera(): UseCameraReturn {
   return {
     // Refs
     cameraRef,
-    captureButtonScale,
+    captureButtonPressed,
 
     // State
     flashMode,

@@ -241,7 +241,6 @@ export default function RecentEntries({ onSeeAll }: RecentEntriesProps) {
           />
         )}
         keyExtractor={(item) => item.id}
-        estimatedItemSize={156}
         showsHorizontalScrollIndicator={false}
       />
     </Box>

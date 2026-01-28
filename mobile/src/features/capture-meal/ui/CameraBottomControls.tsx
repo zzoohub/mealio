@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { iconSizes } from "@/shared/ui/tokens";
@@ -17,7 +17,7 @@ export interface CameraBottomControlsProps {
 // COMPONENT
 // =============================================================================
 
-export function CameraBottomControls({ onDiaryPress, onGalleryPress, diaryLabel }: CameraBottomControlsProps) {
+export const CameraBottomControls = memo(function CameraBottomControls({ onDiaryPress, onGalleryPress, diaryLabel }: CameraBottomControlsProps) {
   return (
     <View style={styles.bottomControls}>
       <Pressable style={styles.bottomButton} onPress={onDiaryPress}>
@@ -30,7 +30,7 @@ export function CameraBottomControls({ onDiaryPress, onGalleryPress, diaryLabel 
       </Pressable>
     </View>
   );
-}
+});
 
 // =============================================================================
 // STYLES

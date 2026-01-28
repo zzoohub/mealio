@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 import { Image } from "expo-image";
@@ -64,12 +64,12 @@ const getMealTypeLabel = (mealType: MealType): string => {
 // COMPONENT
 // =============================================================================
 
-export function EntryFeedItem({ entry, onPress }: EntryFeedItemProps) {
+export const EntryFeedItem = memo(function EntryFeedItem({ entry, onPress }: EntryFeedItemProps) {
   const { colors } = useTheme();
 
-  const handlePress = () => {
+  const handlePress = useCallback(() => {
     onPress?.(entry);
-  };
+  }, [onPress, entry]);
 
   const hasNotes = entry.notes && entry.notes.trim().length > 0;
   const locationLabel = entry.location?.address?.split(",")[0];
@@ -137,7 +137,7 @@ export function EntryFeedItem({ entry, onPress }: EntryFeedItemProps) {
       </View>
     </Pressable>
   );
-}
+});
 
 // =============================================================================
 // STYLES

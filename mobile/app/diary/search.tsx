@@ -7,9 +7,9 @@ import {
   Pressable,
   TextInput,
   ActivityIndicator,
-  FlatList,
   Dimensions,
 } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import { Ionicons } from "@expo/vector-icons";
 import type { Entry } from "@/entities/entry";
 import {
@@ -196,13 +196,11 @@ export default function DiarySearchScreen() {
           <ActivityIndicator size="large" color={colors.interactive.primary} />
         </View>
       ) : (
-        <FlatList
+        <FlashList
           data={filteredEntries}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           numColumns={NUM_COLUMNS}
-          columnWrapperStyle={styles.gridRow}
-          contentContainerStyle={styles.gridContent}
           ListEmptyComponent={renderEmpty}
           ListFooterComponent={renderFooter}
           onEndReached={loadMore}

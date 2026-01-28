@@ -1,5 +1,14 @@
-import React from "react";
-import { View, Pressable, Animated, StyleSheet } from "react-native";
+import React, { memo } from "react";
+import { View, StyleSheet } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  interpolate,
+  runOnJS,
+  SharedValue,
+} from "react-native-reanimated";
 import { createStyles, useStyles } from "@/shared/ui/theme";
 
 // =============================================================================
@@ -9,7 +18,8 @@ import { createStyles, useStyles } from "@/shared/ui/theme";
 export interface CaptureButtonProps {
   onCapture: () => void;
   isCapturing: boolean;
-  scaleValue: Animated.Value;
+  /** Shared value for external animation control (0 = not pressed, 1 = pressed) */
+  pressedState?: SharedValue<number>;
   disabled?: boolean;
 }
 
@@ -17,23 +27,51 @@ export interface CaptureButtonProps {
 // COMPONENT
 // =============================================================================
 
-export function CaptureButton({ onCapture, isCapturing, scaleValue, disabled }: CaptureButtonProps) {
+export const CaptureButton = memo(function CaptureButton({
+  onCapture,
+  isCapturing,
+  pressedState,
+  disabled,
+}: CaptureButtonProps) {
   const s = useStyles(captureButtonStyles);
 
+  // Internal pressed state if not provided externally
+  const internalPressed = useSharedValue(0);
+  const pressed = pressedState ?? internalPressed;
+
+  // Gesture handler for tap with animated press states
+  const tap = Gesture.Tap()
+    .enabled(!disabled && !isCapturing)
+    .onBegin(() => {
+      pressed.set(withTiming(1, { duration: 100 }));
+    })
+    .onFinalize(() => {
+      pressed.set(withTiming(0, { duration: 100 }));
+    })
+    .onEnd(() => {
+      runOnJS(onCapture)();
+    });
+
+  // Derive scale from pressed state
+  const animatedStyle = useAnimatedStyle(() => {
+    const scale = interpolate(pressed.get(), [0, 1], [1, 0.85]);
+    return {
+      transform: [{ scale }],
+    };
+  });
+
   return (
-    <Pressable
-      style={styles.captureArea}
-      onPress={onCapture}
-      disabled={disabled || isCapturing}
-    >
-      <Animated.View style={[styles.captureButton, { transform: [{ scale: scaleValue }] }]}>
-        <View style={[styles.captureRing, isCapturing && s.capturingRing]}>
-          <View style={[styles.captureInner, isCapturing && s.capturingInner]} />
+    <GestureDetector gesture={tap}>
+      <Animated.View style={[styles.captureArea, animatedStyle]}>
+        <View style={styles.captureButton}>
+          <View style={[styles.captureRing, isCapturing && s.capturingRing]}>
+            <View style={[styles.captureInner, isCapturing && s.capturingInner]} />
+          </View>
         </View>
       </Animated.View>
-    </Pressable>
+    </GestureDetector>
   );
-}
+});
 
 // =============================================================================
 // STYLES

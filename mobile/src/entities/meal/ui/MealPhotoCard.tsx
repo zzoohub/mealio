@@ -25,12 +25,9 @@
  * ```
  */
 
-import React from 'react';
-import {
-  Image,
-  Pressable,
-  AccessibilityProps,
-} from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { Pressable, AccessibilityProps } from 'react-native';
+import { Image } from 'expo-image';
 import { Box, Text } from '@/shared/ui/styled';
 import { createStyles, useStyles } from '@/shared/ui/theme';
 import { tokens } from '@/shared/ui/tokens';
@@ -91,7 +88,7 @@ const SIZE_CONFIG = {
 // COMPONENT
 // =============================================================================
 
-export function MealPhotoCard({
+export const MealPhotoCard = memo(function MealPhotoCard({
   meal,
   size = 'medium',
   onPress,
@@ -137,7 +134,7 @@ export function MealPhotoCard({
         <Image
           source={{ uri: meal.photoUri }}
           style={s.image}
-          resizeMode="cover"
+          contentFit="cover"
           accessible={false}
         />
       </Box>
@@ -153,7 +150,7 @@ export function MealPhotoCard({
       </Text>
     </Pressable>
   );
-}
+});
 
 // =============================================================================
 // STYLES

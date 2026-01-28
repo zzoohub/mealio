@@ -143,8 +143,8 @@ export function Button({
   const { buttonProps, state } = useButton(hookProps);
   const { isDisabled, isLoading, isPressed } = state;
 
-  // Animation value for press feedback
-  const scale = useSharedValue(1);
+  // Animation value for press feedback (using 0/1 for state, derive visual)
+  const pressed = useSharedValue(0);
 
   // Get color scheme colors from resolved styles
   const getColorSchemeColors = () => {
@@ -270,21 +270,22 @@ export function Button({
   const variantStyles = getVariantStyles();
   const sizeConfig = sizeConfigs[size];
 
-  // Animated scale style
+  // Animated scale style - derive visual from state
   const animatedStyle = useAnimatedStyle(() => {
+    const scale = interpolate(pressed.get(), [0, 1], [1, 0.97]);
     return {
-      transform: [{ scale: scale.value }],
+      transform: [{ scale }],
     };
   });
 
-  // Handle press in/out for animation
+  // Handle press in/out for animation - store state, not visual
   const handlePressIn = () => {
-    scale.value = withTiming(0.97, { duration: tokens.duration.fast });
+    pressed.set(withTiming(1, { duration: tokens.duration.fast }));
     buttonProps.onPressIn();
   };
 
   const handlePressOut = () => {
-    scale.value = withTiming(1, { duration: tokens.duration.fast });
+    pressed.set(withTiming(0, { duration: tokens.duration.fast }));
     buttonProps.onPressOut();
   };
 

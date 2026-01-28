@@ -2,10 +2,11 @@
  * EntryPhotoGrid - Grid layout for entry photos
  *
  * Displays entry photos in a responsive grid layout.
- * Wraps MealPhotoCard components with proper spacing.
+ * Uses FlashList for virtualized rendering performance.
  *
  * Features:
  * - Configurable column count (3 or 4)
+ * - Virtualized list for performance
  * - Responsive card sizing
  * - Proper spacing using design tokens
  * - Accessibility support for grid navigation
@@ -25,11 +26,16 @@
  * ```
  */
 
-import React from 'react';
-import { View } from 'react-native';
-import { Stack } from '@/shared/ui/styled';
+import React, { useCallback } from 'react';
+import { View, Dimensions } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { MealPhotoCard, type MealPhotoData } from '@/entities/meal';
 import type { BaseComponentProps } from '@/shared/types';
+import { tokens } from '@/shared/ui/tokens';
+
+// =============================================================================
+// TYPES
+// =============================================================================
 
 export interface EntryPhotoGridProps extends BaseComponentProps {
   /** Array of meal photos to display */
@@ -44,6 +50,17 @@ export interface EntryPhotoGridProps extends BaseComponentProps {
   onMealLongPress?: (meal: MealPhotoData) => void;
 }
 
+// =============================================================================
+// CONSTANTS
+// =============================================================================
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const GAP = tokens.spacing.component.md;
+
+// =============================================================================
+// COMPONENT
+// =============================================================================
+
 export function EntryPhotoGrid({
   meals,
   columns = 3,
@@ -53,8 +70,20 @@ export function EntryPhotoGrid({
   testID,
   style,
 }: EntryPhotoGridProps) {
-  // Calculate gap based on columns
-  const gap = columns === 3 ? 'lg' : 'md';
+  const renderItem = useCallback(
+    ({ item }: { item: MealPhotoData }) => (
+      <MealPhotoCard
+        meal={item}
+        size={cardSize}
+        onPress={onMealPress ? () => onMealPress(item) : undefined}
+        onLongPress={onMealLongPress ? () => onMealLongPress(item) : undefined}
+        testID={testID ? `${testID}-meal-${item.id}` : undefined}
+      />
+    ),
+    [cardSize, onMealPress, onMealLongPress, testID]
+  );
+
+  const keyExtractor = useCallback((item: MealPhotoData) => item.id, []);
 
   return (
     <View
@@ -64,24 +93,13 @@ export function EntryPhotoGrid({
       accessibilityRole="list"
       accessibilityLabel={`Meal photos grid with ${meals.length} items`}
     >
-      <Stack
-        direction="horizontal"
-        gap={gap}
-        wrap
-        align="start"
-        justify="start"
-      >
-        {meals.map((meal) => (
-          <MealPhotoCard
-            key={meal.id}
-            meal={meal}
-            size={cardSize}
-            onPress={onMealPress ? () => onMealPress(meal) : undefined}
-            onLongPress={onMealLongPress ? () => onMealLongPress(meal) : undefined}
-            testID={testID ? `${testID}-meal-${meal.id}` : undefined}
-          />
-        ))}
-      </Stack>
+      <FlashList
+        data={meals}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        numColumns={columns}
+        contentContainerStyle={{ padding: GAP / 2 }}
+      />
     </View>
   );
 }

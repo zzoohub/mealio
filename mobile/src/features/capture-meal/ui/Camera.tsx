@@ -25,7 +25,7 @@ export default function Camera() {
 
   const {
     cameraRef,
-    captureButtonScale,
+    captureButtonPressed,
     flashMode,
     isCapturing,
     capturedPhotos,
@@ -78,7 +78,7 @@ export default function Camera() {
       <CaptureButton
         onCapture={capturePhoto}
         isCapturing={isCapturing}
-        scaleValue={captureButtonScale}
+        pressedState={captureButtonPressed}
         disabled={isCapturing}
       />
 

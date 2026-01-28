@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { iconSizes } from "@/shared/ui/tokens";
@@ -17,7 +17,7 @@ export interface CameraTopControlsProps {
 // COMPONENT
 // =============================================================================
 
-export function CameraTopControls({ flashIcon, onToggleFlash, onSettingsPress }: CameraTopControlsProps) {
+export const CameraTopControls = memo(function CameraTopControls({ flashIcon, onToggleFlash, onSettingsPress }: CameraTopControlsProps) {
   return (
     <View style={styles.topControls}>
       <Pressable style={styles.controlButton} onPress={onSettingsPress}>
@@ -29,7 +29,7 @@ export function CameraTopControls({ flashIcon, onToggleFlash, onSettingsPress }:
       </Pressable>
     </View>
   );
-}
+});
 
 // =============================================================================
 // STYLES

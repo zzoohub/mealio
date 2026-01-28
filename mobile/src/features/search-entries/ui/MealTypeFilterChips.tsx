@@ -5,7 +5,7 @@
  * Multiple selection allowed.
  */
 
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/shared/ui/theme';
@@ -37,26 +37,32 @@ const MEAL_TYPE_OPTIONS: { value: MealType; label: string; icon: string }[] = [
 // COMPONENT
 // =============================================================================
 
-export function MealTypeFilterChips({
+export const MealTypeFilterChips = memo(function MealTypeFilterChips({
   selected,
   onChange,
   disabled = false,
 }: MealTypeFilterChipsProps) {
   const { colors } = useTheme();
 
-  const handlePress = (mealType: MealType) => {
-    if (disabled) return;
+  const handlePress = useCallback(
+    (mealType: MealType) => {
+      if (disabled) return;
 
-    if (selected.includes(mealType)) {
-      // Remove from selection
-      onChange(selected.filter((t) => t !== mealType));
-    } else {
-      // Add to selection
-      onChange([...selected, mealType]);
-    }
-  };
+      if (selected.includes(mealType)) {
+        // Remove from selection
+        onChange(selected.filter((t) => t !== mealType));
+      } else {
+        // Add to selection
+        onChange([...selected, mealType]);
+      }
+    },
+    [disabled, selected, onChange]
+  );
 
-  const isSelected = (mealType: MealType) => selected.includes(mealType);
+  const isSelected = useCallback(
+    (mealType: MealType) => selected.includes(mealType),
+    [selected]
+  );
 
   return (
     <View style={styles.container}>
@@ -93,7 +99,7 @@ export function MealTypeFilterChips({
       })}
     </View>
   );
-}
+});
 
 // =============================================================================
 // STYLES

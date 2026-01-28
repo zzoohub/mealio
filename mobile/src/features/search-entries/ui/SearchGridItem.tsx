@@ -5,7 +5,7 @@
  * Designed for 3-column grid layout.
  */
 
-import React from "react";
+import React, { memo, useCallback } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 import { Image } from "expo-image";
@@ -44,12 +44,12 @@ function formatDateTime(date: Date): string {
 // COMPONENT
 // =============================================================================
 
-export function SearchGridItem({ entry, size, onPress }: SearchGridItemProps) {
+export const SearchGridItem = memo(function SearchGridItem({ entry, size, onPress }: SearchGridItemProps) {
   const { colors } = useTheme();
 
-  const handlePress = () => {
+  const handlePress = useCallback(() => {
     onPress?.(entry);
-  };
+  }, [onPress, entry]);
 
   return (
     <Pressable
@@ -73,7 +73,7 @@ export function SearchGridItem({ entry, size, onPress }: SearchGridItemProps) {
       </View>
     </Pressable>
   );
-}
+});
 
 // =============================================================================
 // STYLES
