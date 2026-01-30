@@ -49,3 +49,39 @@ shared/        # ui/, lib/, config/, types/
 
 
 ## API
+### Architecture (`api/src/`) Feature-Sliced
+```
+main.rs
+lib.rs                 # AppState, re-exports
+error.rs               # AppError (RFC 9457)
+extractors.rs          # Db extractor
+response.rs            # Created<T>, Ok<T>, NoContent
+features/
+  ├── mod.rs
+  ├── users/
+  │   ├── mod.rs
+  │   ├── router.rs
+  │   ├── handlers.rs
+  │   └── models.rs    # Entity + repository  
+  └── auth/
+      └── ...
+shared/                # Cross-feature utilities
+  └── types.rs
+migrations/
+.sqlx/
+```
+
+### Conventions
+- **Models**: Entity struct + repository as static methods (`User::find`, `User::create`)
+- **Handlers**: Return `Result<ResponseType<T>, AppError>`
+- **Errors**: RFC 9457 via `AppError`, DB errors auto-convert
+- **Response types**: `Created<T>` (201), `Ok<T>` (200), `NoContent` (204)
+- **Cross-feature**: If used by 2+ features → `shared/`
+
+### Stack
+| Layer | Technology |
+|-------|------------|
+| Framework | Axum 0.8+ |
+| Database | SQLx + PostgreSQL |
+| Auth | JWT (argon2id passwords) |
+| Middleware | Tower layers |
