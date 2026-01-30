@@ -29,7 +29,7 @@ CREATE TABLE users (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE INDEX users_email_idx ON users(email);
+-- Note: email already has a unique index from the UNIQUE constraint
 CREATE INDEX users_created_at_idx ON users(created_at);
 
 COMMENT ON TABLE users IS 'User accounts (login required, guest data stored locally on device)';
@@ -109,7 +109,7 @@ COMMENT ON TABLE auth_tokens IS 'JWT refresh tokens for session management';
 
 CREATE TABLE diary_entries (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
 
     -- Entry metadata
     recorded_at TIMESTAMPTZ NOT NULL,
@@ -216,7 +216,13 @@ CREATE TABLE user_nutrition (
 
     -- Timestamps
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    -- Constraints
+    CONSTRAINT user_nutrition_calories_check CHECK (calories IS NULL OR calories >= 0),
+    CONSTRAINT user_nutrition_protein_check CHECK (protein IS NULL OR protein >= 0),
+    CONSTRAINT user_nutrition_fat_check CHECK (fat IS NULL OR fat >= 0),
+    CONSTRAINT user_nutrition_sugar_check CHECK (sugar IS NULL OR sugar >= 0)
 );
 
 COMMENT ON TABLE user_nutrition IS 'User-entered nutrition (optional override of AI estimates)';
@@ -257,24 +263,25 @@ CREATE TABLE ai_analyses (
 
     -- Constraints
     CONSTRAINT ai_analyses_confidence_check CHECK (confidence >= 0 AND confidence <= 100),
-    CONSTRAINT ai_analyses_health_score_check CHECK (health_score IS NULL OR (health_score >= 0 AND health_score <= 100))
+    CONSTRAINT ai_analyses_health_score_check CHECK (health_score IS NULL OR (health_score >= 0 AND health_score <= 100)),
+    CONSTRAINT ai_analyses_processing_time_check CHECK (processing_time_ms IS NULL OR processing_time_ms >= 0)
 );
 
-CREATE INDEX ai_analyses_entry_id_idx ON ai_analyses(entry_id);
+-- Note: entry_id already has a unique index from the UNIQUE constraint
 CREATE INDEX ai_analyses_health_score_idx ON ai_analyses(health_score DESC, entry_id) WHERE health_score IS NOT NULL;
 
 COMMENT ON TABLE ai_analyses IS 'AI analysis results - immutable AI output (1:1 with diary_entries)';
 COMMENT ON COLUMN ai_analyses.detected_meals IS 'Array of detected food items';
 COMMENT ON COLUMN ai_analyses.detected_ingredients IS 'Array of detected ingredients';
-COMMENT ON COLUMN ai_analyses.nutrition IS 'AI-estimated nutrition: {calories, protein, carbs, fat, ...}';
+COMMENT ON COLUMN ai_analyses.nutrition IS 'AI-estimated nutrition: {calories, protein, sugar, fat, ...}';
 COMMENT ON COLUMN ai_analyses.confidence IS '0-100 confidence score';
 COMMENT ON COLUMN ai_analyses.comment IS 'AI-generated witty comment about the meal';
 COMMENT ON COLUMN ai_analyses.health_score IS '0-100 health score';
-COMMENT ON COLUMN ai_analyses.nutrition_balance IS 'e.g., "High protein, low carbs"';
+COMMENT ON COLUMN ai_analyses.nutrition_balance IS 'e.g., "High protein, low sugar"';
 COMMENT ON COLUMN ai_analyses.recommendations IS 'Array of {type, message} recommendations';
 
 -- =============================================================================
--- USER INGREDIENTS
+-- ENTRY INGREDIENTS
 -- =============================================================================
 
 CREATE TABLE ingredients (
@@ -302,7 +309,7 @@ COMMENT ON COLUMN ingredients.name_ko IS 'Korean translation';
 
 -- -----------------------------------------------------------------------------
 
-CREATE TABLE user_ingredients (
+CREATE TABLE entry_ingredients (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     entry_id BIGINT NOT NULL REFERENCES diary_entries(id) ON DELETE CASCADE,
     ingredient_id BIGINT NOT NULL REFERENCES ingredients(id) ON DELETE RESTRICT,
@@ -311,13 +318,13 @@ CREATE TABLE user_ingredients (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     -- Constraints
-    CONSTRAINT user_ingredients_unique UNIQUE (entry_id, ingredient_id)
+    CONSTRAINT entry_ingredients_unique UNIQUE (entry_id, ingredient_id)
 );
 
-CREATE INDEX user_ingredients_entry_id_idx ON user_ingredients(entry_id);
-CREATE INDEX user_ingredients_ingredient_id_idx ON user_ingredients(ingredient_id);
+CREATE INDEX entry_ingredients_entry_id_idx ON entry_ingredients(entry_id);
+CREATE INDEX entry_ingredients_ingredient_id_idx ON entry_ingredients(ingredient_id);
 
-COMMENT ON TABLE user_ingredients IS 'User-added ingredients (optional override of AI detected ingredients)';
+COMMENT ON TABLE entry_ingredients IS 'User-added ingredients per entry (optional override of AI detected ingredients)';
 
 -- =============================================================================
 -- TRIGGERS
@@ -351,6 +358,24 @@ CREATE TRIGGER user_nutrition_updated_at
 CREATE TRIGGER entry_photos_updated_at
     BEFORE UPDATE ON entry_photos
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- =============================================================================
+-- ENFORCE MAX 10 PHOTOS PER ENTRY
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION enforce_max_photos_per_entry()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (SELECT COUNT(*) FROM entry_photos WHERE entry_id = NEW.entry_id) >= 10 THEN
+        RAISE EXCEPTION 'Cannot add more than 10 photos per entry (entry_id: %)', NEW.entry_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER entry_photos_max_limit
+    BEFORE INSERT ON entry_photos
+    FOR EACH ROW EXECUTE FUNCTION enforce_max_photos_per_entry();
 
 -- =============================================================================
 -- AUTO-CREATE USER SETTINGS

@@ -33,7 +33,7 @@ Table users {
   deleted_at timestamptz [note: 'Soft delete']
 
   indexes {
-    email
+    // email already covered by UNIQUE constraint
     created_at
   }
 
@@ -236,7 +236,7 @@ Table ingredients {
   Note: 'Master list of ingredients'
 }
 
-Table user_ingredients {
+Table entry_ingredients {
   id bigint [pk, increment]
   entry_id bigint [ref: > diary_entries.id, not null]
   ingredient_id bigint [ref: > ingredients.id, not null]
@@ -250,7 +250,7 @@ Table user_ingredients {
     (entry_id, ingredient_id) [unique]
   }
 
-  Note: 'User-added ingredients (optional override of AI detected ingredients)'
+  Note: 'User-added ingredients per entry (optional override of AI detected ingredients)'
 }
 
 // =============================================================================
@@ -269,14 +269,14 @@ Table ai_analyses {
   cuisine_type varchar(50)
 
   // AI-estimated nutrition
-  nutrition jsonb [not null, note: '{calories, protein, carbs, fat, ...}']
+  nutrition jsonb [not null, note: '{calories, protein, sugar, fat, ...}']
 
   // AI-generated content
   comment text [note: 'AI-generated witty comment about the meal']
 
   // Health insights
   health_score smallint [note: '0-100 health score']
-  nutrition_balance varchar(100) [note: 'e.g., "High protein, low carbs"']
+  nutrition_balance varchar(100) [note: 'e.g., "High protein, low sugar"']
   recommendations jsonb [default: '[]', note: 'Array of {type, message}']
 
   // Processing metadata
@@ -288,7 +288,7 @@ Table ai_analyses {
   created_at timestamptz [not null, default: `now()`]
 
   indexes {
-    entry_id
+    // entry_id already covered by UNIQUE constraint
     (health_score, entry_id)
   }
 
