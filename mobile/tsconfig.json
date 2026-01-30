@@ -1,22 +1,45 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    // ========== STRICT MODE ==========
+    // Enables: strictNullChecks, strictFunctionTypes, strictBindCallApply,
+    // strictPropertyInitialization, noImplicitAny, noImplicitThis,
+    // alwaysStrict, useUnknownInCatchVariables
     "strict": true,
-    "jsx": "react-jsx",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "allowJs": false,
-    "noEmit": true,
-    "isolatedModules": true,
-    "incremental": true,
-    "moduleResolution": "bundler",
-    "forceConsistentCasingInFileNames": true,
-    "exactOptionalPropertyTypes": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
+
+    // ========== ADDITIONAL STRICT CHECKS ==========
+    "noImplicitReturns": true, // All code paths must return
+    "noFallthroughCasesInSwitch": true, // Require break/return in switch cases
+    "noUncheckedIndexedAccess": true, // Index access returns T | undefined
+    "exactOptionalPropertyTypes": true, // Stricter optional property handling
+    "noPropertyAccessFromIndexSignature": true, // Force obj["key"] for index signatures
+    "noImplicitOverride": true, // Require 'override' keyword in subclasses
+    "noUnusedLocals": true, // Error on unused variables
+    "noUnusedParameters": true, // Error on unused parameters (_prefix to ignore)
+    "allowUnreachableCode": false, // Error on unreachable code
+    "allowUnusedLabels": false, // Error on unused labels
+
+    // ========== JSX ==========
+    "jsx": "react-jsx", // React 17+ transform (no React import needed)
+
+    // ========== MODULE ==========
+    "moduleResolution": "bundler", // Modern bundler resolution (Metro/Vite/Webpack)
+    "verbatimModuleSyntax": true, // Require 'import type' for type-only imports
+    "esModuleInterop": true, // CommonJS/ESM interop
+    "allowSyntheticDefaultImports": true, // Allow default imports from non-default modules
+    "resolveJsonModule": true, // Allow importing .json files
+    "isolatedModules": true, // Required for Babel/transpilers
+
+    // ========== EMIT ==========
+    "noEmit": true, // Bundler handles output
+    "skipLibCheck": true, // Skip .d.ts checking (faster builds)
+    "incremental": true, // Faster rebuilds
+
+    // ========== FILES ==========
+    "allowJs": false, // TypeScript only
+    "forceConsistentCasingInFileNames": true, // Enforce consistent file casing
+
+    // ========== PATH ALIASES ==========
     "paths": {
       "@/*": ["./src/*"],
       "@/app/*": ["./src/app/*"],
@@ -29,17 +52,9 @@
       "@/types/*": ["./src/shared/types/*"],
       "@/providers/*": ["./src/app/providers/*"],
       "@/assets/*": ["./assets/*"],
-      "~/*": ["./*"]
-    }
+      "~/*": ["./*"],
+    },
   },
-  "include": [
-    "app/**/*.ts", 
-    "app/**/*.tsx", 
-    "src/**/*.ts", 
-    "src/**/*.tsx", 
-    ".expo/types/**/*.ts", 
-    "expo-env.d.ts",
-    "ARCHITECTURE.md"
-  ],
-  "exclude": ["node_modules", "**/*.spec.ts", "**/*.test.ts"]
+  "include": ["app/**/*.ts", "app/**/*.tsx", "src/**/*.ts", "src/**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  "exclude": ["node_modules", "**/*.spec.ts", "**/*.test.ts"],
 }
