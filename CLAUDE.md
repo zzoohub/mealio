@@ -5,18 +5,18 @@ Mealio meal tracking app. Monorepo:
 - `/mobile` — React Native / Expo 55 (primary) / bun
 - `/api` — Rust / Axum (skeleton, early stage)
 
-## Workflow 
+## Workflow
 
 ### api 
 1. Use **data-modeling** skill for database design and any schema changes
 2. Use **database-reviewer** agent after **data-modeling** skill
 3. Use **api-design** skill for api design
-4. MUST Use **axum** skill for any api implementation. because it has best practices and project structure.
-5. Use **postgresql** skill for writing queries
+4. MUST Use **axum** skill for any api implementation. because it has best practices and project structure. for writing queries use **postgresql** skill
+5. check success build (cargo build --release)
 - Common workflow
-  **data-modeling** -> **database-reviewer** (agent) -> **api-design** (plan) -> **axum** (implementation)
+  **data-modeling** -> **database-reviewer** (agent) -> **api-design** (plan) -> **axum** (implementation) and **postgresql** (queries) -> build test
 
-### mobile implementation
+### mobile
 1. MUST Use **expo-react-native** skill for any mobile implementation. because it has best practices and project structure.
 2. Use **vercel-react-native-skills** skill for review and modify focus on specific logic 
 - Common workflow

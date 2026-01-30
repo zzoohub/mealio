@@ -1,0 +1,197 @@
+use axum::extract::Query;
+use bigdecimal::BigDecimal;
+use chrono::NaiveDate;
+use serde::{Deserialize, Serialize};
+
+use crate::error::AppError;
+use crate::extractors::{AuthUser, Db};
+use crate::response;
+use crate::shared::types::MealType;
+
+#[derive(Debug, Deserialize)]
+pub struct StatsParams {
+    pub start_date: Option<NaiveDate>,
+    pub end_date: Option<NaiveDate>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct NutritionStats {
+    pub total_entries: i64,
+    pub avg_calories: Option<BigDecimal>,
+    pub total_calories: Option<BigDecimal>,
+    pub avg_protein: Option<BigDecimal>,
+    pub total_protein: Option<BigDecimal>,
+    pub avg_fat: Option<BigDecimal>,
+    pub total_fat: Option<BigDecimal>,
+    pub avg_sugar: Option<BigDecimal>,
+    pub total_sugar: Option<BigDecimal>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct MealTypeCount {
+    pub meal_type: MealType,
+    pub count: i64,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct TopIngredient {
+    pub ingredient_id: i64,
+    pub ingredient_name: String,
+    pub usage_count: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Overview {
+    pub nutrition: NutritionStats,
+    pub meal_types: Vec<MealTypeCount>,
+    pub top_ingredients: Vec<TopIngredient>,
+}
+
+pub async fn nutrition_stats(
+    auth: AuthUser,
+    Db(db): Db,
+    Query(params): Query<StatsParams>,
+) -> Result<response::Ok<NutritionStats>, AppError> {
+    let stats = fetch_nutrition_stats(&db, auth.user_id, &params).await?;
+    Ok(response::Ok(stats))
+}
+
+pub async fn meal_type_stats(
+    auth: AuthUser,
+    Db(db): Db,
+    Query(params): Query<StatsParams>,
+) -> Result<response::Ok<Vec<MealTypeCount>>, AppError> {
+    let counts = fetch_meal_type_counts(&db, auth.user_id, &params).await?;
+    Ok(response::Ok(counts))
+}
+
+pub async fn top_ingredients(
+    auth: AuthUser,
+    Db(db): Db,
+    Query(params): Query<StatsParams>,
+) -> Result<response::Ok<Vec<TopIngredient>>, AppError> {
+    let ingredients = fetch_top_ingredients(&db, auth.user_id, &params).await?;
+    Ok(response::Ok(ingredients))
+}
+
+pub async fn overview(
+    auth: AuthUser,
+    Db(db): Db,
+    Query(params): Query<StatsParams>,
+) -> Result<response::Ok<Overview>, AppError> {
+    let nutrition = fetch_nutrition_stats(&db, auth.user_id, &params).await?;
+    let meal_types = fetch_meal_type_counts(&db, auth.user_id, &params).await?;
+    let top = fetch_top_ingredients(&db, auth.user_id, &params).await?;
+
+    Ok(response::Ok(Overview {
+        nutrition,
+        meal_types,
+        top_ingredients: top,
+    }))
+}
+
+#[derive(sqlx::FromRow)]
+struct NutritionStatsRow {
+    total_entries: i64,
+    avg_calories: Option<BigDecimal>,
+    total_calories: Option<BigDecimal>,
+    avg_protein: Option<BigDecimal>,
+    total_protein: Option<BigDecimal>,
+    avg_fat: Option<BigDecimal>,
+    total_fat: Option<BigDecimal>,
+    avg_sugar: Option<BigDecimal>,
+    total_sugar: Option<BigDecimal>,
+}
+
+async fn fetch_nutrition_stats(
+    db: &sqlx::PgPool,
+    user_id: i64,
+    params: &StatsParams,
+) -> Result<NutritionStats, AppError> {
+    let row = sqlx::query_as::<_, NutritionStatsRow>(
+        "SELECT
+            COUNT(de.id) as total_entries,
+            AVG(COALESCE(un.calories, aa.calories)) as avg_calories,
+            SUM(COALESCE(un.calories, aa.calories)) as total_calories,
+            AVG(COALESCE(un.protein_grams, aa.protein_grams)) as avg_protein,
+            SUM(COALESCE(un.protein_grams, aa.protein_grams)) as total_protein,
+            AVG(COALESCE(un.fat_grams, aa.fat_grams)) as avg_fat,
+            SUM(COALESCE(un.fat_grams, aa.fat_grams)) as total_fat,
+            AVG(COALESCE(un.sugar_grams, aa.sugar_grams)) as avg_sugar,
+            SUM(COALESCE(un.sugar_grams, aa.sugar_grams)) as total_sugar
+        FROM diary_entries de
+        LEFT JOIN user_nutrition un ON un.entry_id = de.id
+        LEFT JOIN LATERAL (
+            SELECT * FROM ai_analyses WHERE entry_id = de.id ORDER BY created_at DESC LIMIT 1
+        ) aa ON true
+        WHERE de.user_id = $1 AND de.deleted_at IS NULL
+        AND ($2::date IS NULL OR de.eaten_at::date >= $2)
+        AND ($3::date IS NULL OR de.eaten_at::date <= $3)",
+    )
+    .bind(user_id)
+    .bind(params.start_date)
+    .bind(params.end_date)
+    .fetch_one(db)
+    .await?;
+
+    Ok(NutritionStats {
+        total_entries: row.total_entries,
+        avg_calories: row.avg_calories,
+        total_calories: row.total_calories,
+        avg_protein: row.avg_protein,
+        total_protein: row.total_protein,
+        avg_fat: row.avg_fat,
+        total_fat: row.total_fat,
+        avg_sugar: row.avg_sugar,
+        total_sugar: row.total_sugar,
+    })
+}
+
+async fn fetch_meal_type_counts(
+    db: &sqlx::PgPool,
+    user_id: i64,
+    params: &StatsParams,
+) -> Result<Vec<MealTypeCount>, AppError> {
+    let rows = sqlx::query_as::<_, MealTypeCount>(
+        "SELECT meal_type, COUNT(*) as count
+         FROM diary_entries
+         WHERE user_id = $1 AND deleted_at IS NULL
+         AND ($2::date IS NULL OR eaten_at::date >= $2)
+         AND ($3::date IS NULL OR eaten_at::date <= $3)
+         GROUP BY meal_type
+         ORDER BY count DESC",
+    )
+    .bind(user_id)
+    .bind(params.start_date)
+    .bind(params.end_date)
+    .fetch_all(db)
+    .await?;
+
+    Ok(rows)
+}
+
+async fn fetch_top_ingredients(
+    db: &sqlx::PgPool,
+    user_id: i64,
+    params: &StatsParams,
+) -> Result<Vec<TopIngredient>, AppError> {
+    let rows = sqlx::query_as::<_, TopIngredient>(
+        "SELECT i.id as ingredient_id, i.name as ingredient_name, COUNT(*) as usage_count
+         FROM entry_ingredients ei
+         JOIN ingredients i ON i.id = ei.ingredient_id
+         JOIN diary_entries de ON de.id = ei.entry_id
+         WHERE de.user_id = $1 AND de.deleted_at IS NULL
+         AND ($2::date IS NULL OR de.eaten_at::date >= $2)
+         AND ($3::date IS NULL OR de.eaten_at::date <= $3)
+         GROUP BY i.id, i.name
+         ORDER BY usage_count DESC
+         LIMIT 20",
+    )
+    .bind(user_id)
+    .bind(params.start_date)
+    .bind(params.end_date)
+    .fetch_all(db)
+    .await?;
+
+    Ok(rows)
+}

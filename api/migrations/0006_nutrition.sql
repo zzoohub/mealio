@@ -1,0 +1,20 @@
+CREATE TABLE user_nutrition (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    entry_id BIGINT NOT NULL UNIQUE REFERENCES diary_entries(id) ON DELETE CASCADE,
+    calories NUMERIC(8, 2),
+    protein_grams NUMERIC(8, 2),
+    fat_grams NUMERIC(8, 2),
+    carbs_grams NUMERIC(8, 2),
+    fiber_grams NUMERIC(8, 2),
+    sugar_grams NUMERIC(8, 2),
+    sodium_mg NUMERIC(8, 2),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT chk_calories CHECK (calories IS NULL OR calories >= 0),
+    CONSTRAINT chk_protein CHECK (protein_grams IS NULL OR protein_grams >= 0),
+    CONSTRAINT chk_fat CHECK (fat_grams IS NULL OR fat_grams >= 0),
+    CONSTRAINT chk_carbs CHECK (carbs_grams IS NULL OR carbs_grams >= 0),
+    CONSTRAINT chk_fiber CHECK (fiber_grams IS NULL OR fiber_grams >= 0),
+    CONSTRAINT chk_sugar CHECK (sugar_grams IS NULL OR sugar_grams >= 0),
+    CONSTRAINT chk_sodium CHECK (sodium_mg IS NULL OR sodium_mg >= 0)
+);
