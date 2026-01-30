@@ -2,7 +2,7 @@
 name: axum
 description: |
   Axum 0.8+ production patterns with SQLx.
-  Use when: building Rust APIs, async database, error handling.
+  Use when: setup or building Rust APIs, async database, error handling.
   Do not use for: API design decisions (use api-design skill).
   Workflow: api-design (design) → this skill (implementation).
 references:

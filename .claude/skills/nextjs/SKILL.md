@@ -2,8 +2,7 @@
 name: nextjs
 description: |
   Next.js 15+ App Router patterns and conventions.
-  Use when: building web apps with Next.js, setting up project structure, implementing features, 
-    creating pages/components, writing Server Actions, data fetching.
+  Use when: setup or building web apps with Next.js, setting up project structure, implementing features, creating pages/components, writing Server Actions, data fetching.
   Do not use for: UX decisions (use ux-design), token/component design (use design-system), mobile apps.
   Workflow: this skill (building web apps) -> vercel-react-best-practices (refactoring and performance optimization if needed).
 references:

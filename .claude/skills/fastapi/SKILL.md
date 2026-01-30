@@ -2,7 +2,7 @@
 name: fastapi
 description: |
   FastAPI production patterns with Pydantic v2 and SQLAlchemy async.
-  Use when: building Python APIs, async database, JWT auth.
+  Use when: setup or building Python APIs, async database, JWT auth.
   Do not use for: API design decisions (use api-design skill).
   Workflow: api-design (design) → this skill (implementation).
 references:
