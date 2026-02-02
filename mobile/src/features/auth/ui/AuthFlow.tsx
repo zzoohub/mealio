@@ -11,7 +11,7 @@ import { AppleSignInButton } from "./AppleSignInButton";
 import { useAuthStore } from "../model/authStore";
 import { useGoogleAuth } from "../model/useGoogleAuth";
 import { useAppleAuth } from "../model/useAppleAuth";
-import { useMigration } from "../model/useMigration";
+import { useMigration } from "@/features/diary-feed";
 import type { AuthCredential } from "@/entities/user";
 
 // =============================================================================

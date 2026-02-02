@@ -1,22 +1,36 @@
 import { useCallback } from "react";
 import { useForm } from "@tanstack/react-form";
+import { z } from "zod";
 import { MealType } from "@/entities/meal";
 import type { Entry } from "@/entities/entry";
+
+// =============================================================================
+// VALIDATION SCHEMA
+// =============================================================================
+
+const mealTypeValues = Object.values(MealType) as [string, ...string[]];
+
+const entryFormSchema = z
+  .object({
+    title: z.string(),
+    notes: z.string(),
+    mealType: z.enum(mealTypeValues),
+    eatenAt: z.date(),
+    photoUri: z.string(),
+    locationLatitude: z.number().nullable(),
+    locationLongitude: z.number().nullable(),
+    locationAddress: z.string(),
+  })
+  .refine((data) => data.title || data.notes, {
+    message: "Title or notes is required",
+    path: ["title"],
+  });
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-export interface EntryFormValues {
-  title: string;
-  notes: string;
-  mealType: MealType;
-  eatenAt: Date;
-  photoUri: string;
-  locationLatitude: number | null;
-  locationLongitude: number | null;
-  locationAddress: string;
-}
+export type EntryFormValues = z.infer<typeof entryFormSchema>;
 
 interface UseEntryFormOptions {
   onSubmit: (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">) => Promise<void>;
@@ -46,7 +60,7 @@ export function useEntryForm({ onSubmit, defaultValues }: UseEntryFormOptions) {
         notes: value.notes || value.title,
         meal: {
           photoUri: value.photoUri,
-          mealType: value.mealType,
+          mealType: value.mealType as MealType,
         },
       };
 
@@ -64,15 +78,7 @@ export function useEntryForm({ onSubmit, defaultValues }: UseEntryFormOptions) {
       await onSubmit(entry);
     },
     validators: {
-      onSubmit: ({ value }) => {
-        if (!value.mealType) {
-          return "Meal type is required";
-        }
-        if (!value.title && !value.notes) {
-          return "Title or notes is required";
-        }
-        return undefined;
-      },
+      onSubmit: entryFormSchema,
     },
   });
 

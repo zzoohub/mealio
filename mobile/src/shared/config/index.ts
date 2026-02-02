@@ -32,8 +32,6 @@ export const STORAGE_KEYS = {
   APP_SETTINGS: "app_settings",
   // Auth
   AUTH_TOKEN: "auth_token",
-  ACCESS_TOKEN: "access_token",
-  REFRESH_TOKEN: "refresh_token",
   TOKEN_EXPIRES_AT: "token_expires_at",
   // Settings
   NOTIFICATION_SETTINGS: "notification_settings",

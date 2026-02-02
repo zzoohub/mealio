@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
 import { useSettingsStore, type DisplaySettings, type NotificationSettings } from "./settingsStore";
-import { useAuthStore } from "@/features/auth/model/authStore";
+import { useAuthStore } from "@/features/auth";
 import { changeLanguage, useSettingsI18n, type SupportedLanguage } from "@/shared/lib/i18n";
 import type { User } from "@/entities/user";
 

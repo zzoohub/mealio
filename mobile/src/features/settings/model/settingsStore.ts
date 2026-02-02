@@ -1,9 +1,8 @@
 import { create } from 'zustand';
-import { subscribeWithSelector } from 'zustand/middleware';
 import { STORAGE_KEYS } from '@/shared/config';
-import { storage, createDebouncedSetter } from '@/shared/lib/storage';
+import { storage } from '@/shared/lib/storage';
 import { settingsApi } from './settingsApi';
-import { useAuthStore, selectIsAuthenticated } from '@/features/auth/model/authStore';
+import { isAuthenticated } from '@/shared/lib/auth';
 import type { SupportedLanguage } from '@/shared/lib/i18n';
 
 export interface NotificationSettings {
@@ -56,12 +55,7 @@ const defaultCamera: CameraSettings = {
   saveToGallery: true,
 };
 
-function isAuthenticated(): boolean {
-  return selectIsAuthenticated(useAuthStore.getState());
-}
-
-export const useSettingsStore = create<SettingsState>()(
-  subscribeWithSelector((set, get) => ({
+export const useSettingsStore = create<SettingsState>()((set, get) => ({
     notifications: defaultNotifications,
     display: defaultDisplay,
     camera: defaultCamera,
@@ -212,24 +206,6 @@ export const useSettingsStore = create<SettingsState>()(
     },
 
     clearError: () => set({ error: null }),
-  }))
-);
-
-const debouncedDisplaySave = createDebouncedSetter<DisplaySettings>(STORAGE_KEYS.DISPLAY_SETTINGS);
-const debouncedCameraSave = createDebouncedSetter<CameraSettings>(STORAGE_KEYS.CAMERA_SETTINGS);
-
-useSettingsStore.subscribe(
-  (state) => state.display,
-  (display) => {
-    debouncedDisplaySave(display);
-  }
-);
-
-useSettingsStore.subscribe(
-  (state) => state.camera,
-  (camera) => {
-    debouncedCameraSave(camera);
-  }
-);
+  }));
 
 export const flushSettingsStorage = () => storage.flush();

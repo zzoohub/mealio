@@ -5,7 +5,7 @@ import { storage } from "@/shared/lib/storage";
 import { apiClient, useTokenStore, mapApiUserInfoToUser } from "@/shared/api";
 import type { ApiAuthResponse } from "@/shared/api";
 import type { User, AuthCredential } from "@/entities/user";
-import { queryClient } from "@/app/providers/query";
+import { queryClient } from "@/shared/lib/query";
 import { Platform } from "react-native";
 
 // =============================================================================

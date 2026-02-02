@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Entry } from "@/entities/entry";
-import { useAuthStore, selectIsAuthenticated } from "@/features/auth/model/authStore";
+import { useIsAuthenticated } from "@/shared/lib/auth";
 import { entryStorageUtils } from "./useEntryStorage";
 import { useDiaryEntriesQuery } from "./useDiaryQueries";
 import { getWeekDays, isSameDay, formatDateToString } from "@/shared/lib/utils";
@@ -72,7 +72,7 @@ function apiEntryToEntry(apiEntry: ApiDiaryEntry): Entry {
 // =============================================================================
 
 export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
-  const isAuthenticated = useAuthStore(selectIsAuthenticated);
+  const isAuthenticated = useIsAuthenticated();
 
   // State
   const [selectedDate, setSelectedDate] = useState(new Date());

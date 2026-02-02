@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import * as SecureStore from "expo-secure-store";
 import { STORAGE_KEYS } from "@/shared/config";
 import { storage } from "@/shared/lib/storage";
 
@@ -28,6 +29,9 @@ type TokenStore = TokenState & TokenActions;
 /** Refresh 30s before actual expiry to avoid race conditions */
 const EXPIRY_BUFFER_MS = 30_000;
 
+const SECURE_KEY_ACCESS = "mealio_access_token";
+const SECURE_KEY_REFRESH = "mealio_refresh_token";
+
 // =============================================================================
 // STORE
 // =============================================================================
@@ -41,16 +45,18 @@ export const useTokenStore = create<TokenStore>()((set, get) => ({
     const expiresAt = Date.now() + expiresIn * 1000;
     set({ accessToken: access, refreshToken: refresh, expiresAt });
 
-    storage.set(STORAGE_KEYS.ACCESS_TOKEN, access);
-    storage.set(STORAGE_KEYS.REFRESH_TOKEN, refresh);
+    // Sensitive tokens go to SecureStore (encrypted keychain/keystore)
+    SecureStore.setItemAsync(SECURE_KEY_ACCESS, access).catch(() => {});
+    SecureStore.setItemAsync(SECURE_KEY_REFRESH, refresh).catch(() => {});
+    // Non-sensitive expiry timestamp stays in MMKV for sync access
     storage.set(STORAGE_KEYS.TOKEN_EXPIRES_AT, expiresAt);
   },
 
   clearTokens: () => {
     set({ accessToken: null, refreshToken: null, expiresAt: null });
 
-    storage.remove(STORAGE_KEYS.ACCESS_TOKEN);
-    storage.remove(STORAGE_KEYS.REFRESH_TOKEN);
+    SecureStore.deleteItemAsync(SECURE_KEY_ACCESS).catch(() => {});
+    SecureStore.deleteItemAsync(SECURE_KEY_REFRESH).catch(() => {});
     storage.remove(STORAGE_KEYS.TOKEN_EXPIRES_AT);
   },
 
@@ -61,12 +67,19 @@ export const useTokenStore = create<TokenStore>()((set, get) => ({
   },
 
   loadFromStorage: () => {
-    const accessToken = storage.get<string>(STORAGE_KEYS.ACCESS_TOKEN);
-    const refreshToken = storage.get<string>(STORAGE_KEYS.REFRESH_TOKEN);
+    // SecureStore is async, but we need sync hydration for Zustand.
+    // Read synchronously from MMKV for expiry, async-hydrate tokens.
     const expiresAt = storage.get<number>(STORAGE_KEYS.TOKEN_EXPIRES_AT);
 
-    if (accessToken && refreshToken) {
-      set({ accessToken, refreshToken, expiresAt });
-    }
+    Promise.all([
+      SecureStore.getItemAsync(SECURE_KEY_ACCESS),
+      SecureStore.getItemAsync(SECURE_KEY_REFRESH),
+    ]).then(([accessToken, refreshToken]) => {
+      if (accessToken && refreshToken) {
+        set({ accessToken, refreshToken, expiresAt });
+      }
+    }).catch(() => {
+      // SecureStore read failed — stay logged out
+    });
   },
 }));

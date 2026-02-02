@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { Entry } from "@/entities/entry";
-import { useAuthStore, selectIsAuthenticated } from "@/features/auth/model/authStore";
+import { useIsAuthenticated } from "@/shared/lib/auth";
 import { useEntryStorage } from "./useEntryStorage";
 import {
   useDiaryEntriesQuery,
@@ -70,7 +70,7 @@ function apiEntryToEntry(apiEntry: ApiDiaryEntry): Entry {
 // =============================================================================
 
 export function useDiaryData(options: UseDiaryDataOptions = {}): UseDiaryDataReturn {
-  const isAuthenticated = useAuthStore(selectIsAuthenticated);
+  const isAuthenticated = useIsAuthenticated();
 
   // Guest mode: local storage
   const guestStorage = useEntryStorage({ isLoggedIn: isAuthenticated });

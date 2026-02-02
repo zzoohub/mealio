@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
-import { entryStorageUtils } from "@/features/diary-feed/model/useEntryStorage";
-import { diaryApi } from "@/features/diary-feed/model/diaryApi";
+import { entryStorageUtils } from "./useEntryStorage";
+import { diaryApi } from "./diaryApi";
 import { mapEntryToCreateRequest } from "@/shared/api";
 
 // =============================================================================

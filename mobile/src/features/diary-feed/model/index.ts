@@ -6,3 +6,5 @@ export { useDiaryData } from './useDiaryData';
 export type { UseDiaryDataReturn } from './useDiaryData';
 export { statisticsApi } from './statisticsApi';
 export { useOverviewQuery, useNutritionStatsQuery } from './useStatisticsQueries';
+export { useMigration } from './useMigration';
+export type { UseMigrationReturn } from './useMigration';
