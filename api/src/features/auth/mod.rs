@@ -1,4 +1,4 @@
-mod handlers;
+pub mod handlers;
 pub mod jwt;
 pub mod models;
 pub mod oauth;

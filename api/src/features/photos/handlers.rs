@@ -8,6 +8,16 @@ use crate::response;
 
 use super::models::*;
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/diary/{entry_id}/photos",
+    params(("entry_id" = i64, Path, description = "Diary entry ID")),
+    responses(
+        (status = 200, description = "List of photos", body = Vec<EntryPhoto>),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Photos"
+)]
 pub async fn list_photos(
     auth: AuthUser,
     Db(db): Db,
@@ -18,6 +28,17 @@ pub async fn list_photos(
     Ok(response::Ok(photos))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/diary/{entry_id}/photos",
+    params(("entry_id" = i64, Path, description = "Diary entry ID")),
+    request_body = CreatePhotoRequest,
+    responses(
+        (status = 201, description = "Photo created", body = EntryPhoto),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Photos"
+)]
 pub async fn create_photo(
     auth: AuthUser,
     Db(db): Db,
@@ -39,6 +60,21 @@ pub async fn create_photo(
     Ok(response::Created(photo))
 }
 
+#[utoipa::path(
+    patch,
+    path = "/api/v1/diary/{entry_id}/photos/{id}",
+    params(
+        ("entry_id" = i64, Path, description = "Diary entry ID"),
+        ("id" = i64, Path, description = "Photo ID"),
+    ),
+    request_body = UpdatePhotoRequest,
+    responses(
+        (status = 200, description = "Photo updated", body = EntryPhoto),
+        (status = 404, description = "Not found", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Photos"
+)]
 pub async fn update_photo(
     auth: AuthUser,
     Db(db): Db,
@@ -63,6 +99,20 @@ pub async fn update_photo(
     Ok(response::Ok(photo))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/v1/diary/{entry_id}/photos/{id}",
+    params(
+        ("entry_id" = i64, Path, description = "Diary entry ID"),
+        ("id" = i64, Path, description = "Photo ID"),
+    ),
+    responses(
+        (status = 204, description = "Photo deleted"),
+        (status = 404, description = "Not found", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Photos"
+)]
 pub async fn delete_photo(
     auth: AuthUser,
     Db(db): Db,
@@ -78,6 +128,20 @@ pub async fn delete_photo(
     Ok(response::NoContent)
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/diary/{entry_id}/photos/{id}/primary",
+    params(
+        ("entry_id" = i64, Path, description = "Diary entry ID"),
+        ("id" = i64, Path, description = "Photo ID"),
+    ),
+    responses(
+        (status = 200, description = "Primary photo set", body = EntryPhoto),
+        (status = 404, description = "Not found", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Photos"
+)]
 pub async fn set_primary_photo(
     auth: AuthUser,
     Db(db): Db,

@@ -8,6 +8,17 @@ use crate::response;
 
 use super::models::*;
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/diary/{entry_id}/nutrition",
+    params(("entry_id" = i64, Path, description = "Diary entry ID")),
+    responses(
+        (status = 200, description = "Nutrition data", body = UserNutrition),
+        (status = 404, description = "Not found", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Nutrition"
+)]
 pub async fn get_nutrition(
     auth: AuthUser,
     Db(db): Db,
@@ -22,6 +33,17 @@ pub async fn get_nutrition(
     Ok(response::Ok(nutrition))
 }
 
+#[utoipa::path(
+    put,
+    path = "/api/v1/diary/{entry_id}/nutrition",
+    params(("entry_id" = i64, Path, description = "Diary entry ID")),
+    request_body = UpsertNutritionRequest,
+    responses(
+        (status = 200, description = "Nutrition upserted", body = UserNutrition),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Nutrition"
+)]
 pub async fn upsert_nutrition(
     auth: AuthUser,
     Db(db): Db,
@@ -34,6 +56,16 @@ pub async fn upsert_nutrition(
     Ok(response::Ok(nutrition))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/v1/diary/{entry_id}/nutrition",
+    params(("entry_id" = i64, Path, description = "Diary entry ID")),
+    responses(
+        (status = 204, description = "Nutrition deleted"),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Nutrition"
+)]
 pub async fn delete_nutrition(
     auth: AuthUser,
     Db(db): Db,

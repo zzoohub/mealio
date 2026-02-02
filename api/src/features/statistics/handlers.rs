@@ -8,45 +8,63 @@ use crate::extractors::{AuthUser, Db};
 use crate::response;
 use crate::shared::types::MealType;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
 pub struct StatsParams {
     pub start_date: Option<NaiveDate>,
     pub end_date: Option<NaiveDate>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct NutritionStats {
     pub total_entries: i64,
+    #[schema(value_type = Option<f64>)]
     pub avg_calories: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub total_calories: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub avg_protein: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub total_protein: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub avg_fat: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub total_fat: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub avg_sugar: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub total_sugar: Option<BigDecimal>,
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct MealTypeCount {
     pub meal_type: MealType,
     pub count: i64,
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct TopIngredient {
     pub ingredient_id: i64,
     pub ingredient_name: String,
     pub usage_count: i64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct Overview {
     pub nutrition: NutritionStats,
     pub meal_types: Vec<MealTypeCount>,
     pub top_ingredients: Vec<TopIngredient>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/statistics/nutrition",
+    params(StatsParams),
+    responses(
+        (status = 200, description = "Nutrition statistics", body = NutritionStats),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Statistics"
+)]
 pub async fn nutrition_stats(
     auth: AuthUser,
     Db(db): Db,
@@ -56,6 +74,16 @@ pub async fn nutrition_stats(
     Ok(response::Ok(stats))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/statistics/meal-types",
+    params(StatsParams),
+    responses(
+        (status = 200, description = "Meal type counts", body = Vec<MealTypeCount>),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Statistics"
+)]
 pub async fn meal_type_stats(
     auth: AuthUser,
     Db(db): Db,
@@ -65,6 +93,16 @@ pub async fn meal_type_stats(
     Ok(response::Ok(counts))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/statistics/top-ingredients",
+    params(StatsParams),
+    responses(
+        (status = 200, description = "Top 20 ingredients", body = Vec<TopIngredient>),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Statistics"
+)]
 pub async fn top_ingredients(
     auth: AuthUser,
     Db(db): Db,
@@ -74,6 +112,16 @@ pub async fn top_ingredients(
     Ok(response::Ok(ingredients))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/statistics/overview",
+    params(StatsParams),
+    responses(
+        (status = 200, description = "Statistics overview", body = Overview),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Statistics"
+)]
 pub async fn overview(
     auth: AuthUser,
     Db(db): Db,

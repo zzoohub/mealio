@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct Ingredient {
     pub id: i64,
     pub name: String,
@@ -10,20 +10,20 @@ pub struct Ingredient {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreateIngredientRequest {
     pub name: String,
     pub category: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
 pub struct IngredientSearchParams {
     pub q: Option<String>,
     pub page: Option<i64>,
     pub per_page: Option<i64>,
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct EntryIngredient {
     pub id: i64,
     pub entry_id: i64,
@@ -33,7 +33,7 @@ pub struct EntryIngredient {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct EntryIngredientWithName {
     pub id: i64,
     pub entry_id: i64,
@@ -44,14 +44,14 @@ pub struct EntryIngredientWithName {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct LinkIngredientRequest {
     pub ingredient_id: i64,
     pub amount: Option<String>,
     pub unit: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct SyncIngredientsRequest {
     pub ingredients: Vec<LinkIngredientRequest>,
 }

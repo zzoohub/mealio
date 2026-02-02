@@ -20,8 +20,8 @@ pub enum AppError {
     Internal(String),
 }
 
-#[derive(Serialize)]
-struct ProblemDetail {
+#[derive(Serialize, utoipa::ToSchema)]
+pub struct ProblemDetail {
     r#type: &'static str,
     title: String,
     status: u16,

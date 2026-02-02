@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct EntryPhoto {
     pub id: i64,
     pub entry_id: i64,
@@ -14,7 +14,7 @@ pub struct EntryPhoto {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreatePhotoRequest {
     pub url: String,
     pub caption: Option<String>,
@@ -22,7 +22,7 @@ pub struct CreatePhotoRequest {
     pub sort_order: Option<i32>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdatePhotoRequest {
     pub caption: Option<String>,
     pub sort_order: Option<i32>,

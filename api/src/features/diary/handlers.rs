@@ -4,12 +4,30 @@ use axum::Json;
 use crate::error::AppError;
 use crate::extractors::{AuthUser, Db};
 use crate::response;
-use crate::shared::types::{Paginated, PaginationParams};
+use crate::shared::types::{Paginated, PaginationMeta, PaginationParams};
 
 use super::models::*;
 use crate::features::nutrition::models::UserNutrition;
 use crate::features::photos::models::EntryPhoto;
 
+/// Paginated diary entries response
+#[derive(utoipa::ToSchema)]
+#[allow(dead_code)]
+pub struct PaginatedDiaryEntries {
+    data: Vec<DiaryEntry>,
+    meta: PaginationMeta,
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/diary",
+    params(DiaryQueryParams),
+    responses(
+        (status = 200, description = "Paginated diary entries", body = PaginatedDiaryEntries),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Diary"
+)]
 pub async fn list_entries(
     auth: AuthUser,
     Db(db): Db,
@@ -25,6 +43,17 @@ pub async fn list_entries(
     Ok(response::Ok(Paginated::new(entries, total, &pagination)))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/diary",
+    request_body = CreateEntryRequest,
+    responses(
+        (status = 201, description = "Diary entry created", body = DiaryEntry),
+        (status = 400, description = "Bad request", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Diary"
+)]
 pub async fn create_entry(
     auth: AuthUser,
     Db(db): Db,
@@ -55,6 +84,17 @@ pub async fn create_entry(
     Ok(response::Created(entry))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/diary/{id}",
+    params(("id" = i64, Path, description = "Diary entry ID")),
+    responses(
+        (status = 200, description = "Diary entry detail", body = DiaryEntryDetail),
+        (status = 404, description = "Not found", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Diary"
+)]
 pub async fn get_entry(
     auth: AuthUser,
     Db(db): Db,
@@ -76,6 +116,18 @@ pub async fn get_entry(
     }))
 }
 
+#[utoipa::path(
+    patch,
+    path = "/api/v1/diary/{id}",
+    params(("id" = i64, Path, description = "Diary entry ID")),
+    request_body = UpdateEntryRequest,
+    responses(
+        (status = 200, description = "Updated diary entry", body = DiaryEntry),
+        (status = 404, description = "Not found", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Diary"
+)]
 pub async fn update_entry(
     auth: AuthUser,
     Db(db): Db,
@@ -101,6 +153,17 @@ pub async fn update_entry(
     Ok(response::Ok(entry))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/v1/diary/{id}",
+    params(("id" = i64, Path, description = "Diary entry ID")),
+    responses(
+        (status = 204, description = "Diary entry deleted"),
+        (status = 404, description = "Not found", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Diary"
+)]
 pub async fn delete_entry(
     auth: AuthUser,
     Db(db): Db,
@@ -114,6 +177,17 @@ pub async fn delete_entry(
     Ok(response::NoContent)
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/diary/{id}/location",
+    params(("id" = i64, Path, description = "Diary entry ID")),
+    responses(
+        (status = 200, description = "Entry location", body = EntryLocation),
+        (status = 404, description = "Not found", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Diary"
+)]
 pub async fn get_location(
     auth: AuthUser,
     Db(db): Db,
@@ -130,6 +204,18 @@ pub async fn get_location(
     Ok(response::Ok(location))
 }
 
+#[utoipa::path(
+    put,
+    path = "/api/v1/diary/{id}/location",
+    params(("id" = i64, Path, description = "Diary entry ID")),
+    request_body = UpsertLocationRequest,
+    responses(
+        (status = 200, description = "Location upserted", body = EntryLocation),
+        (status = 404, description = "Not found", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Diary"
+)]
 pub async fn upsert_location(
     auth: AuthUser,
     Db(db): Db,
@@ -153,6 +239,17 @@ pub async fn upsert_location(
     Ok(response::Ok(location))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/v1/diary/{id}/location",
+    params(("id" = i64, Path, description = "Diary entry ID")),
+    responses(
+        (status = 204, description = "Location deleted"),
+        (status = 404, description = "Not found", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Diary"
+)]
 pub async fn delete_location(
     auth: AuthUser,
     Db(db): Db,

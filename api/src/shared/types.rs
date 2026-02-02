@@ -21,7 +21,7 @@ impl PaginationParams {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct PaginationMeta {
     pub page: i64,
     pub per_page: i64,
@@ -57,7 +57,7 @@ pub struct DateRangeParams {
     pub end_date: Option<NaiveDate>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq, utoipa::ToSchema)]
 #[sqlx(type_name = "meal_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum MealType {

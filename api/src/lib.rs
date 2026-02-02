@@ -1,6 +1,7 @@
 pub mod error;
 pub mod extractors;
 pub mod features;
+pub mod openapi;
 pub mod response;
 pub mod shared;
 

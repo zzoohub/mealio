@@ -8,6 +8,17 @@ use crate::response;
 
 use super::models::*;
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/diary/{entry_id}/analysis",
+    params(("entry_id" = i64, Path, description = "Diary entry ID")),
+    responses(
+        (status = 200, description = "AI analysis", body = AiAnalysis),
+        (status = 404, description = "Not found", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "AI Analysis"
+)]
 pub async fn get_analysis(
     auth: AuthUser,
     Db(db): Db,
@@ -22,6 +33,17 @@ pub async fn get_analysis(
     Ok(response::Ok(analysis))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/diary/{entry_id}/analysis",
+    params(("entry_id" = i64, Path, description = "Diary entry ID")),
+    request_body = CreateAnalysisRequest,
+    responses(
+        (status = 201, description = "Analysis created", body = AiAnalysis),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "AI Analysis"
+)]
 pub async fn create_analysis(
     auth: AuthUser,
     Db(db): Db,

@@ -7,6 +7,16 @@ use crate::response;
 
 use super::models::*;
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/users/me",
+    responses(
+        (status = 200, description = "Current user profile", body = User),
+        (status = 401, description = "Unauthorized", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Users"
+)]
 pub async fn get_me(
     auth: AuthUser,
     Db(db): Db,
@@ -17,6 +27,17 @@ pub async fn get_me(
     Ok(response::Ok(user))
 }
 
+#[utoipa::path(
+    patch,
+    path = "/api/v1/users/me",
+    request_body = UpdateUserRequest,
+    responses(
+        (status = 200, description = "Updated user profile", body = User),
+        (status = 401, description = "Unauthorized", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Users"
+)]
 pub async fn update_me(
     auth: AuthUser,
     Db(db): Db,
@@ -32,6 +53,16 @@ pub async fn update_me(
     Ok(response::Ok(user))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/v1/users/me",
+    responses(
+        (status = 204, description = "User deleted"),
+        (status = 401, description = "Unauthorized", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Users"
+)]
 pub async fn delete_me(
     auth: AuthUser,
     Db(db): Db,
@@ -44,6 +75,16 @@ pub async fn delete_me(
     Ok(response::NoContent)
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/users/me/settings",
+    responses(
+        (status = 200, description = "User settings", body = UserSettings),
+        (status = 401, description = "Unauthorized", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Users"
+)]
 pub async fn get_settings(
     auth: AuthUser,
     Db(db): Db,
@@ -52,6 +93,17 @@ pub async fn get_settings(
     Ok(response::Ok(settings))
 }
 
+#[utoipa::path(
+    patch,
+    path = "/api/v1/users/me/settings",
+    request_body = UpdateSettingsRequest,
+    responses(
+        (status = 200, description = "Updated settings", body = UserSettings),
+        (status = 401, description = "Unauthorized", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Users"
+)]
 pub async fn update_settings(
     auth: AuthUser,
     Db(db): Db,

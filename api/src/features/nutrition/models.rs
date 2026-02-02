@@ -3,29 +3,43 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct UserNutrition {
     pub id: i64,
     pub entry_id: i64,
+    #[schema(value_type = Option<f64>)]
     pub calories: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub protein_grams: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub fat_grams: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub carbs_grams: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub fiber_grams: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub sugar_grams: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub sodium_mg: Option<BigDecimal>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpsertNutritionRequest {
+    #[schema(value_type = Option<f64>)]
     pub calories: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub protein_grams: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub fat_grams: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub carbs_grams: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub fiber_grams: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub sugar_grams: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
     pub sodium_mg: Option<BigDecimal>,
 }
 

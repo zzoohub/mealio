@@ -5,12 +5,30 @@ use crate::error::AppError;
 use crate::extractors::{AuthUser, Db};
 use crate::features::diary::models::DiaryEntry;
 use crate::response;
-use crate::shared::types::{Paginated, PaginationParams};
+use crate::shared::types::{Paginated, PaginationMeta, PaginationParams};
 
 use super::models::*;
 
+/// Paginated ingredients response
+#[derive(utoipa::ToSchema)]
+#[allow(dead_code)]
+pub struct PaginatedIngredients {
+    data: Vec<Ingredient>,
+    meta: PaginationMeta,
+}
+
 // Master ingredients
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/ingredients",
+    params(IngredientSearchParams),
+    responses(
+        (status = 200, description = "Paginated ingredients", body = PaginatedIngredients),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Ingredients"
+)]
 pub async fn search_ingredients(
     _auth: AuthUser,
     Db(db): Db,
@@ -26,6 +44,16 @@ pub async fn search_ingredients(
     Ok(response::Ok(Paginated::new(ingredients, total, &pagination)))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/ingredients",
+    request_body = CreateIngredientRequest,
+    responses(
+        (status = 201, description = "Ingredient created", body = Ingredient),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Ingredients"
+)]
 pub async fn create_ingredient(
     _auth: AuthUser,
     Db(db): Db,
@@ -37,6 +65,16 @@ pub async fn create_ingredient(
 
 // Entry ingredients
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/diary/{entry_id}/ingredients",
+    params(("entry_id" = i64, Path, description = "Diary entry ID")),
+    responses(
+        (status = 200, description = "Entry ingredients", body = Vec<EntryIngredientWithName>),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Entry Ingredients"
+)]
 pub async fn list_entry_ingredients(
     auth: AuthUser,
     Db(db): Db,
@@ -47,6 +85,17 @@ pub async fn list_entry_ingredients(
     Ok(response::Ok(ingredients))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/diary/{entry_id}/ingredients",
+    params(("entry_id" = i64, Path, description = "Diary entry ID")),
+    request_body = LinkIngredientRequest,
+    responses(
+        (status = 201, description = "Ingredient linked", body = EntryIngredient),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Entry Ingredients"
+)]
 pub async fn link_ingredient(
     auth: AuthUser,
     Db(db): Db,
@@ -59,6 +108,17 @@ pub async fn link_ingredient(
     Ok(response::Created(entry_ingredient))
 }
 
+#[utoipa::path(
+    put,
+    path = "/api/v1/diary/{entry_id}/ingredients",
+    params(("entry_id" = i64, Path, description = "Diary entry ID")),
+    request_body = SyncIngredientsRequest,
+    responses(
+        (status = 200, description = "Ingredients synced", body = Vec<EntryIngredientWithName>),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Entry Ingredients"
+)]
 pub async fn sync_ingredients(
     auth: AuthUser,
     Db(db): Db,
@@ -70,6 +130,19 @@ pub async fn sync_ingredients(
     Ok(response::Ok(ingredients))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/v1/diary/{entry_id}/ingredients/{ingredient_id}",
+    params(
+        ("entry_id" = i64, Path, description = "Diary entry ID"),
+        ("ingredient_id" = i64, Path, description = "Ingredient ID"),
+    ),
+    responses(
+        (status = 204, description = "Ingredient unlinked"),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Entry Ingredients"
+)]
 pub async fn unlink_ingredient(
     auth: AuthUser,
     Db(db): Db,

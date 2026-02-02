@@ -4,7 +4,7 @@ use sqlx::PgPool;
 
 use crate::shared::types::MealType;
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct DiaryEntry {
     pub id: i64,
     pub user_id: i64,
@@ -16,7 +16,7 @@ pub struct DiaryEntry {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct DiaryEntryDetail {
     #[serde(flatten)]
     pub entry: DiaryEntry,
@@ -25,7 +25,7 @@ pub struct DiaryEntryDetail {
     pub nutrition: Option<super::super::nutrition::models::UserNutrition>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreateEntryRequest {
     pub meal_type: MealType,
     pub title: String,
@@ -34,7 +34,7 @@ pub struct CreateEntryRequest {
     pub location: Option<CreateLocationInput>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreateLocationInput {
     pub name: Option<String>,
     pub latitude: f64,
@@ -42,7 +42,7 @@ pub struct CreateLocationInput {
     pub address: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdateEntryRequest {
     pub meal_type: Option<MealType>,
     pub title: Option<String>,
@@ -50,7 +50,7 @@ pub struct UpdateEntryRequest {
     pub eaten_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
 pub struct DiaryQueryParams {
     pub page: Option<i64>,
     pub per_page: Option<i64>,
@@ -60,7 +60,7 @@ pub struct DiaryQueryParams {
     pub q: Option<String>,
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct EntryLocation {
     pub id: i64,
     pub entry_id: i64,
@@ -72,7 +72,7 @@ pub struct EntryLocation {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpsertLocationRequest {
     pub name: Option<String>,
     pub latitude: f64,

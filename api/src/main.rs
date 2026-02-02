@@ -9,8 +9,11 @@ use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 use mealio_api::features;
+use mealio_api::openapi::ApiDoc;
 use mealio_api::AppState;
 
 #[tokio::main]
@@ -61,6 +64,7 @@ async fn main() {
         .nest("/statistics", features::statistics::router());
 
     let app = Router::new()
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/health", get(|| async { "ok" }))
         .nest("/api/v1", api)
         .layer(TimeoutLayer::with_status_code(

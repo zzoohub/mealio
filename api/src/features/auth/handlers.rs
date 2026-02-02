@@ -13,6 +13,16 @@ use super::models::*;
 use super::oauth;
 use crate::features::users::models::User;
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/sign-in",
+    request_body = SignInRequest,
+    responses(
+        (status = 201, description = "Sign in successful", body = AuthResponse),
+        (status = 400, description = "Bad request", body = crate::error::ProblemDetail),
+    ),
+    tag = "Auth"
+)]
 pub async fn sign_in(
     State(state): State<AppState>,
     Db(db): Db,
@@ -82,6 +92,16 @@ pub async fn sign_in(
     }))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/refresh",
+    request_body = RefreshRequest,
+    responses(
+        (status = 200, description = "Token refreshed", body = RefreshResponse),
+        (status = 401, description = "Invalid refresh token", body = crate::error::ProblemDetail),
+    ),
+    tag = "Auth"
+)]
 pub async fn refresh(
     State(state): State<AppState>,
     Db(db): Db,
@@ -128,6 +148,17 @@ pub async fn refresh(
     }))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/revoke",
+    request_body = RevokeRequest,
+    responses(
+        (status = 204, description = "Token revoked"),
+        (status = 401, description = "Unauthorized", body = crate::error::ProblemDetail),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "Auth"
+)]
 pub async fn revoke(
     auth: AuthUser,
     Db(db): Db,

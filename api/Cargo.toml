@@ -20,3 +20,5 @@ thiserror = "2"
 reqwest = { version = "0.12", features = ["json"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 bigdecimal = { version = "0.4", features = ["serde"] }
+utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "9", features = ["axum"] }
