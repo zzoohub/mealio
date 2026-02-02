@@ -2,53 +2,36 @@
 
 ## Project Overview
 Mealio meal tracking app. Monorepo:
-- `/mobile` — React Native / Expo 55 (primary) / bun
+- `/mobile` — React Native / Expo 55 / Bun
 - `/api` — Rust / Axum (skeleton, early stage)
 
-## Workflow
+## Infrastructure
+- Database: AWS RDS with Cloudflare Hyperdrive
+- API: Cloudflare Workers
+- Queue: Cloudflare Queues
+- ObjectStorage: Cloudflare R2
+- Cache: Cloudflare KV
 
-### api server
-1. Use **data-modeling** skill for database design and any schema changes
-2. Use **database-reviewer** agent after **data-modeling** skill
-3. Use **api-design** skill for api design
-4. MUST Use **axum** skill for any api implementation. because it has best practices and project structure. for writing queries use **postgresql** skill
-5. check success build (cargo build --release)
-- Common workflow
-  **data-modeling** -> **database-reviewer** (agent) -> **api-design** (plan) -> **axum** (implementation) and **postgresql** (queries) -> build test
+## Observability
+- Error tracking: Sentry
+- Analytics: PostHog
 
-### mobile application
-1. MUST Use **react-native** skill for any mobile implementation. because it has best practices and project structure.
-2. Use **vercel-react-native-skills** skill for review and modify focus on specific logic 
-- Common workflow
-  **react-native** (implementation) -> **vercel-react-native-skills** (review)
-
-
-### After Any Implementation
-
-- Use **security-guidance** plugin for security audit -> fix
-- Use **tester** agent for decide(needs test?) -> write -> test run
-
-## Mobile 
-
-### Architecture (`mobile/src/`) Feature Dliced Design
-```
-app/           # Providers, composition root
-features/      # Feature modules (model/, ui/, index.ts)
-entities/      # Business entity types
-shared/        # ui/, lib/, config/, types/
-```
-
-### Conventions
-- **Features**: Each has `model/` (Zustand + hooks), `ui/` (pure components), `index.ts` (barrel)
-- **State**: Zustand for client, TanStack Query for server, MMKV for persistence
-- **Routing**: Expo Router file-based in `mobile/app/`
-
-### Path Aliases
-`@/*` → `./src/*` | `@/features/*` | `@/entities/*` | `@/shared/*` | `@/lib/*` → `./src/shared/lib/*`
-
+## Principles
+1. All implementation must use skills
+   - mobile: **react-native** skill
+   - api: **axum** skill + **postgresql** skill for queries
+2. After any implementation
+   - **security-guidance** plugin for security audit → fix
+   - **tester** agent for decide(needs test?) → write → test run
 
 ## API
-### Architecture (`api/src/`) Feature-Sliced
+
+### Workflow
+1. **data-modeling** → **database-reviewer** (agent) → **api-design** (plan)
+2. **axum** (implementation) + **postgresql** (queries)
+3. `cargo build --release`
+
+### Folder Structure (`api/src/`)
 ```
 main.rs
 lib.rs                 # AppState, re-exports
@@ -63,9 +46,7 @@ features/
   │   ├── handlers.rs
   │   └── models.rs    # Entity + repository  
   └── auth/
-      └── ...
 shared/                # Cross-feature utilities
-  └── types.rs
 migrations/
 .sqlx/
 ```
@@ -77,10 +58,39 @@ migrations/
 - **Response types**: `Created<T>` (201), `Ok<T>` (200), `NoContent` (204)
 - **Cross-feature**: If used by 2+ features → `shared/`
 
-### Stack
+### Core Stack
 | Layer | Technology |
 |-------|------------|
 | Framework | Axum 0.8+ |
 | Database | SQLx + PostgreSQL |
 | Auth | JWT (argon2id passwords) |
 | Middleware | Tower layers |
+
+## Mobile
+
+### Workflow
+1. **react-native** (implementation)
+2. **vercel-react-native-skills** (review)
+
+### Folder Structure (`mobile/src/`) — Feature-Sliced Design
+```
+app/                 # Expo Router (file-based routing)
+  src/
+  ├── app/             # Providers, global config
+  ├── widgets/         # Composite blocks (Header, Sidebar, Feed)
+  ├── features/        # User interactions (auth, cart, comments)
+  │   └── [feature]/
+  │       └── ui/, model/, api/
+  ├── entities/        # Business entities (user, product, order)
+  │   └── [entity]/
+  │       └── ui/, model/, api/
+  └── shared/          # ui/, lib/, api/, config/
+```
+
+### Conventions
+- **Features**: Each has `model/` (Zustand + hooks), `ui/` (pure components), `index.ts` (barrel)
+- **State**: Zustand for client, TanStack Query for server, MMKV for persistence
+- **Routing**: Expo Router file-based in `mobile/app/`
+
+### Path Aliases
+`@/*` → `./src/*` | `@/features/*` | `@/entities/*` | `@/shared/*` | `@/lib/*` → `./src/shared/lib/*`

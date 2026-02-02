@@ -34,6 +34,7 @@ pub struct Claims {
     pub sub: i64,
     pub exp: usize,
     pub iat: usize,
+    pub jti: String,
 }
 
 #[derive(Debug, Clone)]

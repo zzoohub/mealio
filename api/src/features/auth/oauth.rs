@@ -2,6 +2,13 @@ use serde::Deserialize;
 
 use crate::error::AppError;
 
+use super::jwks::JwksCache;
+
+const GOOGLE_JWKS_URL: &str = "https://www.googleapis.com/oauth2/v3/certs";
+const GOOGLE_ISSUERS: &[&str] = &["https://accounts.google.com", "accounts.google.com"];
+const APPLE_JWKS_URL: &str = "https://appleid.apple.com/auth/keys";
+const APPLE_ISSUER: &str = "https://appleid.apple.com";
+
 #[derive(Debug)]
 pub struct OAuthUserInfo {
     pub provider_uid: String,
@@ -11,12 +18,11 @@ pub struct OAuthUserInfo {
 }
 
 #[derive(Debug, Deserialize)]
-struct GoogleTokenInfo {
+struct GoogleIdTokenClaims {
     sub: String,
     email: String,
     name: Option<String>,
     picture: Option<String>,
-    aud: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -24,39 +30,42 @@ struct GoogleTokenInfo {
 struct AppleTokenClaims {
     sub: String,
     email: Option<String>,
-    aud: String,
 }
 
 pub async fn verify_google_token(
     id_token: &str,
     client_id: &str,
+    jwks_cache: &JwksCache,
 ) -> Result<OAuthUserInfo, AppError> {
-    let client = reqwest::Client::new();
-    let response = client
-        .post("https://oauth2.googleapis.com/tokeninfo")
-        .form(&[("id_token", id_token)])
-        .send()
-        .await?;
+    let header = jsonwebtoken::decode_header(id_token).map_err(|e| {
+        tracing::warn!("invalid Google token header: {e}");
+        AppError::Unauthorized("authentication failed".into())
+    })?;
 
-    if !response.status().is_success() {
-        return Err(AppError::Unauthorized("authentication failed".into()));
-    }
+    let kid = header
+        .kid
+        .ok_or_else(|| AppError::Unauthorized("authentication failed".into()))?;
 
-    let info: GoogleTokenInfo = response
-        .json()
-        .await
-        .map_err(|_| AppError::Unauthorized("authentication failed".into()))?;
+    let decoding_key = jwks_cache.get_key(GOOGLE_JWKS_URL, &kid).await?;
 
-    if info.aud != client_id {
-        tracing::warn!("Google token audience mismatch: expected {client_id}, got {}", info.aud);
-        return Err(AppError::Unauthorized("authentication failed".into()));
-    }
+    let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::RS256);
+    validation.set_audience(&[client_id]);
+    validation.set_issuer(GOOGLE_ISSUERS);
+
+    let token_data =
+        jsonwebtoken::decode::<GoogleIdTokenClaims>(id_token, &decoding_key, &validation)
+            .map_err(|e| {
+                tracing::warn!("Google token verification failed: {e}");
+                AppError::Unauthorized("authentication failed".into())
+            })?;
+
+    let claims = token_data.claims;
 
     Ok(OAuthUserInfo {
-        provider_uid: info.sub,
-        email: info.email,
-        name: info.name.unwrap_or_else(|| "User".to_string()),
-        photo_url: info.picture,
+        provider_uid: claims.sub,
+        email: claims.email,
+        name: claims.name.unwrap_or_else(|| "User".to_string()),
+        photo_url: claims.picture,
     })
 }
 
@@ -64,43 +73,23 @@ pub async fn verify_apple_token(
     id_token: &str,
     _team_id: &str,
     bundle_id: &str,
+    jwks_cache: &JwksCache,
 ) -> Result<OAuthUserInfo, AppError> {
-    let header = jsonwebtoken::decode_header(id_token)
-        .map_err(|e| {
-            tracing::warn!("invalid Apple token header: {e}");
-            AppError::Unauthorized("authentication failed".into())
-        })?;
-
-    // Fetch Apple's public keys
-    let jwks_response = reqwest::get("https://appleid.apple.com/auth/keys").await?;
-    let jwks: serde_json::Value = jwks_response
-        .json()
-        .await
-        .map_err(|_| AppError::Unauthorized("authentication failed".into()))?;
+    let header = jsonwebtoken::decode_header(id_token).map_err(|e| {
+        tracing::warn!("invalid Apple token header: {e}");
+        AppError::Unauthorized("authentication failed".into())
+    })?;
 
     let kid = header
         .kid
         .ok_or_else(|| AppError::Unauthorized("authentication failed".into()))?;
 
-    let key = jwks["keys"]
-        .as_array()
-        .and_then(|keys| keys.iter().find(|k| k["kid"].as_str() == Some(&kid)))
-        .ok_or_else(|| AppError::Unauthorized("authentication failed".into()))?;
+    let decoding_key = jwks_cache.get_key(APPLE_JWKS_URL, &kid).await?;
 
-    let n = key["n"]
-        .as_str()
-        .ok_or_else(|| AppError::Unauthorized("authentication failed".into()))?;
-    let e = key["e"]
-        .as_str()
-        .ok_or_else(|| AppError::Unauthorized("authentication failed".into()))?;
-
-    let decoding_key = jsonwebtoken::DecodingKey::from_rsa_components(n, e)
-        .map_err(|_| AppError::Unauthorized("authentication failed".into()))?;
-
-    // C4 fix: hardcode RS256, never trust alg from token header
+    // Hardcode RS256, never trust alg from token header
     let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::RS256);
     validation.set_audience(&[bundle_id]);
-    validation.set_issuer(&["https://appleid.apple.com"]);
+    validation.set_issuer(&[APPLE_ISSUER]);
 
     let token_data =
         jsonwebtoken::decode::<AppleTokenClaims>(id_token, &decoding_key, &validation)

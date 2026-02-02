@@ -7,6 +7,8 @@ pub mod shared;
 
 use sqlx::PgPool;
 
+use crate::features::auth::JwksCache;
+
 #[derive(Clone)]
 pub struct AppState {
     pub db: PgPool,
@@ -14,4 +16,5 @@ pub struct AppState {
     pub google_client_id: String,
     pub apple_team_id: String,
     pub apple_bundle_id: String,
+    pub jwks_cache: JwksCache,
 }

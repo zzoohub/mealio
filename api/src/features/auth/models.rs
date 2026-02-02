@@ -97,6 +97,20 @@ impl AuthToken {
         .await
     }
 
+    pub async fn find_by_hash_any<'e, E: Executor<'e, Database = Postgres>>(
+        db: E,
+        token_hash: &str,
+    ) -> Result<Option<Self>, sqlx::Error> {
+        sqlx::query_as::<_, AuthToken>(
+            "SELECT id, user_id, token_hash, device_info, expires_at, revoked_at, created_at
+             FROM auth_tokens
+             WHERE token_hash = $1",
+        )
+        .bind(token_hash)
+        .fetch_optional(db)
+        .await
+    }
+
     pub async fn revoke<'e, E: Executor<'e, Database = Postgres>>(
         db: E,
         token_hash: &str,

@@ -29,10 +29,18 @@ pub async fn sign_in(
     Json(req): Json<SignInRequest>,
 ) -> Result<response::Created<AuthResponse>, AppError> {
     let oauth_user = match req.provider.as_str() {
-        "google" => oauth::verify_google_token(&req.id_token, &state.google_client_id).await?,
-        "apple" => {
-            oauth::verify_apple_token(&req.id_token, &state.apple_team_id, &state.apple_bundle_id)
+        "google" => {
+            oauth::verify_google_token(&req.id_token, &state.google_client_id, &state.jwks_cache)
                 .await?
+        }
+        "apple" => {
+            oauth::verify_apple_token(
+                &req.id_token,
+                &state.apple_team_id,
+                &state.apple_bundle_id,
+                &state.jwks_cache,
+            )
+            .await?
         }
         _ => return Err(AppError::BadRequest("unsupported provider".into())),
     };
@@ -109,9 +117,21 @@ pub async fn refresh(
 ) -> Result<response::Ok<RefreshResponse>, AppError> {
     let token_hash = jwt::hash_token(&req.refresh_token);
 
-    let auth_token = AuthToken::find_by_hash(&db, &token_hash)
-        .await?
-        .ok_or_else(|| AppError::Unauthorized("invalid or expired refresh token".into()))?;
+    let auth_token = match AuthToken::find_by_hash(&db, &token_hash).await? {
+        Some(token) => token,
+        None => {
+            // Token not found as valid -- check if it ever existed (reuse detection)
+            if let Some(stale_token) = AuthToken::find_by_hash_any(&db, &token_hash).await? {
+                tracing::warn!(
+                    user_id = stale_token.user_id,
+                    token_id = stale_token.id,
+                    "refresh token reuse detected — revoking all tokens for user"
+                );
+                AuthToken::revoke_all_for_user(&db, stale_token.user_id).await?;
+            }
+            return Err(AppError::Unauthorized("invalid or expired refresh token".into()));
+        }
+    };
 
     // Verify user is still active
     User::find_by_id(&db, auth_token.user_id)

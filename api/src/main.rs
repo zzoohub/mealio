@@ -13,6 +13,7 @@ use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use mealio_api::features;
+use mealio_api::features::auth::JwksCache;
 use mealio_api::openapi::ApiDoc;
 use mealio_api::AppState;
 
@@ -42,12 +43,15 @@ async fn main() {
         .expect("failed to load migrations");
     migrator.run(&db).await.expect("failed to run migrations");
 
+    let jwks_cache = JwksCache::new(Duration::from_secs(3600));
+
     let state = AppState {
         db,
         jwt_secret,
         google_client_id,
         apple_team_id,
         apple_bundle_id,
+        jwks_cache,
     };
 
     let cors = build_cors();

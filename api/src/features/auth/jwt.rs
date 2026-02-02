@@ -1,5 +1,6 @@
 use chrono::{Duration, Utc};
 use jsonwebtoken::{EncodingKey, Header};
+use uuid::Uuid;
 
 use crate::extractors::Claims;
 
@@ -10,6 +11,7 @@ pub fn create_access_token(user_id: i64, secret: &str) -> Result<(String, i64), 
         sub: user_id,
         iat: now.timestamp() as usize,
         exp: (now + Duration::seconds(expires_in)).timestamp() as usize,
+        jti: Uuid::new_v4().to_string(),
     };
 
     let token = jsonwebtoken::encode(
@@ -29,6 +31,7 @@ pub fn hash_token(token: &str) -> String {
 mod tests {
     use super::*;
     use jsonwebtoken::{decode, DecodingKey, Validation};
+    use uuid::Uuid;
 
     #[test]
     fn test_create_access_token_success() {
@@ -62,6 +65,29 @@ mod tests {
         assert_eq!(claims.sub, user_id);
         assert!(claims.exp > claims.iat);
         assert_eq!(claims.exp - claims.iat, 900);
+        assert!(!claims.jti.is_empty());
+        assert!(Uuid::parse_str(&claims.jti).is_ok());
+    }
+
+    #[test]
+    fn test_create_access_token_unique_jti() {
+        let secret = "test_secret_key_at_least_32_chars_long";
+
+        let (token1, _) = create_access_token(1, secret).unwrap();
+        let (token2, _) = create_access_token(1, secret).unwrap();
+
+        let decoded1 = decode::<Claims>(
+            &token1,
+            &DecodingKey::from_secret(secret.as_bytes()),
+            &Validation::default(),
+        ).unwrap();
+        let decoded2 = decode::<Claims>(
+            &token2,
+            &DecodingKey::from_secret(secret.as_bytes()),
+            &Validation::default(),
+        ).unwrap();
+
+        assert_ne!(decoded1.claims.jti, decoded2.claims.jti);
     }
 
     #[test]
