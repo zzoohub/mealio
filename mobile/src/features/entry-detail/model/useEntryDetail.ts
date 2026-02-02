@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import type { Entry } from "@/entities/entry";
 import { MealType, type NutritionInfo } from "@/entities/meal";
 import { entryStorageUtils } from "@/features/diary-feed";
+import { useDiaryI18n, useCommonI18n, useErrorI18n } from "@/shared/lib/i18n";
 
 // =============================================================================
 // TYPES (Interface-First Design)
@@ -46,6 +47,9 @@ export interface UseEntryDetailOptions {
 export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailReturn {
   const { entryId, fallbackEntry } = options;
   const router = useRouter();
+  const diary = useDiaryI18n();
+  const common = useCommonI18n();
+  const errors = useErrorI18n();
 
   // State
   const [entry, setEntry] = useState<Entry | null>(null);
@@ -180,12 +184,12 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
 
   const deleteEntry = useCallback(() => {
     Alert.alert(
-      "기록 삭제",
-      "이 식사 기록을 삭제하시겠습니까?",
+      diary.deleteEntryTitle,
+      diary.deleteEntryMessage,
       [
-        { text: "취소", style: "cancel" },
+        { text: common.cancel, style: "cancel" },
         {
-          text: "삭제",
+          text: common.delete,
           style: "destructive",
           onPress: async () => {
             if (!entryId) return;
@@ -196,7 +200,7 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
               router.back();
             } catch (err) {
               console.error("Failed to delete entry:", err);
-              Alert.alert("오류", "삭제에 실패했습니다. 다시 시도해주세요.");
+              Alert.alert(common.error, errors.deleteFailed);
             } finally {
               setIsDeleting(false);
             }
@@ -204,7 +208,7 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
         },
       ]
     );
-  }, [entryId, router]);
+  }, [entryId, router, diary.deleteEntryTitle, diary.deleteEntryMessage, common.cancel, common.delete, common.error, errors.deleteFailed]);
 
   // =============================================================================
   // NAVIGATION

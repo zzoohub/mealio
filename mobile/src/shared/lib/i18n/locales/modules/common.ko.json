@@ -13,4 +13,17 @@
   "settings": "설정",
   "language": "언어",
   "about": "정보",
+  "confirm": "확인",
+  "done": "완료",
+  "error": "오류",
+  "back": "뒤로 가기",
+  "sort": "정렬",
+  "clearAll": "전체 해제",
+  "search": "검색...",
+  "customSelect": "직접 선택",
+  "mealTypeBreakfast": "아침",
+  "mealTypeLunch": "점심",
+  "mealTypeDinner": "저녁",
+  "mealTypeSnack": "간식",
+  "mealTypeMeal": "식사"
 }

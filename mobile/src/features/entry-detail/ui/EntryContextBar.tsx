@@ -16,13 +16,14 @@
  * ```
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, ActionSheetIOS, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles } from '@/shared/ui/theme';
 import { MealType } from '@/entities/meal';
 import type { Location } from '@/entities/entry';
+import { useCommonI18n, useDiaryI18n } from '@/shared/lib/i18n';
 
 // =============================================================================
 // TYPES
@@ -71,23 +72,6 @@ function getMealTypeIcon(mealType: string): string {
   }
 }
 
-/**
- * Get display label for meal type
- */
-function getMealTypeLabel(mealType: string): string {
-  switch (mealType.toLowerCase()) {
-    case 'breakfast':
-      return 'Breakfast';
-    case 'lunch':
-      return 'Lunch';
-    case 'dinner':
-      return 'Dinner';
-    case 'snack':
-      return 'Snack';
-    default:
-      return 'Meal';
-  }
-}
 
 /**
  * Format timestamp to 12-hour format with AM/PM
@@ -109,17 +93,6 @@ function getLocationLabel(location?: Location | null): string | null {
 }
 
 // =============================================================================
-// CONSTANTS - MEAL TYPE OPTIONS
-// =============================================================================
-
-const MEAL_TYPE_OPTIONS: { value: MealType; label: string }[] = [
-  { value: MealType.BREAKFAST, label: '아침' },
-  { value: MealType.LUNCH, label: '점심' },
-  { value: MealType.DINNER, label: '저녁' },
-  { value: MealType.SNACK, label: '간식' },
-];
-
-// =============================================================================
 // COMPONENT
 // =============================================================================
 
@@ -133,6 +106,25 @@ export function EntryContextBar({
 }: EntryContextBarProps) {
   const s = useStyles(styles);
   const locationLabel = getLocationLabel(location);
+  const common = useCommonI18n();
+  const diary = useDiaryI18n();
+
+  const getMealTypeLabel = (mt: string): string => {
+    switch (mt.toLowerCase()) {
+      case 'breakfast': return common.mealTypeBreakfast;
+      case 'lunch': return common.mealTypeLunch;
+      case 'dinner': return common.mealTypeDinner;
+      case 'snack': return common.mealTypeSnack;
+      default: return common.mealTypeMeal;
+    }
+  };
+
+  const MEAL_TYPE_OPTIONS = useMemo(() => [
+    { value: MealType.BREAKFAST, label: common.mealTypeBreakfast },
+    { value: MealType.LUNCH, label: common.mealTypeLunch },
+    { value: MealType.DINNER, label: common.mealTypeDinner },
+    { value: MealType.SNACK, label: common.mealTypeSnack },
+  ], [common.mealTypeBreakfast, common.mealTypeLunch, common.mealTypeDinner, common.mealTypeSnack]);
 
   const handleMealTypePress = () => {
     if (disabled || !onMealTypeChange) return;
@@ -142,9 +134,9 @@ export function EntryContextBar({
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: [...options, '취소'],
+          options: [...options, common.cancel],
           cancelButtonIndex: options.length,
-          title: '식사 종류 선택',
+          title: diary.mealTypeSelect,
         },
         (buttonIndex) => {
           const selectedOption = MEAL_TYPE_OPTIONS[buttonIndex];
@@ -156,14 +148,14 @@ export function EntryContextBar({
     } else {
       // Android: Use Alert with buttons
       Alert.alert(
-        '식사 종류 선택',
+        diary.mealTypeSelect,
         undefined,
         [
           ...MEAL_TYPE_OPTIONS.map((opt) => ({
             text: opt.label,
             onPress: () => onMealTypeChange(opt.value),
           })),
-          { text: '취소', style: 'cancel' as const },
+          { text: common.cancel, style: 'cancel' as const },
         ]
       );
     }
@@ -180,7 +172,7 @@ export function EntryContextBar({
         style={s.mealTypeButton}
         onPress={handleMealTypePress}
         disabled={disabled || !onMealTypeChange}
-        accessibilityLabel={`식사 종류: ${getMealTypeLabel(mealType)}, 탭하여 변경`}
+        accessibilityLabel={diary.mealTypeAccessibility(getMealTypeLabel(mealType))}
         accessibilityRole="button"
       >
         <Ionicons

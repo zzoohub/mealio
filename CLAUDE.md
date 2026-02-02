@@ -7,7 +7,7 @@ Mealio meal tracking app. Monorepo:
 
 ## Workflow
 
-### api 
+### api server
 1. Use **data-modeling** skill for database design and any schema changes
 2. Use **database-reviewer** agent after **data-modeling** skill
 3. Use **api-design** skill for api design
@@ -16,7 +16,7 @@ Mealio meal tracking app. Monorepo:
 - Common workflow
   **data-modeling** -> **database-reviewer** (agent) -> **api-design** (plan) -> **axum** (implementation) and **postgresql** (queries) -> build test
 
-### mobile
+### mobile application
 1. MUST Use **expo-react-native** skill for any mobile implementation. because it has best practices and project structure.
 2. Use **vercel-react-native-skills** skill for review and modify focus on specific logic 
 - Common workflow
@@ -25,8 +25,7 @@ Mealio meal tracking app. Monorepo:
 
 ### After Any Implementation
 
-- Use **code-review** plugin for review -> fix
-- Use **security-guidance** plugin for review -> fix
+- Use **security-guidance** plugin for security audit -> fix
 - Use **tester** agent for decide(needs test?) -> write -> test run
 
 ## Mobile 

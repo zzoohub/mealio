@@ -23,6 +23,7 @@ import {
 import { useTheme } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
 import { useOverlayHelpers } from "@/app/providers/overlay";
+import { useDiaryI18n, useCommonI18n } from "@/shared/lib/i18n";
 
 // =============================================================================
 // CONSTANTS
@@ -40,6 +41,8 @@ const ITEM_SIZE = (SCREEN_WIDTH - GRID_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 export default function DiarySearchScreen() {
   const { colors } = useTheme();
   const { bottomSheet } = useOverlayHelpers();
+  const diaryI18n = useDiaryI18n();
+  const commonI18n = useCommonI18n();
 
   // Use the extracted hook for all state and logic
   const {
@@ -110,12 +113,12 @@ export default function DiarySearchScreen() {
       <View style={styles.emptyContainer}>
         <Ionicons name="search-outline" size={48} color={colors.text.tertiary} />
         <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
-          검색 결과가 없습니다
+          {diaryI18n.searchNoResults}
         </Text>
         <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
           {searchQuery || selectedMealTypes.length > 0 || datePreset
-            ? "필터를 조정해보세요"
-            : "식사를 기록하면 여기에 표시됩니다"}
+            ? diaryI18n.searchAdjustFilters
+            : diaryI18n.searchRecordPrompt}
         </Text>
       </View>
     ),
@@ -142,7 +145,7 @@ export default function DiarySearchScreen() {
           <Ionicons name="search" size={18} color={colors.text.tertiary} />
           <TextInput
             style={[styles.searchInput, { color: colors.text.primary }]}
-            placeholder="검색..."
+            placeholder={commonI18n.search}
             placeholderTextColor={colors.text.tertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}

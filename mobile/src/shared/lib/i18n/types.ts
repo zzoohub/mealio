@@ -68,6 +68,19 @@ export interface CommonTranslations {
   settings: string;
   language: string;
   about: string;
+  confirm: string;
+  done: string;
+  error: string;
+  back: string;
+  sort: string;
+  clearAll: string;
+  search: string;
+  customSelect: string;
+  mealTypeBreakfast: string;
+  mealTypeLunch: string;
+  mealTypeDinner: string;
+  mealTypeSnack: string;
+  mealTypeMeal: string;
 }
 
 // Error translations
@@ -76,6 +89,7 @@ export interface ErrorTranslations {
   genericError: string;
   cameraError: string;
   storageError: string;
+  deleteFailed: string;
 }
 
 // Diary translations
@@ -96,6 +110,35 @@ export interface DiaryTranslations {
   orSelectFromPhotos: string;
   goToToday: string;
   selectDate: string;
+  sortNewest: string;
+  sortOldest: string;
+  sortHighestRated: string;
+  nutritionCalories: string;
+  nutritionProtein: string;
+  nutritionFat: string;
+  nutritionFiber: string;
+  nutritionSugar: string;
+  nutritionSodium: string;
+  nutritionWater: string;
+  aiAnalysis: string;
+  editNutrition: string;
+  editDone: string;
+  ingredients: string;
+  nutritionInfo: string;
+  addIngredient: string;
+  notesPlaceholder: string;
+  notesInput: string;
+  notesEmpty: string;
+  notesAccessibility: string;
+  wouldEatAgain: string;
+  ratingPoints: string;
+  deleteEntryTitle: string;
+  deleteEntryMessage: string;
+  searchNoResults: string;
+  searchAdjustFilters: string;
+  searchRecordPrompt: string;
+  mealTypeSelect: string;
+  mealTypeAccessibility: string;
 }
 
 // Settings translations

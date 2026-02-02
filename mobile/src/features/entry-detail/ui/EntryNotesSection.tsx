@@ -23,6 +23,7 @@ import { View, TextInput, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles, useTheme } from '@/shared/ui/theme';
+import { useDiaryI18n } from '@/shared/lib/i18n';
 
 // =============================================================================
 // TYPES
@@ -53,7 +54,6 @@ export interface EntryNotesSectionProps {
 // CONSTANTS
 // =============================================================================
 
-const DEFAULT_PLACEHOLDER = '메모를 작성해보세요...';
 const THUMBS_COUNT = 5;
 
 // =============================================================================
@@ -62,7 +62,7 @@ const THUMBS_COUNT = 5;
 
 export function EntryNotesSection({
   notes,
-  placeholder = DEFAULT_PLACEHOLDER,
+  placeholder,
   rating,
   wouldEatAgain,
   onNotesChange,
@@ -73,6 +73,9 @@ export function EntryNotesSection({
 }: EntryNotesSectionProps) {
   const s = useStyles(styles);
   const { colors } = useTheme();
+  const diary = useDiaryI18n();
+
+  const resolvedPlaceholder = placeholder || diary.notesPlaceholder;
   const inputRef = useRef<TextInput>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [localNotes, setLocalNotes] = useState(notes || '');
@@ -124,7 +127,7 @@ export function EntryNotesSection({
               onPress={() => handleThumbPress(thumbValue)}
               disabled={disabled}
               hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-              accessibilityLabel={`${thumbValue}점`}
+              accessibilityLabel={diary.ratingPoints(thumbValue)}
               accessibilityRole="button"
             >
               <Ionicons
@@ -142,7 +145,7 @@ export function EntryNotesSection({
         onPress={handleHeartPress}
         disabled={disabled}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        accessibilityLabel="또 먹고 싶어요"
+        accessibilityLabel={diary.wouldEatAgain}
         accessibilityRole="button"
         accessibilityState={{ checked: !!wouldEatAgain }}
       >
@@ -165,12 +168,12 @@ export function EntryNotesSection({
           value={localNotes}
           onChangeText={setLocalNotes}
           onBlur={handleBlur}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           placeholderTextColor={colors.text.tertiary}
           multiline
           textAlignVertical="top"
           autoFocus
-          accessibilityLabel="메모 입력"
+          accessibilityLabel={diary.notesInput}
         />
         <FeedbackRow />
       </View>
@@ -183,11 +186,11 @@ export function EntryNotesSection({
         style={s.notesArea}
         onPress={handlePress}
         disabled={disabled}
-        accessibilityLabel={hasNotes ? `메모: ${localNotes}` : '메모 없음, 탭하여 입력'}
+        accessibilityLabel={hasNotes ? diary.notesAccessibility(localNotes) : diary.notesEmpty}
         accessibilityRole="button"
       >
         <Text style={[s.notesText, !hasNotes && s.placeholderText]}>
-          {hasNotes ? localNotes : placeholder}
+          {hasNotes ? localNotes : resolvedPlaceholder}
         </Text>
       </Pressable>
       <FeedbackRow />

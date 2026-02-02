@@ -5,6 +5,7 @@ import type { Entry } from "@/entities/entry";
 import { MealType } from "@/entities/meal";
 import { useEntrySearch } from "./useEntrySearch";
 import type { DatePreset } from "../ui/DateQuickFilters";
+import { useDiaryI18n, useCommonI18n } from "@/shared/lib/i18n";
 
 // =============================================================================
 // TYPES (Interface-First Design)
@@ -62,21 +63,19 @@ export interface UseDiarySearchPageReturn {
 }
 
 // =============================================================================
-// CONSTANTS
-// =============================================================================
-
-const SORT_OPTIONS: readonly SortOptionConfig[] = [
-  { value: "date-desc", label: "최신순" },
-  { value: "date-asc", label: "오래된순" },
-  { value: "rating-desc", label: "평점 높은순" },
-] as const;
-
-// =============================================================================
 // HOOK IMPLEMENTATION
 // =============================================================================
 
 export function useDiarySearchPage(): UseDiarySearchPageReturn {
   const router = useRouter();
+  const diary = useDiaryI18n();
+  const common = useCommonI18n();
+
+  const SORT_OPTIONS: readonly SortOptionConfig[] = useMemo(() => [
+    { value: "date-desc", label: diary.sortNewest },
+    { value: "date-asc", label: diary.sortOldest },
+    { value: "rating-desc", label: diary.sortHighestRated },
+  ] as const, [diary.sortNewest, diary.sortOldest, diary.sortHighestRated]);
 
   // Use the base entry search hook for data fetching
   const {
@@ -132,8 +131,8 @@ export function useDiarySearchPage(): UseDiarySearchPageReturn {
   // =============================================================================
 
   const currentSortLabel = useMemo(() => {
-    return SORT_OPTIONS.find((opt) => opt.value === sortOption)?.label || "정렬";
-  }, [sortOption]);
+    return SORT_OPTIONS.find((opt) => opt.value === sortOption)?.label || common.sort;
+  }, [sortOption, SORT_OPTIONS, common.sort]);
 
   const customDateLabel = useMemo(() => {
     if (dateRange.startDate && dateRange.endDate) {
@@ -184,9 +183,9 @@ export function useDiarySearchPage(): UseDiarySearchPageReturn {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: [...options, "취소"],
+          options: [...options, common.cancel],
           cancelButtonIndex: options.length,
-          title: "정렬",
+          title: common.sort,
         },
         (buttonIndex) => {
           if (buttonIndex < options.length) {
@@ -198,15 +197,15 @@ export function useDiarySearchPage(): UseDiarySearchPageReturn {
         }
       );
     } else {
-      Alert.alert("정렬", undefined, [
+      Alert.alert(common.sort, undefined, [
         ...SORT_OPTIONS.map((opt) => ({
           text: opt.label,
           onPress: () => setSortOption(opt.value),
         })),
-        { text: "취소", style: "cancel" as const },
+        { text: common.cancel, style: "cancel" as const },
       ]);
     }
-  }, []);
+  }, [SORT_OPTIONS, common.cancel, common.sort]);
 
   const removeMealType = useCallback((mealType: MealType) => {
     setSelectedMealTypes((prev) => prev.filter((t) => t !== mealType));

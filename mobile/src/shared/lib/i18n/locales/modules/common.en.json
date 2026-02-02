@@ -13,4 +13,17 @@
   "settings": "Settings",
   "language": "Language",
   "about": "About",
+  "confirm": "OK",
+  "done": "Done",
+  "error": "Error",
+  "back": "Go Back",
+  "sort": "Sort",
+  "clearAll": "Clear All",
+  "search": "Search...",
+  "customSelect": "Custom",
+  "mealTypeBreakfast": "Breakfast",
+  "mealTypeLunch": "Lunch",
+  "mealTypeDinner": "Dinner",
+  "mealTypeSnack": "Snack",
+  "mealTypeMeal": "Meal"
 }

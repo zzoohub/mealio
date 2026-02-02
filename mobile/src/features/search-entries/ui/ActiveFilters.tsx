@@ -4,13 +4,14 @@
  * Only renders when filters are active.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/shared/ui/theme';
 import { tokens } from '@/shared/ui/tokens';
 import { MealType } from '@/entities/meal';
 import type { DatePreset } from './DateQuickFilters';
+import { useCommonI18n, useDiaryI18n } from '@/shared/lib/i18n';
 
 // =============================================================================
 // TYPES
@@ -34,23 +35,6 @@ export interface ActiveFiltersProps {
 }
 
 // =============================================================================
-// CONSTANTS
-// =============================================================================
-
-const MEAL_TYPE_LABELS: Record<MealType, string> = {
-  [MealType.BREAKFAST]: '아침',
-  [MealType.LUNCH]: '점심',
-  [MealType.DINNER]: '저녁',
-  [MealType.SNACK]: '간식',
-};
-
-const DATE_PRESET_LABELS: Record<string, string> = {
-  today: '오늘',
-  week: '이번 주',
-  month: '이번 달',
-};
-
-// =============================================================================
 // COMPONENT
 // =============================================================================
 
@@ -65,6 +49,21 @@ export function ActiveFilters({
   onClearAll,
 }: ActiveFiltersProps) {
   const { colors } = useTheme();
+  const common = useCommonI18n();
+  const diary = useDiaryI18n();
+
+  const MEAL_TYPE_LABELS: Record<MealType, string> = useMemo(() => ({
+    [MealType.BREAKFAST]: common.mealTypeBreakfast,
+    [MealType.LUNCH]: common.mealTypeLunch,
+    [MealType.DINNER]: common.mealTypeDinner,
+    [MealType.SNACK]: common.mealTypeSnack,
+  }), [common.mealTypeBreakfast, common.mealTypeLunch, common.mealTypeDinner, common.mealTypeSnack]);
+
+  const DATE_PRESET_LABELS: Record<string, string> = useMemo(() => ({
+    today: diary.today,
+    week: diary.thisWeek,
+    month: diary.thisMonth,
+  }), [diary.today, diary.thisWeek, diary.thisMonth]);
 
   // Build list of active filters
   const filters: ActiveFilter[] = [];
@@ -87,7 +86,7 @@ export function ActiveFilters({
 
   if (datePreset) {
     const label = datePreset === 'custom'
-      ? customDateLabel || '직접 선택'
+      ? customDateLabel || common.customSelect
       : DATE_PRESET_LABELS[datePreset] || datePreset;
     filters.push({
       type: 'date',
@@ -136,7 +135,7 @@ export function ActiveFilters({
           onPress={onClearAll}
         >
           <Text style={[styles.clearAllText, { color: colors.text.tertiary }]}>
-            전체 해제
+            {common.clearAll}
           </Text>
         </Pressable>
       )}

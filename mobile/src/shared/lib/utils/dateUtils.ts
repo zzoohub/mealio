@@ -94,17 +94,21 @@ export function formatDateToString(date: Date): string {
 }
 
 /**
+ * English day names (Sunday to Saturday)
+ */
+export const DAY_NAMES_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+
+/**
  * Korean day names (Sunday to Saturday)
  */
-export const DAY_NAMES_KO = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+export const DAY_NAMES_KO = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
 /**
  * Get localized day name
  */
 export function getDayName(index: number, locale: string = "en"): string {
   if (locale === "ko") {
-    const koDays = ["일", "월", "화", "수", "목", "금", "토"];
-    return koDays[index] ?? "";
+    return DAY_NAMES_KO[index] ?? "";
   }
-  return DAY_NAMES_KO[index] ?? "";
+  return DAY_NAMES_EN[index] ?? "";
 }

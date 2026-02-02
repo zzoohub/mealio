@@ -16,12 +16,13 @@
  * ```
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles, useTheme } from '@/shared/ui/theme';
 import type { NutritionInfo } from '@/entities/meal';
+import { useDiaryI18n, useCommonI18n } from '@/shared/lib/i18n';
 
 // =============================================================================
 // TYPES
@@ -42,20 +43,6 @@ export interface AIAnalysisSectionProps {
   testID?: string | undefined;
 }
 
-// =============================================================================
-// CONSTANTS
-// =============================================================================
-
-const NUTRITION_LABELS: Record<keyof NutritionInfo, { label: string; unit: string }> = {
-  calories: { label: '칼로리', unit: 'kcal' },
-  protein: { label: '단백질', unit: 'g' },
-  fat: { label: '지방', unit: 'g' },
-  fiber: { label: '식이섬유', unit: 'g' },
-  sugar: { label: '당류', unit: 'g' },
-  sodium: { label: '나트륨', unit: 'mg' },
-  water: { label: '수분', unit: 'ml' },
-};
-
 // Primary nutrients to always show first
 const PRIMARY_NUTRIENTS: (keyof NutritionInfo)[] = ['calories', 'protein', 'fat', 'sugar'];
 
@@ -73,6 +60,18 @@ export function AIAnalysisSection({
 }: AIAnalysisSectionProps) {
   const s = useStyles(styles);
   const { colors } = useTheme();
+  const diary = useDiaryI18n();
+  const common = useCommonI18n();
+
+  const NUTRITION_LABELS: Record<keyof NutritionInfo, { label: string; unit: string }> = useMemo(() => ({
+    calories: { label: diary.nutritionCalories, unit: 'kcal' },
+    protein: { label: diary.nutritionProtein, unit: 'g' },
+    fat: { label: diary.nutritionFat, unit: 'g' },
+    fiber: { label: diary.nutritionFiber, unit: 'g' },
+    sugar: { label: diary.nutritionSugar, unit: 'g' },
+    sodium: { label: diary.nutritionSodium, unit: 'mg' },
+    water: { label: diary.nutritionWater, unit: 'ml' },
+  }), [diary.nutritionCalories, diary.nutritionProtein, diary.nutritionFat, diary.nutritionFiber, diary.nutritionSugar, diary.nutritionSodium, diary.nutritionWater]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [localIngredients, setLocalIngredients] = useState<string[]>(ingredients || []);
@@ -141,18 +140,18 @@ export function AIAnalysisSection({
             size={tokens.size.icon.xs}
             color={s.headerIcon.color as string}
           />
-          <Text style={s.headerText}>AI 분석</Text>
+          <Text style={s.headerText}>{diary.aiAnalysis}</Text>
         </View>
         {!disabled && (onIngredientsChange || onNutritionChange) && (
           <Pressable
             style={s.editButton}
             onPress={handleEditToggle}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            accessibilityLabel={isEditing ? "수정 완료" : "영양정보 수정"}
+            accessibilityLabel={isEditing ? diary.editDone : diary.editNutrition}
             accessibilityRole="button"
           >
             <Text style={s.editButtonText}>
-              {isEditing ? '완료' : '수정'}
+              {isEditing ? common.done : common.edit}
             </Text>
           </Pressable>
         )}
@@ -160,7 +159,7 @@ export function AIAnalysisSection({
 
       {/* Ingredients */}
       <View style={s.section}>
-        <Text style={s.sectionLabel}>재료</Text>
+        <Text style={s.sectionLabel}>{diary.ingredients}</Text>
         <View style={s.ingredientsList}>
           {localIngredients.map((ingredient, index) => (
             <View key={index} style={s.ingredientChipWrapper}>
@@ -186,7 +185,7 @@ export function AIAnalysisSection({
                 style={s.addIngredientInput}
                 value={newIngredient}
                 onChangeText={setNewIngredient}
-                placeholder="추가..."
+                placeholder={diary.addIngredient}
                 placeholderTextColor={colors.text.tertiary}
                 onSubmitEditing={handleAddIngredient}
                 returnKeyType="done"
@@ -203,7 +202,7 @@ export function AIAnalysisSection({
 
       {/* Nutrition */}
       <View style={s.section}>
-        <Text style={s.sectionLabel}>영양정보</Text>
+        <Text style={s.sectionLabel}>{diary.nutritionInfo}</Text>
         <View style={s.nutritionGrid}>
           {nutritionEntries.map((item) => (
             <View key={item.key} style={s.nutritionItem}>

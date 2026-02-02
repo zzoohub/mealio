@@ -4,10 +4,11 @@
  * Single select date range presets.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '@/shared/ui/theme';
 import { tokens } from '@/shared/ui/tokens';
+import { useDiaryI18n, useCommonI18n } from '@/shared/lib/i18n';
 
 // =============================================================================
 // TYPES
@@ -23,17 +24,6 @@ export interface DateQuickFiltersProps {
 }
 
 // =============================================================================
-// CONSTANTS
-// =============================================================================
-
-const DATE_PRESETS: { value: DatePreset; label: string }[] = [
-  { value: 'today', label: '오늘' },
-  { value: 'week', label: '이번 주' },
-  { value: 'month', label: '이번 달' },
-  { value: 'custom', label: '직접 선택' },
-];
-
-// =============================================================================
 // COMPONENT
 // =============================================================================
 
@@ -44,6 +34,15 @@ export function DateQuickFilters({
   disabled = false,
 }: DateQuickFiltersProps) {
   const { colors } = useTheme();
+  const diary = useDiaryI18n();
+  const common = useCommonI18n();
+
+  const DATE_PRESETS = useMemo((): { value: DatePreset; label: string }[] => [
+    { value: 'today', label: diary.today },
+    { value: 'week', label: diary.thisWeek },
+    { value: 'month', label: diary.thisMonth },
+    { value: 'custom', label: common.customSelect },
+  ], [diary.today, diary.thisWeek, diary.thisMonth, common.customSelect]);
 
   const handlePress = (preset: DatePreset) => {
     if (disabled) return;

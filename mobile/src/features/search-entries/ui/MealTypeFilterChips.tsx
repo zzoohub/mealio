@@ -5,12 +5,13 @@
  * Multiple selection allowed.
  */
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/shared/ui/theme';
 import { tokens } from '@/shared/ui/tokens';
 import { MealType } from '@/entities/meal';
+import { useCommonI18n } from '@/shared/lib/i18n';
 
 // =============================================================================
 // TYPES
@@ -23,17 +24,6 @@ export interface MealTypeFilterChipsProps {
 }
 
 // =============================================================================
-// CONSTANTS
-// =============================================================================
-
-const MEAL_TYPE_OPTIONS: { value: MealType; label: string; icon: string }[] = [
-  { value: MealType.BREAKFAST, label: '아침', icon: 'sunny-outline' },
-  { value: MealType.LUNCH, label: '점심', icon: 'sunny' },
-  { value: MealType.DINNER, label: '저녁', icon: 'moon-outline' },
-  { value: MealType.SNACK, label: '간식', icon: 'nutrition-outline' },
-];
-
-// =============================================================================
 // COMPONENT
 // =============================================================================
 
@@ -43,6 +33,14 @@ export const MealTypeFilterChips = memo(function MealTypeFilterChips({
   disabled = false,
 }: MealTypeFilterChipsProps) {
   const { colors } = useTheme();
+  const common = useCommonI18n();
+
+  const MEAL_TYPE_OPTIONS = useMemo(() => [
+    { value: MealType.BREAKFAST, label: common.mealTypeBreakfast, icon: 'sunny-outline' },
+    { value: MealType.LUNCH, label: common.mealTypeLunch, icon: 'sunny' },
+    { value: MealType.DINNER, label: common.mealTypeDinner, icon: 'moon-outline' },
+    { value: MealType.SNACK, label: common.mealTypeSnack, icon: 'nutrition-outline' },
+  ], [common.mealTypeBreakfast, common.mealTypeLunch, common.mealTypeDinner, common.mealTypeSnack]);
 
   const handlePress = useCallback(
     (mealType: MealType) => {

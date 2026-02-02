@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
 import { useTheme } from "@/shared/ui/theme";
 import * as Haptics from "expo-haptics";
+import { useCommonI18n } from "@/shared/lib/i18n";
 
 export interface ConfirmDialogProps {
   isOpen: boolean;
@@ -22,13 +23,16 @@ export function ConfirmDialog({
   exit,
   title,
   message,
-  confirmText = "확인",
-  cancelText = "취소",
+  confirmText,
+  cancelText,
   confirmVariant = "default",
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
   const { colors, isDark } = useTheme();
+  const common = useCommonI18n();
+  const resolvedConfirmText = confirmText || common.confirm;
+  const resolvedCancelText = cancelText || common.cancel;
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
@@ -113,13 +117,13 @@ export function ConfirmDialog({
             onPress={handleCancel}
           >
             <Text style={[styles.buttonText, { color: colors.interactive.primary }]}>
-              {cancelText}
+              {resolvedCancelText}
             </Text>
           </Pressable>
 
           <Pressable style={[styles.button, styles.confirmButton]} onPress={handleConfirm}>
             <Text style={[styles.buttonText, styles.confirmText, { color: confirmButtonColor }]}>
-              {confirmText}
+              {resolvedConfirmText}
             </Text>
           </Pressable>
         </View>

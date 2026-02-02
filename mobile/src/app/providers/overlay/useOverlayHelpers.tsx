@@ -3,6 +3,7 @@ import { useOverlayController } from "./OverlayProvider";
 import { Toast, ToastProps, ToastType, ToastPosition } from "./Toast";
 import { ConfirmDialog, ConfirmDialogProps } from "./ConfirmDialog";
 import { BottomSheet } from "@/shared/ui/styled";
+import { useCommonI18n } from "@/shared/lib/i18n";
 
 // Toast options
 export interface ToastOptions {
@@ -41,6 +42,7 @@ export type BottomSheetContent = (props: { close: () => void }) => React.ReactNo
 
 export function useOverlayHelpers() {
   const controller = useOverlayController();
+  const common = useCommonI18n();
 
   // Toast helper
   const toast = useCallback(
@@ -104,7 +106,7 @@ export function useOverlayHelpers() {
             exit={exit}
             title={opts.title}
             message={opts.message}
-            confirmText={opts.confirmText || "확인"}
+            confirmText={opts.confirmText || common.confirm}
             cancelText=""
             onConfirm={() => resolve()}
             onCancel={() => resolve()}

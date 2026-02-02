@@ -8,6 +8,7 @@ import { MealType } from "@/entities/meal";
 import { useTheme } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
 import { formatTime } from "@/shared/lib/utils";
+import { useCommonI18n } from "@/shared/lib/i18n";
 
 // =============================================================================
 // CONSTANTS
@@ -45,27 +46,23 @@ const getMealTypeIcon = (mealType: MealType): string => {
   }
 };
 
-const getMealTypeLabel = (mealType: MealType): string => {
-  switch (mealType) {
-    case MealType.BREAKFAST:
-      return "아침";
-    case MealType.LUNCH:
-      return "점심";
-    case MealType.DINNER:
-      return "저녁";
-    case MealType.SNACK:
-      return "간식";
-    default:
-      return "식사";
-  }
-};
-
 // =============================================================================
 // COMPONENT
 // =============================================================================
 
 export const EntryFeedItem = memo(function EntryFeedItem({ entry, onPress }: EntryFeedItemProps) {
   const { colors } = useTheme();
+  const common = useCommonI18n();
+
+  const getMealTypeLabel = (mealType: MealType): string => {
+    switch (mealType) {
+      case MealType.BREAKFAST: return common.mealTypeBreakfast;
+      case MealType.LUNCH: return common.mealTypeLunch;
+      case MealType.DINNER: return common.mealTypeDinner;
+      case MealType.SNACK: return common.mealTypeSnack;
+      default: return common.mealTypeMeal;
+    }
+  };
 
   const handlePress = useCallback(() => {
     onPress?.(entry);

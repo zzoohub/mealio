@@ -18,6 +18,7 @@ import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles } from '@/shared/ui/theme';
+import { useCommonI18n } from '@/shared/lib/i18n';
 
 // =============================================================================
 // TYPES
@@ -51,6 +52,7 @@ export function EntryDetailHeader({
   testID,
 }: EntryDetailHeaderProps) {
   const s = useStyles(styles);
+  const common = useCommonI18n();
 
   return (
     <View style={s.container} testID={testID}>
@@ -58,7 +60,7 @@ export function EntryDetailHeader({
       <Pressable
         style={s.backButton}
         onPress={onBackPress}
-        accessibilityLabel="뒤로 가기"
+        accessibilityLabel={common.back}
         accessibilityRole="button"
       >
         <Ionicons
@@ -77,12 +79,12 @@ export function EntryDetailHeader({
           style={[s.editButton, editDisabled && s.editButtonDisabled]}
           onPress={onEditPress}
           disabled={editDisabled}
-            accessibilityLabel="수정"
+            accessibilityLabel={common.edit}
           accessibilityRole="button"
           accessibilityState={{ disabled: editDisabled }}
         >
           <Text style={[s.editText, editDisabled && s.editTextDisabled]}>
-            수정
+            {common.edit}
           </Text>
         </Pressable>
       )}
