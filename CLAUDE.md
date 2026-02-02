@@ -11,6 +11,7 @@ Mealio meal tracking app. Monorepo:
 - Queue: Cloudflare Queues
 - ObjectStorage: Cloudflare R2
 - Cache: Cloudflare KV
+- Email: Resend
 
 ## Observability
 - Error tracking: Sentry
