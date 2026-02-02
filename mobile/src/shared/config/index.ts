@@ -32,6 +32,9 @@ export const STORAGE_KEYS = {
   APP_SETTINGS: "app_settings",
   // Auth
   AUTH_TOKEN: "auth_token",
+  ACCESS_TOKEN: "access_token",
+  REFRESH_TOKEN: "refresh_token",
+  TOKEN_EXPIRES_AT: "token_expires_at",
   // Settings
   NOTIFICATION_SETTINGS: "notification_settings",
   PRIVACY_SETTINGS: "privacy_settings",
@@ -55,6 +58,9 @@ export const MEAL_TYPES = {
   LUNCH: "lunch",
   DINNER: "dinner",
   SNACK: "snack",
+  DESSERT: "dessert",
+  DRINK: "drink",
+  OTHER: "other",
 } as const;
 
 // Privacy settings
@@ -116,27 +122,30 @@ export const FEATURE_FLAGS = {
   CRASH_REPORTING: !__DEV__, // Disable crash reporting in development
 } as const;
 
-// Query keys for React Query
-export const QUERY_KEYS = {
-  POSTS: "posts",
-  POST_DETAIL: "post-detail",
-  USER_PROFILE: "user-profile",
-  FEED: "feed",
-  TIMELINE: "timeline",
-  SEARCH: "search",
-  NOTIFICATIONS: "notifications",
-} as const;
-
-// Mutation keys for React Query
-export const MUTATION_KEYS = {
-  CREATE_POST: "create-post",
-  UPDATE_POST: "update-post",
-  DELETE_POST: "delete-post",
-  LIKE_POST: "like-post",
-  UNLIKE_POST: "unlike-post",
-  FOLLOW_USER: "follow-user",
-  UNFOLLOW_USER: "unfollow-user",
-  UPDATE_PROFILE: "update-profile",
+// Structured query key factory for React Query
+export const queryKeys = {
+  auth: {
+    user: () => ["auth", "user"] as const,
+  },
+  diary: {
+    all: () => ["diary"] as const,
+    list: (params?: { date?: string; mealType?: string }) =>
+      ["diary", "list", params] as const,
+    detail: (id: number) => ["diary", "detail", id] as const,
+  },
+  statistics: {
+    all: () => ["statistics"] as const,
+    overview: (params?: { startDate?: string; endDate?: string }) =>
+      ["statistics", "overview", params] as const,
+    nutrition: (params?: { startDate?: string; endDate?: string }) =>
+      ["statistics", "nutrition", params] as const,
+    mealTypes: (params?: { startDate?: string; endDate?: string }) =>
+      ["statistics", "meal-types", params] as const,
+  },
+  settings: {
+    all: () => ["settings"] as const,
+    user: () => ["settings", "user"] as const,
+  },
 } as const;
 
 // Haptic feedback types (for iOS)

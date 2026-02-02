@@ -4,7 +4,7 @@ description: |
   Design token systems and component architecture for web and React Native.
   Use when: implementing design-system, building UI components, defining tokens, creating themed interfaces.
   Do not use for: UX decisions (use ux-design), business logic, data fetching.
-  Workflow: ux-design (what/why) → this skill (tokens, components) → nextjs/expo-react-native (integration).
+  Workflow: ux-design (what/why) → this skill (tokens, components) → nextjs/react-native (integration).
 references:
   - token-examples.md    # W3C DTCG format examples, theme files
   - examples.md          # Headless hooks, Compound components examples

@@ -57,6 +57,9 @@ export function ActiveFilters({
     [MealType.LUNCH]: common.mealTypeLunch,
     [MealType.DINNER]: common.mealTypeDinner,
     [MealType.SNACK]: common.mealTypeSnack,
+    [MealType.DESSERT]: "Dessert",
+    [MealType.DRINK]: "Drink",
+    [MealType.OTHER]: "Other",
   }), [common.mealTypeBreakfast, common.mealTypeLunch, common.mealTypeDinner, common.mealTypeSnack]);
 
   const DATE_PRESET_LABELS: Record<string, string> = useMemo(() => ({

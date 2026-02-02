@@ -2,7 +2,11 @@ import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { STORAGE_KEYS } from "@/shared/config";
 import { storage } from "@/shared/lib/storage";
+import { apiClient, useTokenStore, mapApiUserInfoToUser } from "@/shared/api";
+import type { ApiAuthResponse } from "@/shared/api";
 import type { User, AuthCredential } from "@/entities/user";
+import { queryClient } from "@/app/providers/query";
+import { Platform } from "react-native";
 
 // =============================================================================
 // TYPES
@@ -45,26 +49,26 @@ export const useAuthStore = create<AuthStore>()(
       try {
         set({ isLoading: true, error: null });
 
-        // TODO: Replace with actual backend API call
-        // In production:
-        // 1. Send credential.idToken to your backend
-        // 2. Backend verifies token with the provider
-        // 3. Backend returns your own auth token + user data
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        const deviceInfo = `${Platform.OS}/${Platform.Version}`;
 
-        const user: User = {
-          id: `${credential.providerId}_${credential.user.id}`,
-          email: credential.user.email,
-          name: credential.user.name,
-          photo: credential.user.photo,
+        const response = await apiClient.post<ApiAuthResponse>("/auth/sign-in", {
           provider: credential.providerId,
-        };
+          id_token: credential.idToken,
+          device_info: deviceInfo,
+        });
 
-        // Save to storage
-        await Promise.all([
-          storage.set(STORAGE_KEYS.USER_DATA, user),
-          storage.set(STORAGE_KEYS.AUTH_TOKEN, credential.idToken),
-        ]);
+        // Store JWT tokens
+        useTokenStore.getState().setTokens(
+          response.access_token,
+          response.refresh_token,
+          response.expires_in,
+        );
+
+        // Map API user to mobile User type
+        const user = mapApiUserInfoToUser(response.user, credential.providerId);
+
+        // Persist user data for offline hydration
+        storage.set(STORAGE_KEYS.USER_DATA, user);
 
         set({ user, isLoading: false, error: null });
       } catch (error) {
@@ -79,10 +83,25 @@ export const useAuthStore = create<AuthStore>()(
       try {
         set({ isLoading: true, error: null });
 
-        await storage.removeMultiple([
-          STORAGE_KEYS.USER_DATA,
-          STORAGE_KEYS.AUTH_TOKEN,
-        ]);
+        // Best-effort token revocation
+        const { refreshToken } = useTokenStore.getState();
+        if (refreshToken) {
+          try {
+            await apiClient.post("/auth/revoke", { refresh_token: refreshToken });
+          } catch {
+            // Ignore revocation errors — still log out locally
+          }
+        }
+
+        // Clear tokens
+        useTokenStore.getState().clearTokens();
+
+        // Clear persisted user data
+        storage.remove(STORAGE_KEYS.USER_DATA);
+        storage.remove(STORAGE_KEYS.AUTH_TOKEN);
+
+        // Clear all cached queries
+        queryClient.clear();
 
         set({ ...initialState });
       } catch (error) {
@@ -96,13 +115,14 @@ export const useAuthStore = create<AuthStore>()(
       try {
         set({ isLoading: true, error: null });
 
-        const [userData, authToken] = storage.getMultiple([
-          STORAGE_KEYS.USER_DATA,
-          STORAGE_KEYS.AUTH_TOKEN,
-        ]);
+        // Hydrate tokens from MMKV
+        useTokenStore.getState().loadFromStorage();
 
-        if (userData?.value && authToken?.value) {
-          set({ user: userData.value as User, isLoading: false });
+        const userData = storage.get<User>(STORAGE_KEYS.USER_DATA);
+        const hasTokens = !!useTokenStore.getState().accessToken;
+
+        if (userData && hasTokens) {
+          set({ user: userData, isLoading: false });
         } else {
           set({ isLoading: false });
         }

@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Entry } from "@/entities/entry";
-import { entryStorageUtils } from "@/features/diary-feed";
+import type { Entry } from "@/entities/entry";
+import { useAuthStore, selectIsAuthenticated } from "@/features/auth/model/authStore";
+import { entryStorageUtils } from "./useEntryStorage";
+import { useDiaryEntriesQuery } from "./useDiaryQueries";
 import { getWeekDays, isSameDay, formatDateToString } from "@/shared/lib/utils";
+import { MealType } from "@/entities/meal";
+import type { ApiDiaryEntry } from "@/shared/api";
 
 // =============================================================================
 // TYPES (Interface-First Design)
@@ -35,32 +39,79 @@ export interface UseDiaryPageReturn {
 }
 
 // =============================================================================
+// HELPERS
+// =============================================================================
+
+function apiEntryToEntry(apiEntry: ApiDiaryEntry): Entry {
+  const mealTypeMap: Record<string, MealType> = {
+    breakfast: MealType.BREAKFAST,
+    lunch: MealType.LUNCH,
+    dinner: MealType.DINNER,
+    snack: MealType.SNACK,
+    dessert: MealType.DESSERT,
+    drink: MealType.DRINK,
+    other: MealType.OTHER,
+  };
+
+  return {
+    id: String(apiEntry.id),
+    userId: String(apiEntry.user_id),
+    timestamp: new Date(apiEntry.eaten_at),
+    notes: apiEntry.notes ?? "",
+    meal: {
+      photoUri: "",
+      mealType: mealTypeMap[apiEntry.meal_type] ?? MealType.OTHER,
+    },
+    createdAt: new Date(apiEntry.created_at),
+    updatedAt: new Date(apiEntry.updated_at),
+  };
+}
+
+// =============================================================================
 // HOOK IMPLEMENTATION
 // =============================================================================
 
 export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
+  const isAuthenticated = useAuthStore(selectIsAuthenticated);
+
   // State
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [visibleWeekDays, setVisibleWeekDays] = useState<Date[]>(() => getWeekDays(new Date()));
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [guestEntries, setGuestEntries] = useState<Entry[]>([]);
+  const [isGuestLoading, setIsGuestLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [datesWithEntries, setDatesWithEntries] = useState<Set<string>>(new Set());
 
   const today = useMemo(() => new Date(), []);
+
+  // Date string for API query
+  const selectedDateStr = useMemo(() => formatDateToString(selectedDate), [selectedDate]);
+
+  // Auth mode: API query for selected date
+  const diaryQuery = useDiaryEntriesQuery(
+    { start_date: selectedDateStr, end_date: selectedDateStr },
+    isAuthenticated,
+  );
+
+  const apiEntries = useMemo(() => {
+    if (!isAuthenticated || !diaryQuery.data) return [];
+    return diaryQuery.data.data
+      .map(apiEntryToEntry)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }, [isAuthenticated, diaryQuery.data]);
 
   // Handle visible week change from WeekDaySelector swipe
   const handleVisibleWeekChange = useCallback((days: Date[]) => {
     setVisibleWeekDays(days);
   }, []);
 
-  // Load all entries to determine markers
+  // Guest mode: load all entries to determine markers
   useEffect(() => {
+    if (isAuthenticated) return;
+
     const loadAllEntries = async () => {
       try {
         const loadedEntries = await entryStorageUtils.getAllEntries();
-
-        // Create set of dates that have entries
         const datesSet = new Set<string>();
         loadedEntries.forEach((entry) => {
           const dateStr = entry.timestamp.toISOString().split("T")[0];
@@ -74,36 +125,55 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
     };
 
     loadAllEntries();
-  }, []);
+  }, [isAuthenticated]);
 
-  // Load entries for selected date
+  // Auth mode: build datesWithEntries from API response
   useEffect(() => {
+    if (!isAuthenticated || !diaryQuery.data) return;
+    const datesSet = new Set<string>();
+    diaryQuery.data.data.forEach((entry) => {
+      const dateStr = new Date(entry.eaten_at).toISOString().split("T")[0];
+      if (dateStr) datesSet.add(dateStr);
+    });
+    setDatesWithEntries((prev) => {
+      const merged = new Set(prev);
+      datesSet.forEach((d) => merged.add(d));
+      return merged;
+    });
+  }, [isAuthenticated, diaryQuery.data]);
+
+  // Guest mode: load entries for selected date
+  useEffect(() => {
+    if (isAuthenticated) return;
+
     const loadEntriesForDate = async () => {
-      setIsLoading(true);
+      setIsGuestLoading(true);
       setError(null);
       try {
         const entriesForDate = await entryStorageUtils.getEntriesForDate(selectedDate);
-        // Sort by timestamp (newest first)
         entriesForDate.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-        setEntries(entriesForDate);
+        setGuestEntries(entriesForDate);
       } catch (err) {
         console.error("Error loading entries for date:", err);
-        setEntries([]);
+        setGuestEntries([]);
         setError(err instanceof Error ? err : new Error("Failed to load entries for date"));
       } finally {
-        setIsLoading(false);
+        setIsGuestLoading(false);
       }
     };
 
     loadEntriesForDate();
-  }, [selectedDate]);
+  }, [selectedDate, isAuthenticated]);
+
+  // Unified entries and loading state
+  const entries = isAuthenticated ? apiEntries : guestEntries;
+  const isLoading = isAuthenticated ? diaryQuery.isLoading : isGuestLoading;
 
   // =============================================================================
   // ACTIONS
   // =============================================================================
 
   const selectDate = useCallback((date: Date) => {
-    // Prevent selecting future dates
     if (date > today && !isSameDay(date, today)) {
       return;
     }
@@ -112,7 +182,6 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
 
   const handleCalendarDayPress = useCallback((day: { dateString: string }) => {
     const selectedDateFromCalendar = new Date(day.dateString + "T12:00:00");
-    // Prevent selecting future dates
     if (selectedDateFromCalendar > today && !isSameDay(selectedDateFromCalendar, today)) {
       return;
     }
@@ -144,7 +213,6 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
       { marked: boolean; dotColor: string; selected?: boolean; selectedColor?: string }
     > = {};
 
-    // Add dots for dates with entries
     datesWithEntries.forEach((dateStr) => {
       marks[dateStr] = {
         marked: true,
@@ -152,16 +220,15 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
       };
     });
 
-    // Mark selected date
-    const selectedDateStr = formatDateToString(selectedDate);
-    if (marks[selectedDateStr]) {
-      marks[selectedDateStr] = {
-        ...marks[selectedDateStr],
+    const selectedDateStrMark = formatDateToString(selectedDate);
+    if (marks[selectedDateStrMark]) {
+      marks[selectedDateStrMark] = {
+        ...marks[selectedDateStrMark],
         selected: true,
         selectedColor: primaryColor,
       };
     } else {
-      marks[selectedDateStr] = {
+      marks[selectedDateStrMark] = {
         marked: false,
         dotColor: primaryColor,
         selected: true,
@@ -177,28 +244,17 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
   // =============================================================================
 
   return {
-    // Date state
     selectedDate,
     formattedMonthYear,
     today,
-
-    // Data
     entries,
     datesWithEntries,
-
-    // States
     isLoading,
     error,
-
-    // Derived data
     markedDates,
-
-    // Actions
     selectDate,
     handleCalendarDayPress,
     handleVisibleWeekChange,
-
-    // Utilities
     dateHasEntries,
     isSameDay,
   };

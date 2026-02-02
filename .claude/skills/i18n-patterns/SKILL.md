@@ -3,8 +3,8 @@ name: i18n-patterns
 description: |
   Internationalization patterns for web and mobile apps.
   Use when: adding multi-language support, translation structure, language switching.
-  Do not use for: general React/Next.js patterns (use nextjs, expo-react-native skills).
-  Workflow: Use alongside nextjs or expo-react-native skill.
+  Do not use for: general React/Next.js patterns (use nextjs, react-native skills).
+  Workflow: Use alongside nextjs or react-native skill.
 ---
 
 # i18n Patterns

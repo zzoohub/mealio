@@ -17,10 +17,10 @@ Mealio meal tracking app. Monorepo:
   **data-modeling** -> **database-reviewer** (agent) -> **api-design** (plan) -> **axum** (implementation) and **postgresql** (queries) -> build test
 
 ### mobile application
-1. MUST Use **expo-react-native** skill for any mobile implementation. because it has best practices and project structure.
+1. MUST Use **react-native** skill for any mobile implementation. because it has best practices and project structure.
 2. Use **vercel-react-native-skills** skill for review and modify focus on specific logic 
 - Common workflow
-  **expo-react-native** (implementation) -> **vercel-react-native-skills** (review)
+  **react-native** (implementation) -> **vercel-react-native-skills** (review)
 
 
 ### After Any Implementation

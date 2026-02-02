@@ -20,20 +20,11 @@ export interface PaginatedResponse<T> {
   hasNextPage: boolean;
 }
 
-// API response types
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-    details?: any;
-  };
-  meta?: {
-    timestamp: string;
-    requestId: string;
-  };
-}
+// Re-export API types from shared/api for convenience
+export type {
+  ApiPaginatedResponse,
+  ApiProblemDetail,
+} from "@/shared/api";
 
 // Navigation types (for type-safe routing)
 export type RootStackParamList = {

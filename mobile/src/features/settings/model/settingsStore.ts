@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { STORAGE_KEYS } from '@/shared/config';
 import { storage, createDebouncedSetter } from '@/shared/lib/storage';
+import { settingsApi } from './settingsApi';
+import { useAuthStore, selectIsAuthenticated } from '@/features/auth/model/authStore';
 import type { SupportedLanguage } from '@/shared/lib/i18n';
 
 export interface NotificationSettings {
@@ -54,6 +56,10 @@ const defaultCamera: CameraSettings = {
   saveToGallery: true,
 };
 
+function isAuthenticated(): boolean {
+  return selectIsAuthenticated(useAuthStore.getState());
+}
+
 export const useSettingsStore = create<SettingsState>()(
   subscribeWithSelector((set, get) => ({
     notifications: defaultNotifications,
@@ -70,6 +76,13 @@ export const useSettingsStore = create<SettingsState>()(
 
       try {
         await storage.set(STORAGE_KEYS.NOTIFICATION_SETTINGS, newSettings);
+
+        // Sync to API if authenticated (fire-and-forget)
+        if (isAuthenticated()) {
+          settingsApi.updateSettings({
+            notifications_enabled: newSettings.enabled,
+          }).catch(() => {});
+        }
       } catch (error) {
         set({ notifications: currentState.notifications });
         const errorMessage = error instanceof Error ? error.message : 'Failed to update notifications';
@@ -85,6 +98,14 @@ export const useSettingsStore = create<SettingsState>()(
         const newSettings = { ...get().display, ...updates };
 
         await storage.set(STORAGE_KEYS.DISPLAY_SETTINGS, newSettings);
+
+        // Sync to API if authenticated (fire-and-forget)
+        if (isAuthenticated()) {
+          settingsApi.updateSettings({
+            theme: newSettings.theme,
+            language: newSettings.language,
+          }).catch(() => {});
+        }
 
         set({ display: newSettings, isLoading: false });
       } catch (error) {
@@ -114,6 +135,7 @@ export const useSettingsStore = create<SettingsState>()(
       try {
         set({ isLoading: true, error: null });
 
+        // Load from local storage first
         const settingsData = await storage.getMultiple([
           STORAGE_KEYS.NOTIFICATION_SETTINGS,
           STORAGE_KEYS.DISPLAY_SETTINGS,
@@ -135,6 +157,31 @@ export const useSettingsStore = create<SettingsState>()(
         }
 
         set(updates);
+
+        // If authenticated, also fetch from API and merge
+        if (isAuthenticated()) {
+          try {
+            const apiSettings = await settingsApi.getSettings();
+            const merged: Partial<SettingsState> = {};
+
+            if (apiSettings.theme) {
+              merged.display = {
+                ...get().display,
+                theme: apiSettings.theme as DisplaySettings['theme'],
+                language: (apiSettings.language || get().display.language) as SupportedLanguage,
+              };
+            }
+
+            merged.notifications = {
+              ...get().notifications,
+              enabled: apiSettings.notifications_enabled,
+            };
+
+            set(merged);
+          } catch {
+            // API fetch failed — continue with local settings
+          }
+        }
       } catch (error) {
         console.error('Failed to load settings from storage:', error);
         set({ isLoading: false });

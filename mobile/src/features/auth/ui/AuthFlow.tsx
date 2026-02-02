@@ -11,6 +11,7 @@ import { AppleSignInButton } from "./AppleSignInButton";
 import { useAuthStore } from "../model/authStore";
 import { useGoogleAuth } from "../model/useGoogleAuth";
 import { useAppleAuth } from "../model/useAppleAuth";
+import { useMigration } from "../model/useMigration";
 import type { AuthCredential } from "@/entities/user";
 
 // =============================================================================
@@ -32,8 +33,40 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
   const { login, isLoading } = useAuthStore();
   const { signIn: googleSignIn, isSigningIn: isGoogleSigningIn } = useGoogleAuth();
   const { signIn: appleSignIn, isSigningIn: isAppleSigningIn } = useAppleAuth();
+  const { checkLocalEntries, migrateLocalEntries } = useMigration();
 
   const isSigningIn = isGoogleSigningIn || isAppleSigningIn;
+
+  const promptMigration = useCallback(async () => {
+    const count = await checkLocalEntries();
+    if (count === 0) {
+      onComplete();
+      return;
+    }
+
+    Alert.alert(
+      "Sync Local Entries",
+      `You have ${count} local ${count === 1 ? "entry" : "entries"}. Sync them to your account?`,
+      [
+        {
+          text: "Skip",
+          style: "cancel",
+          onPress: () => onComplete(),
+        },
+        {
+          text: "Sync",
+          onPress: async () => {
+            try {
+              await migrateLocalEntries();
+            } catch {
+              Alert.alert("Migration Error", "Some entries could not be synced. You can try again later.");
+            }
+            onComplete();
+          },
+        },
+      ],
+    );
+  }, [checkLocalEntries, migrateLocalEntries, onComplete]);
 
   const handleSignIn = useCallback(
     async (signInFn: () => Promise<AuthCredential | null>, providerName: string) => {
@@ -41,13 +74,13 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
         const credential = await signInFn();
         if (credential) {
           await login(credential);
-          onComplete();
+          await promptMigration();
         }
       } catch {
         Alert.alert("Error", `Failed to sign in with ${providerName}. Please try again.`);
       }
     },
-    [login, onComplete],
+    [login, promptMigration],
   );
 
   const handleGoogleSignIn = useCallback(() => {

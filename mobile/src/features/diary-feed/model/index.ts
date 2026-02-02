@@ -1,2 +1,8 @@
 export { useEntryStorage, entryStorageUtils, generateMockEntries, GuestEntryLimitError } from './useEntryStorage';
 export { useDiaryPage } from './useDiaryPage';
+export { diaryApi } from './diaryApi';
+export { useDiaryEntriesQuery, useDiaryEntryDetailQuery, useCreateDiaryEntryMutation, useUpdateDiaryEntryMutation, useDeleteDiaryEntryMutation } from './useDiaryQueries';
+export { useDiaryData } from './useDiaryData';
+export type { UseDiaryDataReturn } from './useDiaryData';
+export { statisticsApi } from './statisticsApi';
+export { useOverviewQuery, useNutritionStatsQuery } from './useStatisticsQueries';
