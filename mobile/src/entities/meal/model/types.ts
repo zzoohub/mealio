@@ -53,6 +53,8 @@ export interface AIAnalysis {
 
 export interface Meal {
   photoUri: string;
+  /** All photo URIs sorted by sort_order (includes primary) */
+  photoUris?: string[];
   mealType: MealType;
   nutrition?: NutritionInfo;
   ingredients?: string[];

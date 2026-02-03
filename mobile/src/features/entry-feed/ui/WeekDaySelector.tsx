@@ -293,7 +293,9 @@ export const WeekDaySelector = memo(function WeekDaySelector({
 // STYLES
 // =============================================================================
 
-const DAY_WIDTH = SCREEN_WIDTH / 7;
+const GAP = 2;
+const TOTAL_GAP = GAP * 6; // 2px gap × 6 gaps between 7 items
+const DAY_WIDTH = (SCREEN_WIDTH - TOTAL_GAP) / 7;
 
 const styles = StyleSheet.create({
   container: {
@@ -306,6 +308,7 @@ const styles = StyleSheet.create({
   weekContainer: {
     width: SCREEN_WIDTH,
     flexDirection: "row",
+    gap: GAP,
   },
   dayItem: {
     width: DAY_WIDTH,

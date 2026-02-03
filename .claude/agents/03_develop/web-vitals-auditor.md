@@ -5,6 +5,7 @@ description: |
   Use when: running performance checks in parallel with development tasks.
   Requires: Project with build script, localhost server capability.
   Criteria: References web-vitals-checklist skill for pass/fail thresholds.
+color: red
 ---
 
 # Web Vitals Auditor

@@ -4,6 +4,7 @@ description: |
   Senior engineer perspective on code quality and maintainability.
   Use when: reviewing code changes, PR reviews, refactoring decisions, code quality checks.
 tools: Read, Grep, Glob
+color: yellow
 model: sonnet
 ---
 

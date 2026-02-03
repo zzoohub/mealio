@@ -15,6 +15,7 @@ pub struct DiaryEntry {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub primary_photo_url: Option<String>,
+    pub photo_urls: Vec<String>,
 }
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
@@ -59,6 +60,7 @@ pub struct DiaryQueryParams {
     pub end_date: Option<NaiveDate>,
     pub meal_type: Option<MealType>,
     pub q: Option<String>,
+    pub tz: Option<String>,
 }
 
 #[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
@@ -102,11 +104,16 @@ impl DiaryEntry {
         let per_page = params.per_page.unwrap_or(20).clamp(1, 100);
         let offset = (page - 1) * per_page;
 
+        // Sanitize timezone: only allow IANA-like identifiers (letters, digits, /, _, -, +)
+        let tz = params.tz.as_deref().filter(|s| {
+            s.len() <= 64 && s.bytes().all(|b| b.is_ascii_alphanumeric() || b"/_-+".contains(&b))
+        });
+
         let count: (i64,) = sqlx::query_as(
             "SELECT COUNT(*) FROM diary_entries
              WHERE user_id = $1 AND deleted_at IS NULL
-             AND ($2::date IS NULL OR eaten_at::date >= $2)
-             AND ($3::date IS NULL OR eaten_at::date <= $3)
+             AND ($2::date IS NULL OR (eaten_at AT TIME ZONE COALESCE($6, 'UTC'))::date >= $2)
+             AND ($3::date IS NULL OR (eaten_at AT TIME ZONE COALESCE($6, 'UTC'))::date <= $3)
              AND ($4::meal_type IS NULL OR meal_type = $4)
              AND ($5::text IS NULL OR title ILIKE '%' || $5 || '%')",
         )
@@ -115,6 +122,7 @@ impl DiaryEntry {
         .bind(params.end_date)
         .bind(&params.meal_type)
         .bind(&params.q)
+        .bind(&tz)
         .fetch_one(db)
         .await?;
 
@@ -123,11 +131,14 @@ impl DiaryEntry {
                     (SELECT ep.url FROM entry_photos ep
                      WHERE ep.entry_id = d.id
                      ORDER BY ep.is_primary DESC, ep.sort_order, ep.created_at
-                     LIMIT 1) AS primary_photo_url
+                     LIMIT 1) AS primary_photo_url,
+                    ARRAY(SELECT ep.url FROM entry_photos ep
+                          WHERE ep.entry_id = d.id
+                          ORDER BY ep.sort_order, ep.created_at) AS photo_urls
              FROM diary_entries d
              WHERE d.user_id = $1 AND d.deleted_at IS NULL
-             AND ($2::date IS NULL OR d.eaten_at::date >= $2)
-             AND ($3::date IS NULL OR d.eaten_at::date <= $3)
+             AND ($2::date IS NULL OR (d.eaten_at AT TIME ZONE COALESCE($8, 'UTC'))::date >= $2)
+             AND ($3::date IS NULL OR (d.eaten_at AT TIME ZONE COALESCE($8, 'UTC'))::date <= $3)
              AND ($4::meal_type IS NULL OR d.meal_type = $4)
              AND ($5::text IS NULL OR d.title ILIKE '%' || $5 || '%')
              ORDER BY d.eaten_at DESC
@@ -140,6 +151,7 @@ impl DiaryEntry {
         .bind(&params.q)
         .bind(per_page)
         .bind(offset)
+        .bind(&tz)
         .fetch_all(db)
         .await?;
 
@@ -152,7 +164,10 @@ impl DiaryEntry {
                     (SELECT ep.url FROM entry_photos ep
                      WHERE ep.entry_id = d.id
                      ORDER BY ep.is_primary DESC, ep.sort_order, ep.created_at
-                     LIMIT 1) AS primary_photo_url
+                     LIMIT 1) AS primary_photo_url,
+                    ARRAY(SELECT ep.url FROM entry_photos ep
+                          WHERE ep.entry_id = d.id
+                          ORDER BY ep.sort_order, ep.created_at) AS photo_urls
              FROM diary_entries d WHERE d.id = $1 AND d.user_id = $2 AND d.deleted_at IS NULL",
         )
         .bind(id)
@@ -173,7 +188,8 @@ impl DiaryEntry {
             "INSERT INTO diary_entries (user_id, meal_type, title, notes, eaten_at)
              VALUES ($1, $2, $3, $4, COALESCE($5, now()))
              RETURNING id, user_id, meal_type, title, notes, eaten_at, created_at, updated_at,
-                       NULL::text AS primary_photo_url",
+                       NULL::text AS primary_photo_url,
+                       ARRAY[]::text[] AS photo_urls",
         )
         .bind(user_id)
         .bind(meal_type)
@@ -204,7 +220,10 @@ impl DiaryEntry {
                        (SELECT ep.url FROM entry_photos ep
                         WHERE ep.entry_id = id
                         ORDER BY ep.is_primary DESC, ep.sort_order, ep.created_at
-                        LIMIT 1) AS primary_photo_url",
+                        LIMIT 1) AS primary_photo_url,
+                       ARRAY(SELECT ep.url FROM entry_photos ep
+                             WHERE ep.entry_id = id
+                             ORDER BY ep.sort_order, ep.created_at) AS photo_urls",
         )
         .bind(id)
         .bind(user_id)

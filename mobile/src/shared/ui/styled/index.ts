@@ -149,3 +149,6 @@ export type {
 // =============================================================================
 
 export { BottomSheet } from './BottomSheet';
+
+export { PhotoCarousel } from './PhotoCarousel';
+export type { PhotoCarouselProps } from './PhotoCarousel';

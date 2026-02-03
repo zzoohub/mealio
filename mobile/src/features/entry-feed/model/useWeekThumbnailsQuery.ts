@@ -6,10 +6,11 @@ export function useWeekThumbnailsQuery(
   startDate: string,
   endDate: string,
   enabled = true,
+  tz?: string,
 ) {
   return useQuery({
     queryKey: queryKeys.diary.weekThumbnails({ startDate, endDate }),
-    queryFn: () => entryApi.list({ start_date: startDate, end_date: endDate, per_page: 100 }),
+    queryFn: () => entryApi.list({ start_date: startDate, end_date: endDate, per_page: 100, tz }),
     enabled,
   });
 }

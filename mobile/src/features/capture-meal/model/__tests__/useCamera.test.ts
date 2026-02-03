@@ -25,6 +25,9 @@ jest.mock("@/shared/lib/i18n", () => ({
 jest.mock("@/app/providers/overlay", () => ({
   useOverlayHelpers: () => ({ toast: jest.fn() }),
 }));
+jest.mock("@/shared/lib/location", () => ({
+  useDeviceLocation: () => ({ getLocation: jest.fn().mockResolvedValue(undefined) }),
+}));
 
 // Mock entity barrels to avoid pulling in RN UI components
 jest.mock("@/entities/meal", () => ({

@@ -124,6 +124,7 @@ export interface ApiDiaryEntry {
   created_at: string;
   updated_at: string;
   primary_photo_url: string | null;
+  photo_urls?: string[];
 }
 
 export interface ApiEntryLocation {
@@ -364,6 +365,7 @@ export interface ApiDiaryQueryParams {
   end_date?: string;
   meal_type?: ApiMealType;
   q?: string;
+  tz?: string;
 }
 
 export interface ApiStatsParams {

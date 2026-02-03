@@ -48,6 +48,7 @@ Swagger UI available at `http://localhost:3000/swagger-ui` when running.
 2. After any implementation
    - Use **security-guidance** plugin for security audit → fix
    - Run a **tester** sub-agent that runs in parallel on the implemented code.
+**100% test coverage is not optional**
 
 ## API
 

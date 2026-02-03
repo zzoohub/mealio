@@ -8,6 +8,7 @@ import { MealType } from "@/entities/meal";
 import type { Entry } from "@/entities/entry";
 import { useCameraI18n } from "@/shared/lib/i18n";
 import { useOverlayHelpers } from "@/app/providers/overlay";
+import { useDeviceLocation } from "@/shared/lib/location";
 
 // =============================================================================
 // CONSTANTS
@@ -20,7 +21,8 @@ const MAX_PHOTOS = 10;
 // =============================================================================
 
 export interface UseCameraOptions {
-  onSaveEntry: (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">, photoUris?: string[]) => Promise<void>;
+  onSaveEntry: (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">, photoUris?: string[]) => Promise<string | undefined>;
+  onNavigateToEntry?: (entryId: string) => void;
 }
 
 export interface UseCameraReturn {
@@ -66,9 +68,10 @@ export function detectMealType(): MealType {
 // =============================================================================
 
 export function useCamera(options: UseCameraOptions): UseCameraReturn {
-  const { onSaveEntry } = options;
+  const { onSaveEntry, onNavigateToEntry } = options;
   const t = useCameraI18n();
   const { toast } = useOverlayHelpers();
+  const { getLocation } = useDeviceLocation();
 
   // Refs
   const cameraRef = useRef<CameraView>(null);
@@ -154,17 +157,20 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
 
     setIsSaving(true);
     try {
+      const location = await getLocation();
+
       const entry: Omit<Entry, "id" | "createdAt" | "updatedAt"> = {
         userId: "",
         timestamp: new Date(),
         notes: "",
+        location,
         meal: {
           photoUri: capturedPhotos[0]!,
           mealType: detectMealType(),
         },
       };
 
-      await onSaveEntry(entry, capturedPhotos);
+      const entryId = await onSaveEntry(entry, capturedPhotos);
       setCapturedPhotos([]);
 
       toast({
@@ -174,6 +180,7 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
         position: "top",
         showArrow: true,
         duration: 4000,
+        onPress: entryId && onNavigateToEntry ? () => onNavigateToEntry(entryId) : undefined,
       });
     } catch (error) {
       console.error("Failed to save entry:", error);
@@ -187,7 +194,7 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
     } finally {
       setIsSaving(false);
     }
-  }, [capturedPhotos, isSaving, onSaveEntry, toast, t]);
+  }, [capturedPhotos, isSaving, onSaveEntry, onNavigateToEntry, getLocation, toast, t]);
 
   const toggleFlash = useCallback(() => {
     const modes: FlashMode[] = ["off", "on", "auto"];

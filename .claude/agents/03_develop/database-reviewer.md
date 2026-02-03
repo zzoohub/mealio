@@ -5,6 +5,7 @@ description: |
   Use when: reviewing schema design, data model changes, migration plans, query patterns.
   Do not use for: writing migrations (main agent), security vulnerabilities (security-reviewer).
 tools: Read, Grep, Glob
+color: blue
 model: opus
 ---
 

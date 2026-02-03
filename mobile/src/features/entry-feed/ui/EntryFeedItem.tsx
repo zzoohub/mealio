@@ -1,7 +1,6 @@
 import React, { memo, useCallback } from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
-import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import type { Entry } from "@/entities/entry";
 import { MealType } from "@/entities/meal";
@@ -9,13 +8,12 @@ import { useTheme } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
 import { formatTime } from "@/shared/lib/utils";
 import { useCommonI18n } from "@/shared/lib/i18n";
+import { PhotoCarousel } from "@/shared/ui/styled";
 
 // =============================================================================
 // CONSTANTS
 // =============================================================================
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const PHOTO_SIZE = SCREEN_WIDTH; // Full width, 1:1 aspect ratio
 
 // =============================================================================
 // TYPES
@@ -71,19 +69,13 @@ export const EntryFeedItem = memo(function EntryFeedItem({ entry, onPress }: Ent
   const hasNotes = entry.notes && entry.notes.trim().length > 0;
   const locationLabel = entry.location?.address?.split(",")[0];
 
+  const photoUris = entry.meal.photoUris ?? (entry.meal.photoUri ? [entry.meal.photoUri] : []);
+
   return (
     <Pressable style={styles.container} onPress={handlePress}>
-      {/* Photo */}
-      <View style={[styles.photoContainer, { backgroundColor: colors.bg.secondary }]}>
-        {entry.meal.photoUri ? (
-          <Image
-            source={{ uri: entry.meal.photoUri }}
-            style={styles.photo}
-            contentFit="cover"
-          />
-        ) : (
-          <Ionicons name="image-outline" size={48} color={colors.text.tertiary} />
-        )}
+      {/* Photo Carousel */}
+      <View>
+        <PhotoCarousel photoUris={photoUris} onPhotoPress={onPress ? () => handlePress() : undefined} />
 
         {/* Bookmark - Top Right */}
         {entry.wouldEatAgain && (
@@ -143,16 +135,6 @@ export const EntryFeedItem = memo(function EntryFeedItem({ entry, onPress }: Ent
 const styles = StyleSheet.create({
   container: {
     marginBottom: tokens.spacing.layout.md,
-  },
-  photoContainer: {
-    width: PHOTO_SIZE,
-    height: PHOTO_SIZE,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  photo: {
-    width: "100%",
-    height: "100%",
   },
   bookmarkContainer: {
     position: "absolute",

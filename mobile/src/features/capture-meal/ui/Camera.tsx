@@ -29,10 +29,18 @@ export default function Camera() {
 
   const handleSaveEntry = useCallback(
     async (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">, photoUris?: string[]) => {
-      await saveEntry(entry, photoUris);
+      const entryId = await saveEntry(entry, photoUris);
       router.push("/diary");
+      return entryId;
     },
     [saveEntry, router],
+  );
+
+  const handleNavigateToEntry = useCallback(
+    (entryId: string) => {
+      router.push(`/diary/${entryId}`);
+    },
+    [router],
   );
 
   const {
@@ -48,7 +56,7 @@ export default function Camera() {
     toggleFlash,
     handleDone,
     getFlashIcon,
-  } = useCamera({ onSaveEntry: handleSaveEntry });
+  } = useCamera({ onSaveEntry: handleSaveEntry, onNavigateToEntry: handleNavigateToEntry });
 
   // Loading state
   if (!permission) {

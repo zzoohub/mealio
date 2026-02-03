@@ -16,6 +16,7 @@ function buildQuery(params: ApiDiaryQueryParams): string {
   if (params.end_date) searchParams.set("end_date", params.end_date);
   if (params.meal_type) searchParams.set("meal_type", params.meal_type);
   if (params.q) searchParams.set("q", params.q);
+  if (params.tz) searchParams.set("tz", params.tz);
   const qs = searchParams.toString();
   return qs ? `?${qs}` : "";
 }

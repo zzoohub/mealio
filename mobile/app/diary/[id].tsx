@@ -6,13 +6,13 @@ import { createStyles, useStyles } from "@/shared/ui/theme";
 import {
   useEntryDetail,
   EntryDetailHeader,
-  MealHeroImage,
   AICommentBanner,
   EntryContextBar,
   EntryNotesSection,
   AIAnalysisSection,
   EntryDeleteButton,
 } from "@/features/entry-detail";
+import { PhotoCarousel } from "@/shared/ui/styled";
 
 // =============================================================================
 // CONSTANTS
@@ -66,11 +66,11 @@ export default function DiaryEntryScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Hero Image */}
-        <MealHeroImage
-          photoUri={entry?.meal.photoUri}
+        {/* Photo Carousel */}
+        <PhotoCarousel
+          photoUris={entry?.meal.photoUris ?? (entry?.meal.photoUri ? [entry.meal.photoUri] : [])}
           loading={isLoading && !entry}
-          onPress={entry?.meal.photoUri ? openPhotoViewer : undefined}
+          onPhotoPress={entry?.meal.photoUri ? () => openPhotoViewer() : undefined}
         />
 
         {/* AI Comment Banner */}

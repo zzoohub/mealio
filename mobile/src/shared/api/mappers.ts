@@ -103,6 +103,8 @@ export function mapNutritionInfoToUpsertRequest(
 
 export function mapApiDiaryEntryDetailToEntry(detail: ApiDiaryEntryDetail): Entry {
   const primaryPhoto = detail.photos.find((p) => p.is_primary) ?? detail.photos[0];
+  const sortedPhotos = [...detail.photos].sort((a, b) => a.sort_order - b.sort_order);
+  const allPhotoUris = sortedPhotos.map((p) => p.url);
 
   let location: Location | undefined;
   if (detail.location) {
@@ -118,6 +120,7 @@ export function mapApiDiaryEntryDetailToEntry(detail: ApiDiaryEntryDetail): Entr
 
   const meal: Meal = {
     photoUri: primaryPhoto?.url ?? "",
+    photoUris: allPhotoUris.length > 0 ? allPhotoUris : undefined,
     mealType: apiMealTypeToEnum(detail.meal_type),
   };
   const nutrition = mapApiNutritionToNutritionInfo(detail.nutrition);

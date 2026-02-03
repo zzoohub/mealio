@@ -62,7 +62,8 @@ function apiEntryToEntry(apiEntry: ApiDiaryEntry): Entry {
     timestamp: new Date(apiEntry.eaten_at),
     notes: apiEntry.notes ?? "",
     meal: {
-      photoUri: "",
+      photoUri: apiEntry.primary_photo_url ?? "",
+      photoUris: apiEntry.photo_urls?.length ? apiEntry.photo_urls : undefined,
       mealType: mealTypeMap[apiEntry.meal_type] ?? MealType.OTHER,
     },
     createdAt: new Date(apiEntry.created_at),
@@ -89,6 +90,9 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
 
   const today = useMemo(() => new Date(), []);
 
+  // Device timezone for API date filtering
+  const deviceTz = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
+
   // Date string for API query
   const selectedDateStr = useMemo(() => formatDateToString(selectedDate), [selectedDate]);
 
@@ -104,16 +108,17 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
   }, [visibleWeekDays, selectedDateStr]);
 
   // Auth mode: API query for selected date
-  const diaryQuery = useEntryListQuery({ start_date: selectedDateStr, end_date: selectedDateStr }, isAuthenticated);
+  const diaryQuery = useEntryListQuery({ start_date: selectedDateStr, end_date: selectedDateStr, tz: deviceTz }, isAuthenticated);
 
   // Auth mode: API query for visible week range (thumbnails)
-  const weekQuery = useWeekThumbnailsQuery(weekRange.startDate, weekRange.endDate, isAuthenticated);
+  const weekQuery = useWeekThumbnailsQuery(weekRange.startDate, weekRange.endDate, isAuthenticated, deviceTz);
 
   // Auth mode: API query for calendar month range (thumbnails for bottom sheet calendar)
   const monthQuery = useMonthThumbnailsQuery(
     calendarMonthRange?.startDate ?? "",
     calendarMonthRange?.endDate ?? "",
     isAuthenticated && !!calendarMonthRange,
+    deviceTz,
   );
 
   const apiEntries = useMemo(() => {
@@ -167,16 +172,17 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
   }, [isAuthenticated, weekQuery.data]);
 
   // Auth mode: build calendarThumbnails from month query response
+  // Merge into existing map so previously loaded months are preserved
   useEffect(() => {
     if (!isAuthenticated || !monthQuery.data) return;
-    const thumbnailMap = new Map<string, string | null>();
-    monthQuery.data.data.forEach(entry => {
-      const dateStr = formatDateToString(new Date(entry.eaten_at));
-      if (!thumbnailMap.has(dateStr)) {
-        thumbnailMap.set(dateStr, entry.primary_photo_url);
-      }
+    setCalendarThumbnails(prev => {
+      const merged = new Map(prev);
+      monthQuery.data!.data.forEach(entry => {
+        const dateStr = formatDateToString(new Date(entry.eaten_at));
+        merged.set(dateStr, entry.primary_photo_url);
+      });
+      return merged;
     });
-    setCalendarThumbnails(thumbnailMap);
   }, [isAuthenticated, monthQuery.data]);
 
   // Guest mode: calendarThumbnails is the same as dateThumbnails (all entries are loaded)

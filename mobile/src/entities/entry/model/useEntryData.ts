@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Entry } from "./types";
 import { useIsAuthenticated } from "@/shared/lib/auth";
 import { useEntryStorage } from "./useEntryStorage";
@@ -14,6 +15,7 @@ import {
 } from "@/shared/api";
 import { uploadPhoto } from "@/shared/api/uploadApi";
 import { photoApi } from "../api/photoApi";
+import { queryKeys } from "@/shared/config";
 import type { ApiDiaryQueryParams, ApiDiaryEntry, ApiMealType } from "@/shared/api";
 import { MealType } from "@/entities/meal";
 
@@ -25,7 +27,8 @@ export interface UseEntryDataReturn {
   entries: Entry[];
   isLoading: boolean;
   error: string | null;
-  saveEntry: (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">, photoUris?: string[]) => Promise<void>;
+  /** Returns the created entry ID (string) for auth mode, undefined for guest. */
+  saveEntry: (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">, photoUris?: string[]) => Promise<string | undefined>;
   updateEntry: (entryId: string, updates: Partial<Omit<Entry, "id" | "createdAt">>) => Promise<void>;
   deleteEntry: (entryId: string) => Promise<void>;
   entriesRemaining: number;
@@ -59,7 +62,7 @@ function apiEntryToEntry(apiEntry: ApiDiaryEntry): Entry {
     timestamp: new Date(apiEntry.eaten_at),
     notes: apiEntry.notes ?? "",
     meal: {
-      photoUri: "",
+      photoUri: apiEntry.primary_photo_url ?? "",
       mealType: mealTypeMap[apiEntry.meal_type] ?? MealType.OTHER,
     },
     createdAt: new Date(apiEntry.created_at),
@@ -73,6 +76,7 @@ function apiEntryToEntry(apiEntry: ApiDiaryEntry): Entry {
 
 export function useEntryData(options: UseEntryDataOptions = {}): UseEntryDataReturn {
   const isAuthenticated = useIsAuthenticated();
+  const queryClient = useQueryClient();
 
   // Guest mode: local storage
   const guestStorage = useEntryStorage({ isLoggedIn: isAuthenticated });
@@ -105,7 +109,7 @@ export function useEntryData(options: UseEntryDataOptions = {}): UseEntryDataRet
     : guestStorage.error;
 
   const saveEntry = useCallback(
-    async (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">, photoUris?: string[]) => {
+    async (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">, photoUris?: string[]): Promise<string | undefined> => {
       if (isAuthenticated) {
         // 1. Upload photos to R2 in parallel
         const urls = photoUris?.length
@@ -124,11 +128,19 @@ export function useEntryData(options: UseEntryDataOptions = {}): UseEntryDataRet
             sort_order: i,
           });
         }
+
+        // 4. Re-invalidate so queries reflect the attached photos
+        if (urls.length > 0) {
+          queryClient.invalidateQueries({ queryKey: queryKeys.diary.all() });
+        }
+
+        return String(created.id);
       } else {
         await guestStorage.saveEntry(entry);
+        return undefined;
       }
     },
-    [isAuthenticated, createMutation, guestStorage],
+    [isAuthenticated, createMutation, guestStorage, queryClient],
   );
 
   const updateEntryFn = useCallback(

@@ -5,6 +5,7 @@ description: |
   Use when: writing test code, running tests, checking coverage, validating changes before commit/PR.
   Workflow: Analyze codebase → Write comprehensive tests → Run with coverage → Iterate until 100%.
 tools: Read, Write, Edit, Bash, Grep, Glob
+color: green
 model: sonnet
 ---
 
