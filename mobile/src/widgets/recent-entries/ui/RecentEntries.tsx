@@ -26,7 +26,7 @@ import { Box, Text, HStack, VStack, Card } from '@/shared/ui/styled';
 import { createStyles, useStyles } from '@/shared/ui/theme';
 import { tokens } from '@/shared/ui/tokens';
 import type { Entry } from '@/entities/entry';
-import { entryStorageUtils, generateMockEntries } from '@/features/diary-feed/model/useEntryStorage';
+import { entryStorageUtils } from '@/features/diary-feed/model/useEntryStorage';
 
 // =============================================================================
 // TYPES
@@ -157,7 +157,6 @@ function EmptyState() {
 export default function RecentEntries({ onSeeAll }: RecentEntriesProps) {
   const [recentEntries, setRecentEntries] = useState<Entry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [mockDataInitialized, setMockDataInitialized] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -167,29 +166,7 @@ export default function RecentEntries({ onSeeAll }: RecentEntriesProps) {
   const loadRecentEntries = async () => {
     try {
       setIsLoading(true);
-      let entries = await entryStorageUtils.getRecentEntries(6);
-
-      // For development: add mock data if no entries exist
-      if (entries.length === 0 && !mockDataInitialized) {
-        const mockEntries = generateMockEntries();
-        // Save mock entries to storage so they can be found later
-        for (const mockEntry of mockEntries) {
-          const entryData: Parameters<typeof entryStorageUtils.saveEntry>[0] = {
-            userId: mockEntry.userId,
-            timestamp: mockEntry.timestamp,
-            notes: mockEntry.notes,
-            meal: mockEntry.meal,
-          };
-          if (mockEntry.location) {
-            entryData.location = mockEntry.location;
-          }
-          await entryStorageUtils.saveEntry(entryData);
-        }
-        // Reload entries after saving mock data
-        entries = await entryStorageUtils.getRecentEntries(6);
-        setMockDataInitialized(true);
-      }
-
+      const entries = await entryStorageUtils.getRecentEntries(6);
       setRecentEntries(entries);
     } catch (error) {
       console.error('Error loading recent entries:', error);

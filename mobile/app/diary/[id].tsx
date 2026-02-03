@@ -3,8 +3,6 @@ import { View, ScrollView, useWindowDimensions } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { createStyles, useStyles } from "@/shared/ui/theme";
-import type { Entry } from "@/entities/entry";
-import { MealType } from "@/entities/meal";
 import {
   useEntryDetail,
   EntryDetailHeader,
@@ -21,52 +19,6 @@ import {
 // =============================================================================
 
 const HEADER_HEIGHT = 56;
-
-// Mock data for UI testing (remove when real data is available)
-const MOCK_ENTRY: Entry = {
-  id: "mock_entry_1",
-  userId: "user_1",
-  timestamp: new Date(),
-  notes: "",
-  location: {
-    latitude: 37.5665,
-    longitude: 126.978,
-    address: "서울시 강남구",
-  },
-  meal: {
-    photoUri: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800",
-    mealType: MealType.LUNCH,
-    nutrition: {
-      calories: 485,
-      protein: 32,
-      fat: 18,
-      sugar: 8,
-    },
-    aiAnalysis: {
-      detectedMeals: ["닭가슴살 샐러드"],
-      confidence: 92,
-      nutrition: {
-        calories: 485,
-        protein: 32,
-        fat: 18,
-        sugar: 8,
-      },
-      mealCategory: MealType.LUNCH,
-      ingredients: ["닭가슴살", "양상추", "방울토마토", "아보카도", "올리브오일", "발사믹"],
-      comment: "단백질 폭탄이네요! 운동 후 먹으면 딱이겠어요.",
-      cuisineType: "양식",
-      insights: {
-        healthScore: 88,
-        nutritionBalance: "고단백 저탄수",
-        recommendations: ["훌륭한 단백질 공급원!", "식이섬유도 충분해요"],
-      },
-    },
-  },
-  rating: 4,
-  wouldEatAgain: true,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
 
 // =============================================================================
 // MAIN COMPONENT
@@ -93,7 +45,6 @@ export default function DiaryEntryScreen() {
     openPhotoViewer,
   } = useEntryDetail({
     entryId: id,
-    fallbackEntry: MOCK_ENTRY,
   });
 
   const minContentHeight = screenHeight - insets.top - HEADER_HEIGHT;

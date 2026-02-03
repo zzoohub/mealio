@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Entry, EntryFilter, SortMethod } from "@/entities/entry";
-import { entryStorageUtils, generateMockEntries } from "@/features/diary-feed";
+import { entryStorageUtils } from "@/features/diary-feed";
 import { entrySortingUtils, SortedSection } from "./useEntrySorting";
 import { getCachedData } from "@/shared/lib/performance";
 
@@ -93,7 +93,6 @@ export function useEntrySearch(): UseEntrySearchReturn {
 
   // Search/Filter
   const [searchQuery, setSearchQuery] = useState("");
-  const [mockDataGenerated, setMockDataGenerated] = useState(false);
 
   // Calendar state
   const [calendarRange, setCalendarRange] = useState<CalendarRangeState>({
@@ -160,30 +159,7 @@ export function useEntrySearch(): UseEntrySearchReturn {
         if (datePeriod.startDate) filter.startDate = datePeriod.startDate;
         if (datePeriod.endDate) filter.endDate = datePeriod.endDate;
 
-        let loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
-
-        // For development: add mock data if no entries exist (only once)
-        if (loadedEntries.length === 0 && !searchQuery && !mockDataGenerated) {
-          const mockEntries = generateMockEntries();
-          for (const mockEntry of mockEntries) {
-            try {
-              const entryData: Parameters<typeof entryStorageUtils.saveEntry>[0] = {
-                userId: mockEntry.userId,
-                timestamp: mockEntry.timestamp,
-                notes: mockEntry.notes,
-                meal: mockEntry.meal,
-              };
-              if (mockEntry.location) {
-                entryData.location = mockEntry.location;
-              }
-              await entryStorageUtils.saveEntry(entryData);
-            } catch (err) {
-              console.error("Error saving mock entry:", err);
-            }
-          }
-          setMockDataGenerated(true);
-          loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
-        }
+        const loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
 
         const endIndex = ITEMS_PER_PAGE;
         const paginatedEntries = loadedEntries.slice(0, endIndex);
@@ -199,7 +175,7 @@ export function useEntrySearch(): UseEntrySearchReturn {
     };
 
     loadData();
-  }, [searchQuery, datePeriod.startDate, datePeriod.endDate, mockDataGenerated]);
+  }, [searchQuery, datePeriod.startDate, datePeriod.endDate]);
 
   // =============================================================================
   // CALENDAR FUNCTIONS
@@ -366,7 +342,6 @@ export function useEntrySearch(): UseEntrySearchReturn {
   const refetch = useCallback(async () => {
     setPage(1);
     setHasMore(true);
-    setMockDataGenerated(false);
   }, []);
 
   const handleSortMethodSelect = useCallback(

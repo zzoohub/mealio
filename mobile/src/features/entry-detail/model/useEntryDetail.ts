@@ -36,8 +36,6 @@ export interface UseEntryDetailReturn {
 export interface UseEntryDetailOptions {
   /** Entry ID to load */
   entryId: string | undefined;
-  /** Optional fallback entry for testing/preview */
-  fallbackEntry?: Entry;
 }
 
 // =============================================================================
@@ -45,7 +43,7 @@ export interface UseEntryDetailOptions {
 // =============================================================================
 
 export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailReturn {
-  const { entryId, fallbackEntry } = options;
+  const { entryId } = options;
   const router = useRouter();
   const diary = useDiaryI18n();
   const common = useCommonI18n();
@@ -76,28 +74,19 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
 
         if (entryData) {
           setEntry(entryData);
-        } else if (fallbackEntry) {
-          // Use fallback for UI testing
-          setEntry(fallbackEntry);
         } else {
           setError(new Error("Entry not found"));
         }
       } catch (err) {
         console.error("Failed to load entry:", err);
         setError(err instanceof Error ? err : new Error("Failed to load entry"));
-
-        // Use fallback on error if available
-        if (fallbackEntry) {
-          setEntry(fallbackEntry);
-          setError(null);
-        }
       } finally {
         setIsLoading(false);
       }
     };
 
     loadEntry();
-  }, [entryId, fallbackEntry]);
+  }, [entryId]);
 
   // =============================================================================
   // UPDATE HELPERS

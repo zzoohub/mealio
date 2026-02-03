@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import type { Entry, EntryFilter } from "@/entities/entry";
-import { MealType, type NutritionInfo } from "@/entities/meal";
+import type { NutritionInfo } from "@/entities/meal";
 import { storage } from "@/shared/lib/storage";
 import { GUEST_LIMITS, ERROR_MESSAGES } from "@/shared/config";
 
@@ -476,46 +476,3 @@ export const useEntryStorage = (options: UseEntryStorageOptions = {}) => {
   };
 };
 
-// =============================================================================
-// MOCK DATA GENERATOR
-// =============================================================================
-
-export function generateMockEntries(): Entry[] {
-  const mockEntries: Entry[] = [
-    {
-      id: "entry_1",
-      userId: "user_1",
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      notes: "",
-      location: {
-        latitude: 37.7749,
-        longitude: -122.4194,
-        address: "San Francisco, CA",
-      },
-      meal: {
-        photoUri: "https://via.placeholder.com/300x200",
-        mealType: MealType.LUNCH,
-        nutrition: { calories: 380, protein: 32, fat: 22, sugar: 5, fiber: 8 },
-        ingredients: ["Grilled chicken", "Mixed greens", "Tomatoes"],
-      },
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    },
-    {
-      id: "entry_2",
-      userId: "user_1",
-      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
-      notes: "Perfect start to the day!",
-      meal: {
-        photoUri: "https://via.placeholder.com/300x200",
-        mealType: MealType.BREAKFAST,
-        nutrition: { calories: 320, protein: 12, fat: 8, sugar: 15, fiber: 6 },
-        ingredients: ["Oats", "Yogurt", "Berries"],
-      },
-      createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
-      updatedAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
-    },
-  ];
-
-  return mockEntries;
-}
