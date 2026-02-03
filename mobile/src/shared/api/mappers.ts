@@ -6,6 +6,7 @@ import type {
   ApiUser,
   ApiDiaryEntryDetail,
   ApiUserNutrition,
+  ApiUpsertNutritionRequest,
   ApiMealType,
   ApiCreateEntryRequest,
   ApiUpdateEntryRequest,
@@ -79,6 +80,20 @@ export function mapApiNutritionToNutritionInfo(
     fiber: parseDecimal(n.fiber_grams),
     sugar: parseDecimal(n.sugar_grams),
     sodium: parseDecimal(n.sodium_mg),
+  };
+}
+
+export function mapNutritionInfoToUpsertRequest(
+  nutrition: NutritionInfo,
+): ApiUpsertNutritionRequest {
+  return {
+    calories: String(nutrition.calories ?? 0),
+    protein_grams: String(nutrition.protein ?? 0),
+    fat_grams: String(nutrition.fat ?? 0),
+    carbs_grams: String(nutrition.carbs ?? 0),
+    fiber_grams: String(nutrition.fiber ?? 0),
+    sugar_grams: String(nutrition.sugar ?? 0),
+    sodium_mg: String(nutrition.sodium ?? 0),
   };
 }
 

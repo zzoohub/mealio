@@ -1,9 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import type { Entry } from "@/entities/entry";
 import { MealType, type NutritionInfo } from "@/entities/meal";
-import { entryStorageUtils } from "@/features/diary-feed";
+import {
+  entryStorageUtils,
+  useDiaryEntryDetailQuery,
+  useUpdateDiaryEntryMutation,
+  useUpsertNutritionMutation,
+  useDeleteDiaryEntryMutation,
+} from "@/features/diary-feed";
+import { mapEntryToUpdateRequest, mapNutritionInfoToUpsertRequest } from "@/shared/api";
+import { useIsAuthenticated } from "@/shared/lib/auth";
 import { useDiaryI18n, useCommonI18n, useErrorI18n } from "@/shared/lib/i18n";
 
 // =============================================================================
@@ -48,63 +56,89 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
   const diary = useDiaryI18n();
   const common = useCommonI18n();
   const errors = useErrorI18n();
+  const isAuthenticated = useIsAuthenticated();
 
-  // State
-  const [entry, setEntry] = useState<Entry | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Determine if this is an API entry (numeric ID) vs MMKV entry
+  const numericId = entryId ? Number(entryId) : NaN;
+  const isApiEntry = isAuthenticated && !isNaN(numericId) && numericId > 0;
+
+  // =============================================================================
+  // API HOOKS (always called, conditionally enabled)
+  // =============================================================================
+
+  const apiDetailQuery = useDiaryEntryDetailQuery(numericId, isApiEntry);
+  const updateEntryMutation = useUpdateDiaryEntryMutation();
+  const upsertNutritionMutation = useUpsertNutritionMutation();
+  const deleteEntryMutation = useDeleteDiaryEntryMutation();
+
+  // =============================================================================
+  // GUEST (MMKV) STATE
+  // =============================================================================
+
+  const [guestEntry, setGuestEntry] = useState<Entry | null>(null);
+  const [guestLoading, setGuestLoading] = useState(!isApiEntry);
+  const [guestError, setGuestError] = useState<Error | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  // =============================================================================
-  // LOAD ENTRY
-  // =============================================================================
 
   useEffect(() => {
-    const loadEntry = async () => {
-      if (!entryId) {
-        setIsLoading(false);
-        return;
-      }
+    if (isApiEntry || !entryId) {
+      setGuestLoading(false);
+      return;
+    }
 
-      setIsLoading(true);
-      setError(null);
+    let cancelled = false;
+    setGuestLoading(true);
+    setGuestError(null);
 
+    (async () => {
       try {
-        const entryData = await entryStorageUtils.getEntryById(entryId);
-
-        if (entryData) {
-          setEntry(entryData);
+        const data = await entryStorageUtils.getEntryById(entryId);
+        if (cancelled) return;
+        if (data) {
+          setGuestEntry(data);
         } else {
-          setError(new Error("Entry not found"));
+          setGuestError(new Error("Entry not found"));
         }
       } catch (err) {
+        if (cancelled) return;
         console.error("Failed to load entry:", err);
-        setError(err instanceof Error ? err : new Error("Failed to load entry"));
+        setGuestError(err instanceof Error ? err : new Error("Failed to load entry"));
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setGuestLoading(false);
       }
-    };
+    })();
 
-    loadEntry();
-  }, [entryId]);
+    return () => { cancelled = true; };
+  }, [entryId, isApiEntry]);
 
   // =============================================================================
-  // UPDATE HELPERS
+  // UNIFIED DATA
   // =============================================================================
 
-  const updateEntry = useCallback(
+  const entry = isApiEntry ? (apiDetailQuery.data ?? null) : guestEntry;
+  const isLoading = isApiEntry ? apiDetailQuery.isLoading : guestLoading;
+  const error = isApiEntry ? (apiDetailQuery.error ?? null) : guestError;
+
+  // Keep a ref to the latest entry for callbacks
+  const entryRef = useRef(entry);
+  entryRef.current = entry;
+
+  // =============================================================================
+  // GUEST UPDATE HELPER
+  // =============================================================================
+
+  const updateGuestEntry = useCallback(
     async (updates: Partial<Entry>) => {
-      if (!entryId || !entry) return;
-
+      if (!entryId) return;
       try {
         const updatedEntry = await entryStorageUtils.updateEntry(entryId, updates);
-        setEntry(updatedEntry);
+        setGuestEntry(updatedEntry);
       } catch (err) {
         console.error("Failed to update entry:", err);
-        setError(err instanceof Error ? err : new Error("Failed to update entry"));
+        setGuestError(err instanceof Error ? err : new Error("Failed to update entry"));
       }
     },
-    [entryId, entry]
+    [entryId]
   );
 
   // =============================================================================
@@ -113,62 +147,73 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
 
   const updateMealType = useCallback(
     (mealType: MealType) => {
-      if (!entry) return;
-      updateEntry({
-        meal: {
-          ...entry.meal,
-          mealType,
-        },
-      });
+      const current = entryRef.current;
+      if (!current) return;
+
+      if (isApiEntry) {
+        updateEntryMutation.mutate({
+          id: numericId,
+          body: mapEntryToUpdateRequest({ meal: { ...current.meal, mealType } }),
+        });
+      } else {
+        updateGuestEntry({ meal: { ...current.meal, mealType } });
+      }
     },
-    [entry, updateEntry]
+    [isApiEntry, numericId, updateEntryMutation, updateGuestEntry]
   );
 
   const updateNotes = useCallback(
     (notes: string) => {
-      updateEntry({ notes });
+      if (isApiEntry) {
+        updateEntryMutation.mutate({
+          id: numericId,
+          body: mapEntryToUpdateRequest({ notes }),
+        });
+      } else {
+        updateGuestEntry({ notes });
+      }
     },
-    [updateEntry]
+    [isApiEntry, numericId, updateEntryMutation, updateGuestEntry]
   );
 
   const updateRating = useCallback(
     (rating: number) => {
-      updateEntry({ rating });
+      updateGuestEntry({ rating });
     },
-    [updateEntry]
+    [updateGuestEntry]
   );
 
   const updateWouldEatAgain = useCallback(
     (wouldEatAgain: boolean) => {
-      updateEntry({ wouldEatAgain });
+      updateGuestEntry({ wouldEatAgain });
     },
-    [updateEntry]
+    [updateGuestEntry]
   );
 
   const updateIngredients = useCallback(
     (ingredients: string[]) => {
-      if (!entry) return;
-      updateEntry({
-        meal: {
-          ...entry.meal,
-          ingredients,
-        },
-      });
+      const current = entryRef.current;
+      if (!current) return;
+      updateGuestEntry({ meal: { ...current.meal, ingredients } });
     },
-    [entry, updateEntry]
+    [updateGuestEntry]
   );
 
   const updateNutrition = useCallback(
     (nutrition: NutritionInfo) => {
-      if (!entry) return;
-      updateEntry({
-        meal: {
-          ...entry.meal,
-          nutrition,
-        },
-      });
+      const current = entryRef.current;
+      if (!current) return;
+
+      if (isApiEntry) {
+        upsertNutritionMutation.mutate({
+          entryId: numericId,
+          body: mapNutritionInfoToUpsertRequest(nutrition),
+        });
+      } else {
+        updateGuestEntry({ meal: { ...current.meal, nutrition } });
+      }
     },
-    [entry, updateEntry]
+    [isApiEntry, numericId, upsertNutritionMutation, updateGuestEntry]
   );
 
   const deleteEntry = useCallback(() => {
@@ -185,7 +230,11 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
 
             setIsDeleting(true);
             try {
-              await entryStorageUtils.deleteEntry(entryId);
+              if (isApiEntry) {
+                await deleteEntryMutation.mutateAsync(numericId);
+              } else {
+                await entryStorageUtils.deleteEntry(entryId);
+              }
               router.back();
             } catch (err) {
               console.error("Failed to delete entry:", err);
@@ -197,7 +246,7 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
         },
       ]
     );
-  }, [entryId, router, diary.deleteEntryTitle, diary.deleteEntryMessage, common.cancel, common.delete, common.error, errors.deleteFailed]);
+  }, [entryId, isApiEntry, numericId, deleteEntryMutation, router, diary.deleteEntryTitle, diary.deleteEntryMessage, common.cancel, common.delete, common.error, errors.deleteFailed]);
 
   // =============================================================================
   // NAVIGATION

@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/shared/config";
 import { mapApiDiaryEntryDetailToEntry } from "@/shared/api";
-import type { ApiDiaryQueryParams, ApiCreateEntryRequest, ApiUpdateEntryRequest } from "@/shared/api";
+import type { ApiDiaryQueryParams, ApiCreateEntryRequest, ApiUpdateEntryRequest, ApiUpsertNutritionRequest } from "@/shared/api";
 import { diaryApi } from "./diaryApi";
+import { nutritionApi } from "./nutritionApi";
 
 // =============================================================================
 // HELPERS
@@ -77,6 +78,19 @@ export function useDeleteDiaryEntryMutation() {
     mutationFn: (id: number) => diaryApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.diary.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() });
+    },
+  });
+}
+
+export function useUpsertNutritionMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ entryId, body }: { entryId: number; body: ApiUpsertNutritionRequest }) =>
+      nutritionApi.upsert(entryId, body),
+    onSuccess: (_data, { entryId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.diary.detail(entryId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() });
     },
   });

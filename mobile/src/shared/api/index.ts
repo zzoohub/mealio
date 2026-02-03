@@ -4,6 +4,7 @@ export {
   mapApiUserInfoToUser,
   mapApiUserToUser,
   mapApiNutritionToNutritionInfo,
+  mapNutritionInfoToUpsertRequest,
   mapApiDiaryEntryDetailToEntry,
   mapEntryToCreateRequest,
   mapEntryToUpdateRequest,

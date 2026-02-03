@@ -1,7 +1,8 @@
 export { useEntryStorage, entryStorageUtils, GuestEntryLimitError } from './useEntryStorage';
 export { useDiaryPage } from './useDiaryPage';
 export { diaryApi } from './diaryApi';
-export { useDiaryEntriesQuery, useDiaryEntryDetailQuery, useCreateDiaryEntryMutation, useUpdateDiaryEntryMutation, useDeleteDiaryEntryMutation } from './useDiaryQueries';
+export { useDiaryEntriesQuery, useDiaryEntryDetailQuery, useCreateDiaryEntryMutation, useUpdateDiaryEntryMutation, useDeleteDiaryEntryMutation, useUpsertNutritionMutation } from './useDiaryQueries';
+export { nutritionApi } from './nutritionApi';
 export { useDiaryData } from './useDiaryData';
 export type { UseDiaryDataReturn } from './useDiaryData';
 export { statisticsApi } from './statisticsApi';

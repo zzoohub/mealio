@@ -43,10 +43,7 @@ export interface AIAnalysisSectionProps {
   testID?: string | undefined;
 }
 
-// Primary nutrients to always show
-const PRIMARY_NUTRIENTS: (keyof NutritionInfo)[] = ['calories', 'protein', 'fat', 'carbs'];
-// Secondary nutrients shown when value > 0
-const SECONDARY_NUTRIENTS: (keyof NutritionInfo)[] = ['fiber', 'sugar', 'sodium'];
+const ALL_NUTRIENTS: (keyof NutritionInfo)[] = ['calories', 'protein', 'fat', 'carbs', 'fiber', 'sugar', 'sodium'];
 
 // =============================================================================
 // COMPONENT
@@ -125,20 +122,11 @@ export function AIAnalysisSection({
     setLocalNutrition((prev) => ({ ...prev, [key]: numValue }));
   };
 
-  // Primary nutrients always shown; secondary shown when value > 0
-  const primaryEntries = PRIMARY_NUTRIENTS.map((key) => ({
+  const nutritionEntries = ALL_NUTRIENTS.map((key) => ({
     key,
     value: localNutrition[key] ?? 0,
     ...NUTRITION_LABELS[key],
   }));
-  const secondaryEntries = SECONDARY_NUTRIENTS
-    .filter((key) => isEditing || (localNutrition[key] ?? 0) > 0)
-    .map((key) => ({
-      key,
-      value: localNutrition[key] ?? 0,
-      ...NUTRITION_LABELS[key],
-    }));
-  const nutritionEntries = [...primaryEntries, ...secondaryEntries];
 
   return (
     <View style={s.container} testID={testID}>
