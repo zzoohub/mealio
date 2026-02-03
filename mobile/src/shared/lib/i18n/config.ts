@@ -126,44 +126,8 @@ const initializeI18n = async () => {
     // Performance optimizations
     debug: __DEV__,
 
-    // Interpolation with advanced formatting
     interpolation: {
       escapeValue: false,
-      formatSeparator: ",",
-      format: (value: any, format?: string, lng?: string) => {
-        if (!format) return value;
-        const language = lng ?? i18n.language;
-        const languageConfig = SUPPORTED_LANGUAGES.find(l => l.code === language);
-
-        switch (format) {
-          case "number":
-            return new Intl.NumberFormat(language).format(value);
-          case "currency": {
-            const currencyCode = language === "ko" ? "KRW" : "USD";
-            return new Intl.NumberFormat(language, {
-              style: "currency",
-              currency: currencyCode,
-            }).format(value);
-          }
-          case "date":
-            return new Intl.DateTimeFormat(language, {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            }).format(value);
-          case "time": {
-            const timeFormatOptions: Intl.DateTimeFormatOptions =
-              languageConfig?.timeFormat === "24h"
-                ? { hour: "2-digit", minute: "2-digit", hour12: false }
-                : { hour: "2-digit", minute: "2-digit", hour12: true };
-            return new Intl.DateTimeFormat(language, timeFormatOptions).format(value);
-          }
-          case "percent":
-            return new Intl.NumberFormat(language, { style: "percent" }).format(value);
-          default:
-            return value;
-        }
-      },
     },
 
     // React configuration
@@ -180,7 +144,27 @@ const initializeI18n = async () => {
     },
   };
 
-  return i18n.use(languageDetector).use(initReactI18next).init(initOptions);
+  await i18n.use(languageDetector).use(initReactI18next).init(initOptions);
+
+  // Register custom formatters using modern API (replaces legacy interpolation.format)
+  i18n.services.formatter?.add("currency", (value, lng) => {
+    const language = lng ?? i18n.language;
+    const currencyCode = language === "ko" ? "KRW" : "USD";
+    return new Intl.NumberFormat(language, {
+      style: "currency",
+      currency: currencyCode,
+    }).format(value);
+  });
+
+  i18n.services.formatter?.add("time", (value, lng) => {
+    const language = lng ?? i18n.language;
+    const languageConfig = SUPPORTED_LANGUAGES.find(l => l.code === language);
+    const timeFormatOptions: Intl.DateTimeFormatOptions =
+      languageConfig?.timeFormat === "24h"
+        ? { hour: "2-digit", minute: "2-digit", hour12: false }
+        : { hour: "2-digit", minute: "2-digit", hour12: true };
+    return new Intl.DateTimeFormat(language, timeFormatOptions).format(value);
+  });
 };
 
 // Initialize and export
