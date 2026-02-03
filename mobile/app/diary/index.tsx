@@ -1,5 +1,6 @@
 import React, { useCallback } from "react";
-import { View, Text, StyleSheet, SafeAreaView, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { FlashList } from "@shopify/flash-list";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";

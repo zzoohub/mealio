@@ -1,5 +1,6 @@
 import React from "react";
-import { SafeAreaView, ScrollView, Pressable } from "react-native";
+import { ScrollView, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { createStyles, useStyles, useTheme } from "@/shared/ui/theme";
