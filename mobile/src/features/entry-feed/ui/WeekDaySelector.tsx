@@ -1,6 +1,6 @@
-import React, { useCallback, useRef, useEffect, useMemo, memo } from "react";
-import { View, Text, StyleSheet, Dimensions, FlatList } from "react-native";
-import { Pressable } from "react-native-gesture-handler";
+import React, { useCallback, useRef, useEffect, useMemo, useState, memo } from "react";
+import { View, Text, StyleSheet, Dimensions, Pressable } from "react-native";
+import PagerView from "react-native-pager-view";
 import { useTheme } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
 import { getDayName, getWeekDays, formatDateToString } from "@/shared/lib/utils";
@@ -41,6 +41,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const WEEKS_BEFORE = 104; // 2 years back
 const WEEKS_AFTER = 0; // No future dates
 const INITIAL_INDEX = WEEKS_BEFORE; // Start at "today" week
+const RENDER_BUFFER = 2; // Pages to render on each side of current
 
 // =============================================================================
 // HELPERS
@@ -198,11 +199,25 @@ export const WeekDaySelector = memo(function WeekDaySelector({
   onVisibleWeekChange,
   datesWithEntries,
 }: WeekDaySelectorProps) {
-  const flatListRef = useRef<FlatList<WeekData>>(null);
+  const pagerRef = useRef<PagerView>(null);
   const currentIndexRef = useRef(INITIAL_INDEX);
   const lastNotifiedIdRef = useRef<string | null>(null);
 
-  // Pre-compute string versions for stable comparisons
+  // Lazy rendering: only mount WeekRow for pages near the current page
+  const [activeRange, setActiveRange] = useState(() => ({
+    start: Math.max(0, INITIAL_INDEX - RENDER_BUFFER),
+    end: Math.min(INITIAL_INDEX + RENDER_BUFFER, WEEKS_BEFORE + WEEKS_AFTER),
+  }));
+
+  const expandRange = useCallback((centerIndex: number) => {
+    setActiveRange((prev) => {
+      const newStart = Math.min(prev.start, Math.max(0, centerIndex - RENDER_BUFFER));
+      const newEnd = Math.max(prev.end, Math.min(centerIndex + RENDER_BUFFER, WEEKS_BEFORE + WEEKS_AFTER));
+      if (newStart === prev.start && newEnd === prev.end) return prev;
+      return { start: newStart, end: newEnd };
+    });
+  }, []);
+
   const selectedDateStr = useMemo(
     () => formatDateToString(selectedDate),
     [selectedDate]
@@ -210,85 +225,56 @@ export const WeekDaySelector = memo(function WeekDaySelector({
   const todayStr = useMemo(() => formatDateToString(today), [today]);
   const todayTime = useMemo(() => today.getTime(), [today]);
 
-  // Pre-generate all weeks once
   const weeks = useMemo(() => generateAllWeeks(today), [today]);
 
-  // Scroll to selected date when it changes (e.g., from calendar modal)
+  // Navigate to selected date when it changes externally (e.g., calendar modal)
   useEffect(() => {
     const targetIndex = findWeekIndex(weeks, selectedDate);
     if (targetIndex !== currentIndexRef.current) {
-      flatListRef.current?.scrollToIndex({
-        index: targetIndex,
-        animated: true,
-      });
+      expandRange(targetIndex);
+      pagerRef.current?.setPage(targetIndex);
       currentIndexRef.current = targetIndex;
     }
-  }, [selectedDate, weeks]);
+  }, [selectedDate, weeks, expandRange]);
 
-  // Handle scroll end to notify parent of visible week
-  const handleMomentumScrollEnd = useCallback(
-    (event: any) => {
-      const offsetX = event.nativeEvent.contentOffset.x;
-      const index = Math.round(offsetX / SCREEN_WIDTH);
+  const handlePageSelected = useCallback(
+    (event: { nativeEvent: { position: number } }) => {
+      const index = event.nativeEvent.position;
+      currentIndexRef.current = index;
+      expandRange(index);
 
-      if (index >= 0 && index < weeks.length) {
-        currentIndexRef.current = index;
-        const week = weeks[index];
-
-        if (week && week.id !== lastNotifiedIdRef.current) {
-          lastNotifiedIdRef.current = week.id;
-          onVisibleWeekChange?.(week.days);
-        }
+      const week = weeks[index];
+      if (week && week.id !== lastNotifiedIdRef.current) {
+        lastNotifiedIdRef.current = week.id;
+        onVisibleWeekChange?.(week.days);
       }
     },
-    [weeks, onVisibleWeekChange]
+    [weeks, onVisibleWeekChange, expandRange]
   );
-
-  // Stable render function
-  const renderWeek = useCallback(
-    ({ item }: { item: WeekData }) => (
-      <WeekRow
-        days={item.days}
-        selectedDateStr={selectedDateStr}
-        todayStr={todayStr}
-        todayTime={todayTime}
-        onDateSelect={onDateSelect}
-        datesWithEntries={datesWithEntries}
-      />
-    ),
-    [selectedDateStr, todayStr, todayTime, onDateSelect, datesWithEntries]
-  );
-
-  const getItemLayout = useCallback(
-    (_: unknown, index: number) => ({
-      length: SCREEN_WIDTH,
-      offset: SCREEN_WIDTH * index,
-      index,
-    }),
-    []
-  );
-
-  const keyExtractor = useCallback((item: WeekData) => item.id, []);
 
   return (
     <View style={styles.container}>
-      <FlatList
-        ref={flatListRef}
-        data={weeks}
-        renderItem={renderWeek}
-        keyExtractor={keyExtractor}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        initialScrollIndex={INITIAL_INDEX}
-        getItemLayout={getItemLayout}
-        onMomentumScrollEnd={handleMomentumScrollEnd}
-        decelerationRate="fast"
-        removeClippedSubviews
-        maxToRenderPerBatch={3}
-        windowSize={5}
-        initialNumToRender={3}
-      />
+      <PagerView
+        ref={pagerRef}
+        initialPage={INITIAL_INDEX}
+        onPageSelected={handlePageSelected}
+        style={styles.pager}
+      >
+        {weeks.map((week, index) => (
+          <View key={week.id}>
+            {index >= activeRange.start && index <= activeRange.end ? (
+              <WeekRow
+                days={week.days}
+                selectedDateStr={selectedDateStr}
+                todayStr={todayStr}
+                todayTime={todayTime}
+                onDateSelect={onDateSelect}
+                datesWithEntries={datesWithEntries}
+              />
+            ) : null}
+          </View>
+        ))}
+      </PagerView>
     </View>
   );
 });
@@ -301,6 +287,9 @@ const styles = StyleSheet.create({
   container: {
     height: 80,
     overflow: "hidden",
+  },
+  pager: {
+    flex: 1,
   },
   weekContainer: {
     width: SCREEN_WIDTH,

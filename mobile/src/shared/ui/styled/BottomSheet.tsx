@@ -10,7 +10,7 @@
  * </BottomSheet>
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Modal,
@@ -26,6 +26,7 @@ import Animated, {
   withSpring,
   withTiming,
   runOnJS,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import { tokens } from '../tokens';
 import { useTheme, createStyles, useStyles } from '../theme';
@@ -84,27 +85,31 @@ export function BottomSheet({
   const fadeAnim = useSharedValue(0);
   const slideAnim = useSharedValue(SCREEN_HEIGHT);
   const [modalVisible, setModalVisible] = useState(false);
+  const modalVisibleRef = useRef(false);
 
   useEffect(() => {
     if (visible) {
-      // Show modal first
+      cancelAnimation(fadeAnim);
+      cancelAnimation(slideAnim);
+
+      modalVisibleRef.current = true;
       setModalVisible(true);
-      // Reset values before animating in
       fadeAnim.value = 0;
       slideAnim.value = SCREEN_HEIGHT;
 
-      // Start both animations when showing
       fadeAnim.value = withTiming(dimOpacity, { duration: fadeAnimationDuration });
       slideAnim.value = withSpring(0, {
-        damping: slideAnimationConfig.friction || DEFAULT_SLIDE_CONFIG.friction,
-        stiffness: slideAnimationConfig.tension || DEFAULT_SLIDE_CONFIG.tension,
+        damping: (slideAnimationConfig.friction || DEFAULT_SLIDE_CONFIG.friction) * 4,
+        stiffness: (slideAnimationConfig.tension || DEFAULT_SLIDE_CONFIG.tension) * 4,
       });
-    } else if (modalVisible) {
-      // Reverse animations when hiding
+    } else if (modalVisibleRef.current) {
+      cancelAnimation(fadeAnim);
+      cancelAnimation(slideAnim);
+
       const closeDuration = slideAnimationConfig.duration || tokens.duration.fast;
 
       fadeAnim.value = withTiming(0, {
-        duration: fadeAnimationDuration * 0.7, // Slightly faster when closing
+        duration: fadeAnimationDuration * 0.7,
       });
       slideAnim.value = withTiming(
         SCREEN_HEIGHT,
@@ -118,8 +123,9 @@ export function BottomSheet({
           }
         },
       );
+      modalVisibleRef.current = false;
     }
-  }, [visible, onDismiss, dimOpacity, fadeAnimationDuration, slideAnimationConfig, modalVisible, fadeAnim, slideAnim]);
+  }, [visible]);
 
   const handleClose = () => {
     // Trigger close animation via parent
