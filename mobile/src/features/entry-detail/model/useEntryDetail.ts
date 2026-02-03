@@ -5,11 +5,11 @@ import type { Entry } from "@/entities/entry";
 import { MealType, type NutritionInfo } from "@/entities/meal";
 import {
   entryStorageUtils,
-  useDiaryEntryDetailQuery,
-  useUpdateDiaryEntryMutation,
+  useEntryDetailQuery,
+  useUpdateEntryMutation,
   useUpsertNutritionMutation,
-  useDeleteDiaryEntryMutation,
-} from "@/features/diary-feed";
+  useDeleteEntryMutation,
+} from "@/entities/entry";
 import { mapEntryToUpdateRequest, mapNutritionInfoToUpsertRequest } from "@/shared/api";
 import { useIsAuthenticated } from "@/shared/lib/auth";
 import { useDiaryI18n, useCommonI18n, useErrorI18n } from "@/shared/lib/i18n";
@@ -66,10 +66,10 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
   // API HOOKS (always called, conditionally enabled)
   // =============================================================================
 
-  const apiDetailQuery = useDiaryEntryDetailQuery(numericId, isApiEntry);
-  const updateEntryMutation = useUpdateDiaryEntryMutation();
+  const apiDetailQuery = useEntryDetailQuery(numericId, isApiEntry);
+  const updateEntryMutation = useUpdateEntryMutation();
   const upsertNutritionMutation = useUpsertNutritionMutation();
-  const deleteEntryMutation = useDeleteDiaryEntryMutation();
+  const deleteEntryMutation = useDeleteEntryMutation();
 
   // =============================================================================
   // GUEST (MMKV) STATE

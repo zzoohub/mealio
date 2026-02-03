@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { useCameraI18n, useNavigationI18n } from "@/shared/lib/i18n";
 import { createStyles, useStyles } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
+import { useEntryData } from "@/entities/entry";
+import type { Entry } from "@/entities/entry";
 import { useCamera } from "../model/useCamera";
 import { CameraPermissionScreen } from "./CameraPermissionScreen";
 import { CameraTopControls } from "./CameraTopControls";
@@ -23,6 +25,16 @@ export default function Camera() {
   const t = useCameraI18n();
   const nav = useNavigationI18n();
 
+  const { saveEntry } = useEntryData();
+
+  const handleSaveEntry = useCallback(
+    async (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">) => {
+      await saveEntry(entry);
+      router.push("/diary");
+    },
+    [saveEntry, router],
+  );
+
   const {
     cameraRef,
     captureButtonPressed,
@@ -36,7 +48,7 @@ export default function Camera() {
     toggleFlash,
     handleDone,
     getFlashIcon,
-  } = useCamera();
+  } = useCamera({ onSaveEntry: handleSaveEntry });
 
   // Loading state
   if (!permission) {

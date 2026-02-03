@@ -26,7 +26,7 @@ import { Box, Text, HStack, VStack, Card } from '@/shared/ui/styled';
 import { createStyles, useStyles } from '@/shared/ui/theme';
 import { tokens } from '@/shared/ui/tokens';
 import type { Entry } from '@/entities/entry';
-import { entryStorageUtils } from '@/features/diary-feed/model/useEntryStorage';
+import { entryStorageUtils } from '@/entities/entry';
 
 // =============================================================================
 // TYPES

@@ -1,13 +1,13 @@
 import { useCallback, useMemo } from "react";
-import type { Entry } from "@/entities/entry";
+import type { Entry } from "./types";
 import { useIsAuthenticated } from "@/shared/lib/auth";
 import { useEntryStorage } from "./useEntryStorage";
 import {
-  useDiaryEntriesQuery,
-  useCreateDiaryEntryMutation,
-  useUpdateDiaryEntryMutation,
-  useDeleteDiaryEntryMutation,
-} from "./useDiaryQueries";
+  useEntryListQuery,
+  useCreateEntryMutation,
+  useUpdateEntryMutation,
+  useDeleteEntryMutation,
+} from "./useEntryQueries";
 import {
   mapEntryToCreateRequest,
   mapEntryToUpdateRequest,
@@ -19,7 +19,7 @@ import { MealType } from "@/entities/meal";
 // TYPES
 // =============================================================================
 
-export interface UseDiaryDataReturn {
+export interface UseEntryDataReturn {
   entries: Entry[];
   isLoading: boolean;
   error: string | null;
@@ -31,7 +31,7 @@ export interface UseDiaryDataReturn {
   refetch: () => void;
 }
 
-interface UseDiaryDataOptions {
+interface UseEntryDataOptions {
   date?: string;
   mealType?: string;
 }
@@ -69,7 +69,7 @@ function apiEntryToEntry(apiEntry: ApiDiaryEntry): Entry {
 // HOOK
 // =============================================================================
 
-export function useDiaryData(options: UseDiaryDataOptions = {}): UseDiaryDataReturn {
+export function useEntryData(options: UseEntryDataOptions = {}): UseEntryDataReturn {
   const isAuthenticated = useIsAuthenticated();
 
   // Guest mode: local storage
@@ -85,10 +85,10 @@ export function useDiaryData(options: UseDiaryDataOptions = {}): UseDiaryDataRet
     queryParams.meal_type = options.mealType as ApiMealType;
   }
 
-  const diaryQuery = useDiaryEntriesQuery(queryParams, isAuthenticated);
-  const createMutation = useCreateDiaryEntryMutation();
-  const updateMutation = useUpdateDiaryEntryMutation();
-  const deleteMutation = useDeleteDiaryEntryMutation();
+  const diaryQuery = useEntryListQuery(queryParams, isAuthenticated);
+  const createMutation = useCreateEntryMutation();
+  const updateMutation = useUpdateEntryMutation();
+  const deleteMutation = useDeleteEntryMutation();
 
   // Map API entries to mobile Entry type
   const apiEntries = useMemo(() => {

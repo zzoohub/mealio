@@ -4,7 +4,7 @@
 
 export * from './auth';
 export * from './capture-meal';
-export * from './diary-feed';
+export * from './entry-feed';
 export * from './settings';
 // export * from './search-entries';
 // export * from './entry-detail';

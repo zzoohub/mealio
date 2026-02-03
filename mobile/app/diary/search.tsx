@@ -13,7 +13,7 @@ import { FlashList } from "@shopify/flash-list";
 import { Ionicons } from "@expo/vector-icons";
 import type { Entry } from "@/entities/entry";
 import {
-  useDiarySearchPage,
+  useEntrySearchPage,
   MealTypeFilterChips,
   DateQuickFilters,
   ActiveFilters,
@@ -67,7 +67,7 @@ export default function DiarySearchScreen() {
     handleClearAllFilters,
     loadMore,
     goBack,
-  } = useDiarySearchPage();
+  } = useEntrySearchPage();
 
   // Open date range modal via overlay
   const handleOpenDateRangeModal = useCallback(() => {

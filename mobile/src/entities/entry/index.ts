@@ -3,3 +3,4 @@
 // Cannot import from: app, widgets, features, other entities
 
 export * from './model';
+export * from './api';

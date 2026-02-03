@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import type { Entry, EntryFilter } from "@/entities/entry";
+import type { Entry, EntryFilter } from "./types";
 import type { NutritionInfo } from "@/entities/meal";
 import { storage } from "@/shared/lib/storage";
 import { GUEST_LIMITS, ERROR_MESSAGES } from "@/shared/config";
@@ -477,4 +477,3 @@ export const useEntryStorage = (options: UseEntryStorageOptions = {}) => {
     utils: entryStorageUtils,
   };
 };
-

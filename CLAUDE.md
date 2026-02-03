@@ -43,11 +43,11 @@ Swagger UI available at `http://localhost:3000/swagger-ui` when running.
 
 ## Principles (MUST CONFORM TO)
 1. All implementation must use skills (even if after plan mode.)
-   - mobile: **react-native** skill
-   - api: **axum** skill + **postgresql** skill for queries
+   - mobile: Use **react-native** skill
+   - api: Use **axum** skill + **postgresql** skill for queries
 2. After any implementation
-   - **security-guidance** plugin for security audit → fix
-   - **tester** agent for decide(needs test?) → write → test run
+   - Use **security-guidance** plugin for security audit → fix
+   - Run a **tester** sub-agent that runs in parallel on the implemented code.
 
 ## API
 

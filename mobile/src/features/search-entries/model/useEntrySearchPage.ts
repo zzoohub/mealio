@@ -20,7 +20,7 @@ export interface SortOptionConfig {
   label: string;
 }
 
-export interface UseDiarySearchPageReturn {
+export interface UseEntrySearchPageReturn {
   // Data
   filteredEntries: Entry[];
 
@@ -66,7 +66,7 @@ export interface UseDiarySearchPageReturn {
 // HOOK IMPLEMENTATION
 // =============================================================================
 
-export function useDiarySearchPage(): UseDiarySearchPageReturn {
+export function useEntrySearchPage(): UseEntrySearchPageReturn {
   const router = useRouter();
   const diary = useDiaryI18n();
   const common = useCommonI18n();

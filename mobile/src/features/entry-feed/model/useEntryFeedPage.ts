@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Entry } from "@/entities/entry";
 import { useIsAuthenticated } from "@/shared/lib/auth";
-import { entryStorageUtils } from "./useEntryStorage";
-import { useDiaryEntriesQuery } from "./useDiaryQueries";
+import { entryStorageUtils, useEntryListQuery } from "@/entities/entry";
 import { getWeekDays, isSameDay, formatDateToString } from "@/shared/lib/utils";
 import { MealType } from "@/entities/meal";
 import type { ApiDiaryEntry } from "@/shared/api";
@@ -11,7 +10,7 @@ import type { ApiDiaryEntry } from "@/shared/api";
 // TYPES (Interface-First Design)
 // =============================================================================
 
-export interface UseDiaryPageReturn {
+export interface UseEntryFeedPageReturn {
   // Date state
   selectedDate: Date;
   formattedMonthYear: string;
@@ -71,7 +70,7 @@ function apiEntryToEntry(apiEntry: ApiDiaryEntry): Entry {
 // HOOK IMPLEMENTATION
 // =============================================================================
 
-export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
+export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
   const isAuthenticated = useIsAuthenticated();
 
   // State
@@ -88,7 +87,7 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
   const selectedDateStr = useMemo(() => formatDateToString(selectedDate), [selectedDate]);
 
   // Auth mode: API query for selected date
-  const diaryQuery = useDiaryEntriesQuery({ start_date: selectedDateStr, end_date: selectedDateStr }, isAuthenticated);
+  const diaryQuery = useEntryListQuery({ start_date: selectedDateStr, end_date: selectedDateStr }, isAuthenticated);
 
   const apiEntries = useMemo(() => {
     if (!isAuthenticated || !diaryQuery.data) return [];

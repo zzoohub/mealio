@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Calendar } from "react-native-calendars";
 import * as ImagePicker from "expo-image-picker";
 import type { Entry } from "@/entities/entry";
-import { useDiaryPage, WeekDaySelector, EntryFeedItem } from "@/features/diary-feed";
+import { useEntryFeedPage, WeekDaySelector, EntryFeedItem } from "@/features/entry-feed";
 import { formatDateToString, isSameDay } from "@/shared/lib/utils";
 import { useDiaryI18n } from "@/shared/lib/i18n";
 import { useTheme } from "@/shared/ui/theme";
@@ -35,7 +35,7 @@ export default function DiaryPage() {
     handleCalendarDayPress,
     handleVisibleWeekChange,
     datesWithEntries,
-  } = useDiaryPage(colors.interactive.primary);
+  } = useEntryFeedPage(colors.interactive.primary);
 
   // =============================================================================
   // COMPUTED

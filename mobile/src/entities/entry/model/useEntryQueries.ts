@@ -2,8 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/shared/config";
 import { mapApiDiaryEntryDetailToEntry } from "@/shared/api";
 import type { ApiDiaryQueryParams, ApiCreateEntryRequest, ApiUpdateEntryRequest, ApiUpsertNutritionRequest } from "@/shared/api";
-import { diaryApi } from "./diaryApi";
-import { nutritionApi } from "./nutritionApi";
+import { entryApi } from "../api/entryApi";
+import { nutritionApi } from "../api/nutritionApi";
 
 // =============================================================================
 // HELPERS
@@ -20,22 +20,22 @@ function buildDiaryKeyParams(params: ApiDiaryQueryParams) {
 // QUERIES
 // =============================================================================
 
-export function useDiaryEntriesQuery(
+export function useEntryListQuery(
   params: ApiDiaryQueryParams = {},
   enabled = true,
 ) {
   return useQuery({
     queryKey: queryKeys.diary.list(buildDiaryKeyParams(params)),
-    queryFn: () => diaryApi.list(params),
+    queryFn: () => entryApi.list(params),
     enabled,
   });
 }
 
-export function useDiaryEntryDetailQuery(id: number, enabled = true) {
+export function useEntryDetailQuery(id: number, enabled = true) {
   return useQuery({
     queryKey: queryKeys.diary.detail(id),
     queryFn: async () => {
-      const detail = await diaryApi.getById(id);
+      const detail = await entryApi.getById(id);
       return mapApiDiaryEntryDetailToEntry(detail);
     },
     enabled: enabled && id > 0,
@@ -46,11 +46,11 @@ export function useDiaryEntryDetailQuery(id: number, enabled = true) {
 // MUTATIONS
 // =============================================================================
 
-export function useCreateDiaryEntryMutation() {
+export function useCreateEntryMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (body: ApiCreateEntryRequest) => diaryApi.create(body),
+    mutationFn: (body: ApiCreateEntryRequest) => entryApi.create(body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.diary.all() });
       queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() });
@@ -58,12 +58,12 @@ export function useCreateDiaryEntryMutation() {
   });
 }
 
-export function useUpdateDiaryEntryMutation() {
+export function useUpdateEntryMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ id, body }: { id: number; body: ApiUpdateEntryRequest }) =>
-      diaryApi.update(id, body),
+      entryApi.update(id, body),
     onSuccess: (_data, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.diary.detail(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.diary.list() });
@@ -71,11 +71,11 @@ export function useUpdateDiaryEntryMutation() {
   });
 }
 
-export function useDeleteDiaryEntryMutation() {
+export function useDeleteEntryMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => diaryApi.delete(id),
+    mutationFn: (id: number) => entryApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.diary.all() });
       queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() });

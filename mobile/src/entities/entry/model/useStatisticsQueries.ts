@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/shared/config";
 import type { ApiStatsParams } from "@/shared/api";
-import { statisticsApi } from "./statisticsApi";
+import { statisticsApi } from "../api/statisticsApi";
 
 function buildStatsKeyParams(params: ApiStatsParams) {
   const result: { startDate?: string; endDate?: string } = {};

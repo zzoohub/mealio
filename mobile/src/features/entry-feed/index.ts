@@ -1,4 +1,4 @@
-// Diary Feed feature - viewing diary entries
+// Entry Feed feature - viewing entry feed
 // Can import from: entities, shared
 // Cannot import from: app, widgets, other features
 

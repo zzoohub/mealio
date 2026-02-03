@@ -35,5 +35,5 @@ export const DEFAULT_CACHE_CONFIG: CacheConfig = {
 
 export const DOMAIN_IMPORT_MAP = {
   camera: () => import("@/features/capture-meal/ui/Camera"),
-  diary: () => import("@/features/diary-feed"),
+  diary: () => import("@/features/entry-feed"),
 } as const;

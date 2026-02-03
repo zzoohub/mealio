@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { entryStorageUtils } from "./useEntryStorage";
-import { diaryApi } from "./diaryApi";
+import { entryApi } from "../api/entryApi";
 import { mapEntryToCreateRequest } from "@/shared/api";
 
 // =============================================================================
@@ -40,7 +40,7 @@ export function useMigration(): UseMigrationReturn {
       // Upload each entry to the API
       for (const entry of entries) {
         const request = mapEntryToCreateRequest(entry);
-        await diaryApi.create(request);
+        await entryApi.create(request);
       }
 
       // Clear local entries after successful migration

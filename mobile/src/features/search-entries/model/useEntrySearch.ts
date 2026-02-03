@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Entry, EntryFilter, SortMethod } from "@/entities/entry";
-import { entryStorageUtils } from "@/features/diary-feed";
+import { entryStorageUtils } from "@/entities/entry";
 import { entrySortingUtils, SortedSection } from "./useEntrySorting";
 import { getCachedData } from "@/shared/lib/performance";
 

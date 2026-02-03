@@ -20,7 +20,7 @@ function buildQuery(params: ApiDiaryQueryParams): string {
   return qs ? `?${qs}` : "";
 }
 
-export const diaryApi = {
+export const entryApi = {
   list: (params: ApiDiaryQueryParams = {}) =>
     apiClient.get<ApiPaginatedResponse<ApiDiaryEntry>>(`/diary${buildQuery(params)}`),
 

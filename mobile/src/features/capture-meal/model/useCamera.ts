@@ -4,6 +4,8 @@ import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useSharedValue, withSequence, withTiming } from "react-native-reanimated";
 import type { SharedValue } from "react-native-reanimated";
+import { MealType } from "@/entities/meal";
+import type { Entry } from "@/entities/entry";
 import { useCameraI18n } from "@/shared/lib/i18n";
 import { useOverlayHelpers } from "@/app/providers/overlay";
 
@@ -17,6 +19,10 @@ const MAX_PHOTOS = 10;
 // TYPES (Interface-First Design)
 // =============================================================================
 
+export interface UseCameraOptions {
+  onSaveEntry: (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+}
+
 export interface UseCameraReturn {
   // Refs
   cameraRef: React.RefObject<CameraView | null>;
@@ -26,6 +32,7 @@ export interface UseCameraReturn {
   // State
   flashMode: FlashMode;
   isCapturing: boolean;
+  isSaving: boolean;
   capturedPhotos: string[];
 
   // Computed
@@ -43,10 +50,23 @@ export interface UseCameraReturn {
 }
 
 // =============================================================================
+// HELPERS
+// =============================================================================
+
+export function detectMealType(): MealType {
+  const hour = new Date().getHours();
+  if (hour < 10) return MealType.BREAKFAST;
+  if (hour < 14) return MealType.LUNCH;
+  if (hour < 17) return MealType.SNACK;
+  return MealType.DINNER;
+}
+
+// =============================================================================
 // HOOK IMPLEMENTATION
 // =============================================================================
 
-export function useCamera(): UseCameraReturn {
+export function useCamera(options: UseCameraOptions): UseCameraReturn {
+  const { onSaveEntry } = options;
   const t = useCameraI18n();
   const { toast } = useOverlayHelpers();
 
@@ -59,6 +79,7 @@ export function useCamera(): UseCameraReturn {
   // State
   const [flashMode, setFlashMode] = useState<FlashMode>("off");
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
 
   // Computed values
@@ -128,22 +149,45 @@ export function useCamera(): UseCameraReturn {
     setCapturedPhotos((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  const handleDone = useCallback(() => {
-    if (capturedPhotos.length === 0) return;
+  const handleDone = useCallback(async () => {
+    if (capturedPhotos.length === 0 || isSaving) return;
 
-    const photosToSave = [...capturedPhotos];
-    setCapturedPhotos([]);
+    setIsSaving(true);
+    try {
+      const entry: Omit<Entry, "id" | "createdAt" | "updatedAt"> = {
+        userId: "",
+        timestamp: new Date(),
+        notes: "",
+        meal: {
+          photoUri: capturedPhotos[0]!,
+          mealType: detectMealType(),
+        },
+      };
 
-    toast({
-      title: t.capture.success,
-      message: t.tapToEdit,
-      type: "success",
-      position: "top",
-      showArrow: true,
-      duration: 4000,
-      onPress: () => {},
-    });
-  }, [capturedPhotos, toast, t]);
+      await onSaveEntry(entry);
+      setCapturedPhotos([]);
+
+      toast({
+        title: t.capture.success,
+        message: t.capture.successMessage,
+        type: "success",
+        position: "top",
+        showArrow: true,
+        duration: 4000,
+      });
+    } catch (error) {
+      console.error("Failed to save entry:", error);
+      toast({
+        title: t.capture.error,
+        message: t.capture.errorMessage,
+        type: "error",
+        position: "top",
+        duration: 4000,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [capturedPhotos, isSaving, onSaveEntry, toast, t]);
 
   const toggleFlash = useCallback(() => {
     const modes: FlashMode[] = ["off", "on", "auto"];
@@ -173,6 +217,7 @@ export function useCamera(): UseCameraReturn {
     // State
     flashMode,
     isCapturing,
+    isSaving,
     capturedPhotos,
 
     // Computed
