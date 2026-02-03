@@ -23,10 +23,10 @@ export interface NutritionInfo {
   calories: number;
   protein: number;
   fat: number;
+  carbs: number;
+  fiber: number;
   sugar: number;
-  fiber?: number;
-  sodium?: number;
-  water?: number;
+  sodium: number;
 }
 
 export interface AIAnalysis {

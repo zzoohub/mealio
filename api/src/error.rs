@@ -18,6 +18,9 @@ pub enum AppError {
 
     #[error("internal error: {0}")]
     Internal(String),
+
+    #[error("not implemented: {0}")]
+    NotImplemented(String),
 }
 
 #[derive(Serialize, utoipa::ToSchema)]
@@ -36,6 +39,7 @@ impl AppError {
             AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
             AppError::Conflict(_) => StatusCode::CONFLICT,
             AppError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::NotImplemented(_) => StatusCode::NOT_IMPLEMENTED,
         }
     }
 }

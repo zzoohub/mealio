@@ -43,8 +43,10 @@ export interface AIAnalysisSectionProps {
   testID?: string | undefined;
 }
 
-// Primary nutrients to always show first
-const PRIMARY_NUTRIENTS: (keyof NutritionInfo)[] = ['calories', 'protein', 'fat', 'sugar'];
+// Primary nutrients to always show
+const PRIMARY_NUTRIENTS: (keyof NutritionInfo)[] = ['calories', 'protein', 'fat', 'carbs'];
+// Secondary nutrients shown when value > 0
+const SECONDARY_NUTRIENTS: (keyof NutritionInfo)[] = ['fiber', 'sugar', 'sodium'];
 
 // =============================================================================
 // COMPONENT
@@ -67,16 +69,16 @@ export function AIAnalysisSection({
     calories: { label: diary.nutritionCalories, unit: 'kcal' },
     protein: { label: diary.nutritionProtein, unit: 'g' },
     fat: { label: diary.nutritionFat, unit: 'g' },
+    carbs: { label: diary.nutritionCarbs, unit: 'g' },
     fiber: { label: diary.nutritionFiber, unit: 'g' },
     sugar: { label: diary.nutritionSugar, unit: 'g' },
     sodium: { label: diary.nutritionSodium, unit: 'mg' },
-    water: { label: diary.nutritionWater, unit: 'ml' },
-  }), [diary.nutritionCalories, diary.nutritionProtein, diary.nutritionFat, diary.nutritionFiber, diary.nutritionSugar, diary.nutritionSodium, diary.nutritionWater]);
+  }), [diary.nutritionCalories, diary.nutritionProtein, diary.nutritionFat, diary.nutritionCarbs, diary.nutritionFiber, diary.nutritionSugar, diary.nutritionSodium]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [localIngredients, setLocalIngredients] = useState<string[]>(ingredients || []);
   const [localNutrition, setLocalNutrition] = useState<NutritionInfo>(
-    nutrition || { calories: 0, protein: 0, fat: 0, sugar: 0 }
+    nutrition || { calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0, sodium: 0 }
   );
   const [newIngredient, setNewIngredient] = useState('');
 
@@ -123,12 +125,20 @@ export function AIAnalysisSection({
     setLocalNutrition((prev) => ({ ...prev, [key]: numValue }));
   };
 
-  // Filter nutrition entries that have values
-  const nutritionEntries = PRIMARY_NUTRIENTS.map((key) => ({
+  // Primary nutrients always shown; secondary shown when value > 0
+  const primaryEntries = PRIMARY_NUTRIENTS.map((key) => ({
     key,
     value: localNutrition[key] ?? 0,
     ...NUTRITION_LABELS[key],
   }));
+  const secondaryEntries = SECONDARY_NUTRIENTS
+    .filter((key) => isEditing || (localNutrition[key] ?? 0) > 0)
+    .map((key) => ({
+      key,
+      value: localNutrition[key] ?? 0,
+      ...NUTRITION_LABELS[key],
+    }));
+  const nutritionEntries = [...primaryEntries, ...secondaryEntries];
 
   return (
     <View style={s.container} testID={testID}>

@@ -114,7 +114,7 @@ use utoipa::{Modify, OpenApi};
         (name = "Ingredients", description = "Master ingredients catalog"),
         (name = "Entry Ingredients", description = "Diary entry ingredient links"),
         (name = "Nutrition", description = "User nutrition data"),
-        (name = "AI Analysis", description = "AI-generated nutrition analysis"),
+        (name = "AI Analysis", description = "AI-generated nutrition analysis (not yet implemented — returns 501)"),
         (name = "Statistics", description = "Statistics and analytics"),
     ),
 )]

@@ -253,7 +253,7 @@ export const entryStorageUtils = {
         return {
           totalEntries: 0,
           averageCalories: 0,
-          totalNutrition: { calories: 0, protein: 0, fat: 0, sugar: 0 },
+          totalNutrition: { calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0, sodium: 0 },
         };
       }
 
@@ -262,10 +262,12 @@ export const entryStorageUtils = {
           calories: acc.calories + (entry.meal.nutrition?.calories || 0),
           protein: acc.protein + (entry.meal.nutrition?.protein || 0),
           fat: acc.fat + (entry.meal.nutrition?.fat || 0),
+          carbs: acc.carbs + (entry.meal.nutrition?.carbs || 0),
+          fiber: acc.fiber + (entry.meal.nutrition?.fiber || 0),
           sugar: acc.sugar + (entry.meal.nutrition?.sugar || 0),
-          fiber: (acc.fiber || 0) + (entry.meal.nutrition?.fiber || 0),
+          sodium: acc.sodium + (entry.meal.nutrition?.sodium || 0),
         }),
-        { calories: 0, protein: 0, fat: 0, sugar: 0, fiber: 0 }
+        { calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0, sodium: 0 }
       );
 
       return {
@@ -278,7 +280,7 @@ export const entryStorageUtils = {
       return {
         totalEntries: 0,
         averageCalories: 0,
-        totalNutrition: { calories: 0, protein: 0, fat: 0, sugar: 0 },
+        totalNutrition: { calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0, sodium: 0 },
       };
     }
   },

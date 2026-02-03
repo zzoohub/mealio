@@ -118,8 +118,8 @@ export interface DiaryTranslations {
   nutritionFat: string;
   nutritionFiber: string;
   nutritionSugar: string;
+  nutritionCarbs: string;
   nutritionSodium: string;
-  nutritionWater: string;
   aiAnalysis: string;
   editNutrition: string;
   editDone: string;

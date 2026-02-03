@@ -33,6 +33,18 @@ pub struct NutritionStats {
     pub avg_sugar: Option<BigDecimal>,
     #[schema(value_type = Option<f64>)]
     pub total_sugar: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
+    pub avg_carbs: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
+    pub total_carbs: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
+    pub avg_fiber: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
+    pub total_fiber: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
+    pub avg_sodium: Option<BigDecimal>,
+    #[schema(value_type = Option<f64>)]
+    pub total_sodium: Option<BigDecimal>,
 }
 
 #[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
@@ -149,6 +161,12 @@ struct NutritionStatsRow {
     total_fat: Option<BigDecimal>,
     avg_sugar: Option<BigDecimal>,
     total_sugar: Option<BigDecimal>,
+    avg_carbs: Option<BigDecimal>,
+    total_carbs: Option<BigDecimal>,
+    avg_fiber: Option<BigDecimal>,
+    total_fiber: Option<BigDecimal>,
+    avg_sodium: Option<BigDecimal>,
+    total_sodium: Option<BigDecimal>,
 }
 
 async fn fetch_nutrition_stats(
@@ -159,19 +177,22 @@ async fn fetch_nutrition_stats(
     let row = sqlx::query_as::<_, NutritionStatsRow>(
         "SELECT
             COUNT(de.id) as total_entries,
-            AVG(COALESCE(un.calories, aa.calories)) as avg_calories,
-            SUM(COALESCE(un.calories, aa.calories)) as total_calories,
-            AVG(COALESCE(un.protein_grams, aa.protein_grams)) as avg_protein,
-            SUM(COALESCE(un.protein_grams, aa.protein_grams)) as total_protein,
-            AVG(COALESCE(un.fat_grams, aa.fat_grams)) as avg_fat,
-            SUM(COALESCE(un.fat_grams, aa.fat_grams)) as total_fat,
-            AVG(COALESCE(un.sugar_grams, aa.sugar_grams)) as avg_sugar,
-            SUM(COALESCE(un.sugar_grams, aa.sugar_grams)) as total_sugar
+            AVG(un.calories) as avg_calories,
+            SUM(un.calories) as total_calories,
+            AVG(un.protein_grams) as avg_protein,
+            SUM(un.protein_grams) as total_protein,
+            AVG(un.fat_grams) as avg_fat,
+            SUM(un.fat_grams) as total_fat,
+            AVG(un.sugar_grams) as avg_sugar,
+            SUM(un.sugar_grams) as total_sugar,
+            AVG(un.carbs_grams) as avg_carbs,
+            SUM(un.carbs_grams) as total_carbs,
+            AVG(un.fiber_grams) as avg_fiber,
+            SUM(un.fiber_grams) as total_fiber,
+            AVG(un.sodium_mg) as avg_sodium,
+            SUM(un.sodium_mg) as total_sodium
         FROM diary_entries de
         LEFT JOIN user_nutrition un ON un.entry_id = de.id
-        LEFT JOIN LATERAL (
-            SELECT * FROM ai_analyses WHERE entry_id = de.id ORDER BY created_at DESC LIMIT 1
-        ) aa ON true
         WHERE de.user_id = $1 AND de.deleted_at IS NULL
         AND ($2::date IS NULL OR de.eaten_at::date >= $2)
         AND ($3::date IS NULL OR de.eaten_at::date <= $3)",
@@ -192,6 +213,12 @@ async fn fetch_nutrition_stats(
         total_fat: row.total_fat,
         avg_sugar: row.avg_sugar,
         total_sugar: row.total_sugar,
+        avg_carbs: row.avg_carbs,
+        total_carbs: row.total_carbs,
+        avg_fiber: row.avg_fiber,
+        total_fiber: row.total_fiber,
+        avg_sodium: row.avg_sodium,
+        total_sodium: row.total_sodium,
     })
 }
 

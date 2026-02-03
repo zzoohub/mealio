@@ -283,7 +283,9 @@ Detailed view of a single diary entry with all associated data and editing capab
 
 ### 4.6 AI Meal Analysis
 
-**Implementation Status: API CRUD COMPLETE, AI service integration NOT YET WIRED**
+**Implementation Status: STUBBED — DEFERRED TO POST-MVP**
+
+> API endpoints exist but return 501 Not Implemented. The interface (models, types, DB schema) is preserved for future implementation.
 
 AI-powered analysis of meal photos to detect foods, estimate nutrition, and provide insights.
 
@@ -321,7 +323,7 @@ AIAnalysis {
 }
 ```
 
-**Current Gap:** The API stores and serves AI analysis results, and the mobile type system defines the full AI analysis shape (including health scores, recommendations, and cuisine detection). However, the actual AI model invocation -- the step where photos are sent to an AI service and analysis results are generated -- is not yet implemented as an integrated pipeline. Currently, analysis records must be created via a direct POST with pre-computed values.
+**Current Status:** The AI analysis data model, API endpoints, and mobile type definitions are preserved for future implementation. Endpoints currently return 501 Not Implemented. The full AI pipeline — sending photos to a vision model, parsing results, and creating analysis records — is deferred to post-MVP. When implemented, the existing interface will be used without schema changes.
 
 ### 4.7 Nutrition Tracking
 
@@ -331,11 +333,12 @@ Per-entry nutritional data with user override capability.
 
 | Capability | Detail |
 |---|---|
-| Tracked nutrients | Calories, protein (g), fat (g), carbs (g), fiber (g), sugar (g), sodium (mg) |
+| Primary nutrients | Calories, protein (g), fat (g), carbs (g) -- always displayed in UI |
+| Secondary nutrients | Fiber (g), sugar (g), sodium (mg) -- aggregated in stats, shown in UI when data exists |
 | Precision | NUMERIC(8,2) -- up to 999,999.99 |
 | Validation | All values must be >= 0 (database CHECK constraints) |
-| User overrides | User nutrition record takes priority over AI analysis in all computations |
-| Priority logic | Statistics queries use `COALESCE(user_nutrition.value, ai_analysis.value)` |
+| User overrides | User nutrition record is the source of truth for all computations |
+| Priority logic | Statistics queries use `user_nutrition` directly. AI fallback via `COALESCE(user_nutrition, ai_analysis)` will be re-added when AI analysis is implemented |
 
 **API Endpoints:**
 
@@ -426,12 +429,12 @@ Aggregated nutritional and behavioral statistics over time.
 
 | Capability | Detail |
 |---|---|
-| Nutrition averages | Average calories, protein, fat, sugar over a date range |
-| Nutrition totals | Sum of all nutrients over a date range |
+| Nutrition averages | Average of all 7 nutrients (calories, protein, fat, carbs, fiber, sugar, sodium) over a date range |
+| Nutrition totals | Sum of all 7 nutrients over a date range |
 | Meal type distribution | Count of entries per meal type |
 | Top ingredients | Top 20 most-used ingredients by frequency |
 | Combined overview | Single endpoint returning all three stat categories |
-| Override-aware | All nutrition stats use `COALESCE(user_nutrition, ai_analysis)` for accuracy |
+| Nutrition source | All nutrition stats source from `user_nutrition`. AI analysis fallback will be added when AI is implemented |
 | Date filtering | All stats endpoints accept optional `start_date` and `end_date` |
 
 **API Endpoints:**
@@ -655,7 +658,7 @@ Load tokens from MMKV
 | Object storage | Cloudflare R2 | Photo storage |
 | Cache | Cloudflare KV | Edge key-value cache |
 | Task queue | Cloudflare Queues | Background job processing |
-| Email | Resend | Transactional email delivery |
+| Email | Cloudflare Email Routing | Transactional email delivery |
 | Error tracking | Sentry | Runtime error monitoring |
 | Analytics | PostHog | Product analytics and event tracking |
 
@@ -867,7 +870,7 @@ diary_entries (1) ----< entry_ingredients (N) -->  ingredients (N)  [Many-to-man
 | Diary feed | Complete | Complete | Week selector, entry cards, pagination |
 | Search and filter | Complete | Complete | Text search, meal type, date range, sorting |
 | Entry detail | Complete | Complete | Hero image, notes, nutrition, ingredients, delete |
-| AI analysis | CRUD Complete | Types Defined | AI model invocation not wired; manual POST only |
+| AI analysis | Stubbed (501) | Types Defined | Deferred to post-MVP; interface preserved for future implementation |
 | Nutrition tracking | Complete | Partial | API full; mobile display works, override UI partial |
 | Ingredients | Complete | Partial | API full (fuzzy search, bulk sync); mobile not fully connected |
 | Location | Complete | Partial | API full; mobile entity type defined, UI integration partial |
@@ -882,25 +885,25 @@ diary_entries (1) ----< entry_ingredients (N) -->  ingredients (N)  [Many-to-man
 
 1. **Photo upload pipeline.** Photos are captured on mobile but there is no integrated flow to upload them to Cloudflare R2 and store the resulting URL. The API photo endpoints accept URLs but do not provide upload functionality. This is the critical missing piece between camera capture and diary persistence.
 
-2. **AI service integration.** The AI analysis data model and API endpoints exist, but the actual pipeline -- sending photos to an AI model (vision LLM or food recognition API), parsing the response, and creating the analysis record -- is not implemented. This is the core value proposition of the product.
-
-3. **Entry creation end-to-end flow.** On mobile, the `handleDone` function in `useCamera` currently clears photos and shows a toast, but does not actually POST to the diary API or upload photos. The `useEntryForm` hook exists but the full wiring from camera capture through photo upload through entry creation is incomplete.
+2. **Entry creation end-to-end flow.** On mobile, the `handleDone` function in `useCamera` currently clears photos and shows a toast, but does not actually POST to the diary API or upload photos. The `useEntryForm` hook exists but the full wiring from camera capture through photo upload through entry creation is incomplete.
 
 **Priority 2 -- Important for user experience:**
 
-4. **Statistics mobile UI.** The API provides nutrition averages, meal type distribution, and top ingredients. Mobile has the query hooks ready. A dedicated statistics screen with charts and visualizations needs to be built.
+3. **Statistics mobile UI.** The API provides nutrition averages, meal type distribution, and top ingredients. Mobile has the query hooks ready. A dedicated statistics screen with charts and visualizations needs to be built.
 
-5. **Rating and would-eat-again API persistence.** These fields exist in the mobile Entry type and are editable in the detail view, but they are only stored locally. The API diary_entries table does not have these columns yet.
+4. **Rating and would-eat-again API persistence.** These fields exist in the mobile Entry type and are editable in the detail view, but they are only stored locally. The API diary_entries table does not have these columns yet.
 
-6. **Nutrition override UI.** The API supports full CRUD for user nutrition overrides. The mobile entry detail displays nutrition but the editing interface for overriding AI values needs polish.
+5. **Nutrition override UI.** The API supports full CRUD for user nutrition overrides. The mobile entry detail displays nutrition but the editing interface for overriding values needs polish.
 
-7. **Full-screen photo viewer.** Tapping the hero image in entry detail has a TODO comment; the fullscreen viewer is not implemented.
+6. **Full-screen photo viewer.** Tapping the hero image in entry detail has a TODO comment; the fullscreen viewer is not implemented.
 
 **Priority 3 -- Future enhancements:**
 
+7. **AI service integration.** The AI analysis data model, API endpoints (currently returning 501), and mobile type definitions are preserved. The full pipeline — sending photos to a vision model, parsing results, creating analysis records — will be implemented post-MVP. This includes re-adding `COALESCE(user_nutrition, ai_analysis)` fallback to statistics queries.
+
 8. **Cloudflare Queue consumers.** Queues are listed in infrastructure but no worker consumers are implemented. Needed for background AI analysis, image processing, etc.
 
-9. **Email notifications via Resend.** Resend is listed as infrastructure but no email sending is implemented.
+9. **Email notifications via Cloudflare Email Routing.** Email infrastructure is listed but no email sending is implemented.
 
 10. **Social/privacy features.** The `privacy_profile_public` setting exists in the database but no social features (sharing, public profiles, feed) are built.
 
@@ -908,18 +911,17 @@ diary_entries (1) ----< entry_ingredients (N) -->  ingredients (N)  [Many-to-man
 
 ### 9.3 Roadmap
 
-#### Phase 1: Core Loop Completion (Estimated: 4-6 weeks)
+#### Phase 1: Core Loop Completion
 
-Goal: Complete the capture-to-diary loop so a user can photograph a meal, get AI analysis, and see it in their diary.
+Goal: Complete the capture-to-diary loop so a user can photograph a meal, enter nutrition manually, and see it in their diary.
 
 | Milestone | Deliverables |
 |---|---|
 | M1.1: Photo Upload | R2 upload endpoint; mobile upload service; wiring from camera capture to R2 to photo record creation |
-| M1.2: AI Analysis Pipeline | AI model integration (vision API); automatic analysis on entry creation; results stored via existing API |
-| M1.3: End-to-End Entry Creation | Connect camera -> photo upload -> entry creation -> AI analysis -> diary feed refresh |
-| M1.4: Nutrition Override UI | Polish inline nutrition editing in entry detail; connect to PUT /nutrition endpoint |
+| M1.2: End-to-End Entry Creation | Connect camera -> photo upload -> entry creation -> diary feed refresh |
+| M1.3: Nutrition Override UI | Polish inline nutrition editing in entry detail; connect to PUT /nutrition endpoint |
 
-#### Phase 2: Insights and Polish (Estimated: 3-4 weeks)
+#### Phase 2: Insights and Polish
 
 Goal: Help users understand their eating patterns and polish the overall experience.
 
@@ -930,26 +932,35 @@ Goal: Help users understand their eating patterns and polish the overall experie
 | M2.3: Photo Viewer | Full-screen photo gallery with swipe navigation |
 | M2.4: Onboarding | First-time user tutorial; camera permission education |
 
-#### Phase 3: Background Processing and Notifications (Estimated: 3-4 weeks)
+#### Phase 3: AI Analysis Pipeline
 
-Goal: Move heavy operations to background and keep users engaged.
+Goal: Add AI-powered meal recognition and nutritional estimation.
 
 | Milestone | Deliverables |
 |---|---|
-| M3.1: Queue Workers | Cloudflare Queue consumers for async AI analysis and image optimization |
-| M3.2: Push Notifications | Meal logging reminders; daily/weekly summary notifications |
-| M3.3: Email Digest | Weekly nutrition summary email via Resend |
+| M3.1: AI Model Integration | Vision API integration; automatic analysis on entry creation; results stored via existing 501-stubbed endpoints |
+| M3.2: AI Nutrition Fallback | Re-add `COALESCE(user_nutrition, ai_analysis)` to statistics queries; AI values as fallback when no user override |
+| M3.3: Queue Workers | Cloudflare Queue consumers for async AI analysis and image optimization |
 
-#### Phase 4: Growth and Engagement (Estimated: 4-6 weeks)
+#### Phase 4: Notifications and Engagement
+
+Goal: Keep users engaged and move heavy operations to background.
+
+| Milestone | Deliverables |
+|---|---|
+| M4.1: Push Notifications | Meal logging reminders; daily/weekly summary notifications |
+| M4.2: Email Digest | Weekly nutrition summary email via Cloudflare Email Routing |
+| M4.3: Streak and Gamification | Logging streak tracking; achievement badges |
+| M4.4: Nutrition Goals | Set daily calorie/macro targets; progress tracking |
+
+#### Phase 5: Growth
 
 Goal: Features that drive retention and potential social engagement.
 
 | Milestone | Deliverables |
 |---|---|
-| M4.1: Streak and Gamification | Logging streak tracking; achievement badges |
-| M4.2: Nutrition Goals | Set daily calorie/macro targets; progress tracking |
-| M4.3: Export | Export diary data as CSV/PDF |
-| M4.4: Social (Exploration) | Evaluate: public profiles, shared meals, community features |
+| M5.1: Export | Export diary data as CSV/PDF |
+| M5.2: Social (Exploration) | Evaluate: public profiles, shared meals, community features |
 
 ---
 
@@ -1021,7 +1032,7 @@ Rationale: This metric captures both acquisition (they opened the app) and engag
 | Apple Sign-In | Required for iOS App Store compliance | Already implemented as primary alternative to Google |
 | AI Vision API (TBD) | Model accuracy, latency, cost per request | Allow manual entry fallback; batch analysis via queues to manage cost |
 | Cloudflare services | Infrastructure dependency for API, storage, caching | Multi-region deployment; local development stack (Docker Compose for PostgreSQL) available |
-| Resend (email) | Required for transactional emails | Not yet critical; email features are Phase 3 |
+| Cloudflare Email Routing | Required for transactional emails | Not yet critical; email features are Phase 4 |
 | Sentry | Error tracking dependency | Graceful degradation; errors logged to stdout as fallback |
 | PostHog | Analytics dependency | No user-facing impact if unavailable; analytics data gap only |
 

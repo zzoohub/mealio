@@ -295,6 +295,12 @@ export interface ApiNutritionStats {
   total_fat: string | null;
   avg_sugar: string | null;
   total_sugar: string | null;
+  avg_carbs: string | null;
+  total_carbs: string | null;
+  avg_fiber: string | null;
+  total_fiber: string | null;
+  avg_sodium: string | null;
+  total_sodium: string | null;
 }
 
 export interface ApiMealTypeCount {

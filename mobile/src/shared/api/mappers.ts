@@ -21,12 +21,6 @@ function parseDecimal(value: string | null | undefined): number {
   return isNaN(n) ? 0 : n;
 }
 
-function parseOptionalDecimal(value: string | null | undefined): number | undefined {
-  if (!value) return undefined;
-  const n = parseFloat(value);
-  return isNaN(n) ? undefined : n || undefined;
-}
-
 function apiMealTypeToEnum(apiType: ApiMealType): MealType {
   const map: Record<ApiMealType, MealType> = {
     breakfast: MealType.BREAKFAST,
@@ -77,20 +71,15 @@ export function mapApiNutritionToNutritionInfo(
 ): NutritionInfo | undefined {
   if (!n) return undefined;
 
-  const info: NutritionInfo = {
+  return {
     calories: parseDecimal(n.calories),
     protein: parseDecimal(n.protein_grams),
     fat: parseDecimal(n.fat_grams),
+    carbs: parseDecimal(n.carbs_grams),
+    fiber: parseDecimal(n.fiber_grams),
     sugar: parseDecimal(n.sugar_grams),
+    sodium: parseDecimal(n.sodium_mg),
   };
-
-  const fiber = parseOptionalDecimal(n.fiber_grams);
-  if (fiber !== undefined) info.fiber = fiber;
-
-  const sodium = parseOptionalDecimal(n.sodium_mg);
-  if (sodium !== undefined) info.sodium = sodium;
-
-  return info;
 }
 
 // =============================================================================
