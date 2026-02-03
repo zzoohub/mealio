@@ -123,6 +123,7 @@ export interface ApiDiaryEntry {
   eaten_at: string;
   created_at: string;
   updated_at: string;
+  primary_photo_url: string | null;
 }
 
 export interface ApiEntryLocation {

@@ -130,6 +130,10 @@ export const queryKeys = {
     list: (params?: { date?: string; mealType?: string }) =>
       ["diary", "list", params] as const,
     detail: (id: number) => ["diary", "detail", id] as const,
+    weekThumbnails: (params: { startDate: string; endDate: string }) =>
+      ["diary", "weekThumbnails", params] as const,
+    monthThumbnails: (params: { startDate: string; endDate: string }) =>
+      ["diary", "monthThumbnails", params] as const,
   },
   statistics: {
     all: () => ["statistics"] as const,

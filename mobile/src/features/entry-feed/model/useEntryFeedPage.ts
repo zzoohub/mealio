@@ -5,6 +5,8 @@ import { entryStorageUtils, useEntryListQuery } from "@/entities/entry";
 import { getWeekDays, isSameDay, formatDateToString } from "@/shared/lib/utils";
 import { MealType } from "@/entities/meal";
 import type { ApiDiaryEntry } from "@/shared/api";
+import { useWeekThumbnailsQuery } from "./useWeekThumbnailsQuery";
+import { useMonthThumbnailsQuery } from "./useMonthThumbnailsQuery";
 
 // =============================================================================
 // TYPES (Interface-First Design)
@@ -18,7 +20,8 @@ export interface UseEntryFeedPageReturn {
 
   // Data
   entries: Entry[];
-  datesWithEntries: Set<string>;
+  dateThumbnails: Map<string, string | null>;
+  calendarThumbnails: Map<string, string | null>;
 
   // States
   isLoading: boolean;
@@ -31,6 +34,7 @@ export interface UseEntryFeedPageReturn {
   selectDate: (date: Date) => void;
   handleCalendarDayPress: (day: { dateString: string }) => void;
   handleVisibleWeekChange: (days: Date[]) => void;
+  handleCalendarMonthChange: (date: { dateString: string; year: number; month: number }) => void;
 
   // Utilities
   dateHasEntries: (date: Date) => boolean;
@@ -79,15 +83,38 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
   const [guestEntries, setGuestEntries] = useState<Entry[]>([]);
   const [isGuestLoading, setIsGuestLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [datesWithEntries, setDatesWithEntries] = useState<Set<string>>(new Set());
+  const [dateThumbnails, setDateThumbnails] = useState<Map<string, string | null>>(new Map());
+  const [calendarThumbnails, setCalendarThumbnails] = useState<Map<string, string | null>>(new Map());
+  const [calendarMonthRange, setCalendarMonthRange] = useState<{ startDate: string; endDate: string } | null>(null);
 
   const today = useMemo(() => new Date(), []);
 
   // Date string for API query
   const selectedDateStr = useMemo(() => formatDateToString(selectedDate), [selectedDate]);
 
+  // Week range for thumbnail query
+  const weekRange = useMemo(() => {
+    if (visibleWeekDays.length === 0) return { startDate: selectedDateStr, endDate: selectedDateStr };
+    const start = visibleWeekDays[0];
+    const end = visibleWeekDays[visibleWeekDays.length - 1];
+    return {
+      startDate: start ? formatDateToString(start) : selectedDateStr,
+      endDate: end ? formatDateToString(end) : selectedDateStr,
+    };
+  }, [visibleWeekDays, selectedDateStr]);
+
   // Auth mode: API query for selected date
   const diaryQuery = useEntryListQuery({ start_date: selectedDateStr, end_date: selectedDateStr }, isAuthenticated);
+
+  // Auth mode: API query for visible week range (thumbnails)
+  const weekQuery = useWeekThumbnailsQuery(weekRange.startDate, weekRange.endDate, isAuthenticated);
+
+  // Auth mode: API query for calendar month range (thumbnails for bottom sheet calendar)
+  const monthQuery = useMonthThumbnailsQuery(
+    calendarMonthRange?.startDate ?? "",
+    calendarMonthRange?.endDate ?? "",
+    isAuthenticated && !!calendarMonthRange,
+  );
 
   const apiEntries = useMemo(() => {
     if (!isAuthenticated || !diaryQuery.data) return [];
@@ -99,19 +126,23 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
     setVisibleWeekDays(days);
   }, []);
 
-  // Guest mode: load all entries to determine markers
+  // Guest mode: load all entries to determine markers + thumbnails
   useEffect(() => {
     if (isAuthenticated) return;
 
     const loadAllEntries = async () => {
       try {
         const loadedEntries = await entryStorageUtils.getAllEntries();
-        const datesSet = new Set<string>();
+        const thumbnailMap = new Map<string, string | null>();
         loadedEntries.forEach(entry => {
-          datesSet.add(formatDateToString(entry.timestamp));
+          const dateStr = formatDateToString(entry.timestamp);
+          // Keep the first photo found per date (entries are most recent first)
+          if (!thumbnailMap.has(dateStr)) {
+            thumbnailMap.set(dateStr, entry.meal.photoUri || null);
+          }
         });
 
-        setDatesWithEntries(datesSet);
+        setDateThumbnails(thumbnailMap);
       } catch (err) {
         console.error("Error loading all entries:", err);
         setError(err instanceof Error ? err : new Error("Failed to load entries"));
@@ -121,19 +152,38 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
     loadAllEntries();
   }, [isAuthenticated]);
 
-  // Auth mode: build datesWithEntries from API response
+  // Auth mode: build dateThumbnails from week query response
   useEffect(() => {
-    if (!isAuthenticated || !diaryQuery.data) return;
-    const datesSet = new Set<string>();
-    diaryQuery.data.data.forEach(entry => {
-      datesSet.add(formatDateToString(new Date(entry.eaten_at)));
+    if (!isAuthenticated || !weekQuery.data) return;
+    const thumbnailMap = new Map<string, string | null>();
+    weekQuery.data.data.forEach(entry => {
+      const dateStr = formatDateToString(new Date(entry.eaten_at));
+      // Keep the first photo found per date (entries come sorted by eaten_at DESC)
+      if (!thumbnailMap.has(dateStr)) {
+        thumbnailMap.set(dateStr, entry.primary_photo_url);
+      }
     });
-    setDatesWithEntries(prev => {
-      const merged = new Set(prev);
-      datesSet.forEach(d => merged.add(d));
-      return merged;
+    setDateThumbnails(thumbnailMap);
+  }, [isAuthenticated, weekQuery.data]);
+
+  // Auth mode: build calendarThumbnails from month query response
+  useEffect(() => {
+    if (!isAuthenticated || !monthQuery.data) return;
+    const thumbnailMap = new Map<string, string | null>();
+    monthQuery.data.data.forEach(entry => {
+      const dateStr = formatDateToString(new Date(entry.eaten_at));
+      if (!thumbnailMap.has(dateStr)) {
+        thumbnailMap.set(dateStr, entry.primary_photo_url);
+      }
     });
-  }, [isAuthenticated, diaryQuery.data]);
+    setCalendarThumbnails(thumbnailMap);
+  }, [isAuthenticated, monthQuery.data]);
+
+  // Guest mode: calendarThumbnails is the same as dateThumbnails (all entries are loaded)
+  useEffect(() => {
+    if (isAuthenticated) return;
+    setCalendarThumbnails(dateThumbnails);
+  }, [isAuthenticated, dateThumbnails]);
 
   // Guest mode: load entries for selected date
   useEffect(() => {
@@ -187,15 +237,28 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
     [today],
   );
 
+  const handleCalendarMonthChange = useCallback(
+    (date: { dateString: string; year: number; month: number }) => {
+      const year = date.year;
+      const month = String(date.month).padStart(2, "0");
+      const lastDay = new Date(date.year, date.month, 0).getDate();
+      setCalendarMonthRange({
+        startDate: `${year}-${month}-01`,
+        endDate: `${year}-${month}-${String(lastDay).padStart(2, "0")}`,
+      });
+    },
+    [],
+  );
+
   // =============================================================================
   // DERIVED DATA
   // =============================================================================
 
   const dateHasEntries = useCallback(
     (date: Date): boolean => {
-      return datesWithEntries.has(formatDateToString(date));
+      return dateThumbnails.has(formatDateToString(date));
     },
-    [datesWithEntries],
+    [dateThumbnails],
   );
 
   const formattedMonthYear = useMemo(() => {
@@ -208,7 +271,7 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
   const markedDates = useMemo(() => {
     const marks: Record<string, { marked: boolean; dotColor: string; selected?: boolean; selectedColor?: string }> = {};
 
-    datesWithEntries.forEach(dateStr => {
+    dateThumbnails.forEach((_url, dateStr) => {
       marks[dateStr] = {
         marked: true,
         dotColor: primaryColor,
@@ -232,7 +295,7 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
     }
 
     return marks;
-  }, [datesWithEntries, selectedDate, primaryColor]);
+  }, [dateThumbnails, selectedDate, primaryColor]);
 
   // =============================================================================
   // RETURN
@@ -243,13 +306,15 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
     formattedMonthYear,
     today,
     entries,
-    datesWithEntries,
+    dateThumbnails,
+    calendarThumbnails,
     isLoading,
     error,
     markedDates,
     selectDate,
     handleCalendarDayPress,
     handleVisibleWeekChange,
+    handleCalendarMonthChange,
     dateHasEntries,
     isSameDay,
   };

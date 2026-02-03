@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useEffect, useMemo, useState, memo } from "react";
 import { View, Text, StyleSheet, Dimensions, Pressable } from "react-native";
+import { Image } from "expo-image";
 import PagerView from "react-native-pager-view";
 import { useTheme } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
@@ -14,7 +15,7 @@ export interface WeekDaySelectorProps {
   today: Date;
   onDateSelect: (date: Date) => void;
   onVisibleWeekChange?: (weekDays: Date[]) => void;
-  datesWithEntries: Set<string>;
+  dateThumbnails: Map<string, string | null>;
 }
 
 interface WeekData {
@@ -29,7 +30,7 @@ interface DayItemProps {
   isSelected: boolean;
   isToday: boolean;
   isFuture: boolean;
-  hasEntries: boolean;
+  thumbnailUrl: string | null;
   onPress: (date: Date) => void;
 }
 
@@ -89,7 +90,7 @@ const DayItem = memo(function DayItem({
   isSelected,
   isToday,
   isFuture,
-  hasEntries,
+  thumbnailUrl,
   onPress,
 }: DayItemProps) {
   const { colors } = useTheme();
@@ -100,19 +101,36 @@ const DayItem = memo(function DayItem({
     }
   }, [date, isFuture, onPress]);
 
+  const hasThumbnail = !!thumbnailUrl && !isFuture;
+
   return (
     <Pressable
       style={[
         styles.dayItem,
-        isSelected && { backgroundColor: colors.interactive.primary },
+        hasThumbnail && styles.dayItemWithThumbnail,
       ]}
       onPress={handlePress}
       disabled={isFuture}
     >
+      {hasThumbnail && (
+        <>
+          <Image
+            source={{ uri: thumbnailUrl }}
+            style={styles.thumbnailImage}
+            blurRadius={6}
+            contentFit="cover"
+          />
+          <View style={styles.thumbnailOverlay} />
+        </>
+      )}
+      {isSelected && (
+        <View style={[styles.selectionBorder, { borderColor: colors.interactive.primary }]} pointerEvents="none" />
+      )}
       <Text
         style={[
           styles.dayName,
-          { color: isSelected ? "white" : colors.text.secondary },
+          { color: hasThumbnail ? "white" : colors.text.secondary },
+          isSelected && !hasThumbnail && { color: colors.interactive.primary },
           isFuture && styles.futureText,
         ]}
       >
@@ -121,22 +139,14 @@ const DayItem = memo(function DayItem({
       <Text
         style={[
           styles.dayNumber,
-          { color: isSelected ? "white" : colors.text.primary },
-          isToday && !isSelected && { color: colors.interactive.primary },
+          { color: hasThumbnail ? "white" : colors.text.primary },
+          isToday && !isSelected && !hasThumbnail && { color: colors.interactive.primary },
+          isSelected && !hasThumbnail && { color: colors.interactive.primary },
           isFuture && styles.futureText,
         ]}
       >
         {date.getDate()}
       </Text>
-      <View
-        style={[
-          styles.entryMarker,
-          {
-            backgroundColor: isSelected ? "white" : colors.interactive.primary,
-            opacity: hasEntries && !isFuture ? 1 : 0,
-          },
-        ]}
-      />
     </Pressable>
   );
 });
@@ -151,7 +161,7 @@ interface WeekRowProps {
   todayStr: string;
   todayTime: number;
   onDateSelect: (date: Date) => void;
-  datesWithEntries: Set<string>;
+  dateThumbnails: Map<string, string | null>;
 }
 
 const WeekRow = memo(function WeekRow({
@@ -160,7 +170,7 @@ const WeekRow = memo(function WeekRow({
   todayStr,
   todayTime,
   onDateSelect,
-  datesWithEntries,
+  dateThumbnails,
 }: WeekRowProps) {
   return (
     <View style={styles.weekContainer}>
@@ -169,7 +179,7 @@ const WeekRow = memo(function WeekRow({
         const isSelected = dateStr === selectedDateStr;
         const isToday = dateStr === todayStr;
         const isFuture = date.getTime() > todayTime && !isToday;
-        const hasEntries = datesWithEntries.has(dateStr);
+        const thumbnailUrl = dateThumbnails.get(dateStr) ?? null;
 
         return (
           <DayItem
@@ -179,7 +189,7 @@ const WeekRow = memo(function WeekRow({
             isSelected={isSelected}
             isToday={isToday}
             isFuture={isFuture}
-            hasEntries={hasEntries}
+            thumbnailUrl={thumbnailUrl}
             onPress={onDateSelect}
           />
         );
@@ -197,7 +207,7 @@ export const WeekDaySelector = memo(function WeekDaySelector({
   today,
   onDateSelect,
   onVisibleWeekChange,
-  datesWithEntries,
+  dateThumbnails,
 }: WeekDaySelectorProps) {
   const pagerRef = useRef<PagerView>(null);
   const currentIndexRef = useRef(INITIAL_INDEX);
@@ -269,7 +279,7 @@ export const WeekDaySelector = memo(function WeekDaySelector({
                 todayStr={todayStr}
                 todayTime={todayTime}
                 onDateSelect={onDateSelect}
-                datesWithEntries={datesWithEntries}
+                dateThumbnails={dateThumbnails}
               />
             ) : null}
           </View>
@@ -283,9 +293,11 @@ export const WeekDaySelector = memo(function WeekDaySelector({
 // STYLES
 // =============================================================================
 
+const DAY_WIDTH = SCREEN_WIDTH / 7;
+
 const styles = StyleSheet.create({
   container: {
-    height: 80,
+    height: 60,
     overflow: "hidden",
   },
   pager: {
@@ -294,30 +306,43 @@ const styles = StyleSheet.create({
   weekContainer: {
     width: SCREEN_WIDTH,
     flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: tokens.spacing.component.sm,
   },
   dayItem: {
+    width: DAY_WIDTH,
     alignItems: "center",
-    paddingVertical: tokens.spacing.component.sm,
-    paddingHorizontal: tokens.spacing.component.sm,
-    borderRadius: tokens.radius.md,
-    minWidth: 40,
+    justifyContent: "center",
+    paddingVertical: tokens.spacing.component.md,
+    borderRadius: tokens.radius.sm,
+    overflow: "hidden",
+  },
+  dayItemWithThumbnail: {
+    position: "relative",
+  },
+  selectionBorder: {
+    ...StyleSheet.absoluteFillObject,
+    borderWidth: 1,
+    borderRadius: tokens.radius.sm,
+    zIndex: 2,
+  },
+  thumbnailImage: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: tokens.radius.sm,
+  },
+  thumbnailOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.35)",
+    borderRadius: tokens.radius.sm,
   },
   dayName: {
     fontSize: tokens.typography.fontSize.caption,
     fontWeight: tokens.typography.fontWeight.medium,
     marginBottom: tokens.spacing.component.xs,
+    zIndex: 1,
   },
   dayNumber: {
     fontSize: tokens.typography.fontSize.body,
     fontWeight: tokens.typography.fontWeight.semibold,
-  },
-  entryMarker: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginTop: tokens.spacing.component.xs,
+    zIndex: 1,
   },
   futureText: {
     opacity: 0.3,
