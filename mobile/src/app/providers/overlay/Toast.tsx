@@ -1,5 +1,13 @@
 import React, { useEffect, useRef } from "react";
-import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  interpolate,
+  runOnJS,
+} from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
@@ -45,8 +53,10 @@ export function Toast({
   showArrow = false,
   onPress,
 }: ToastProps) {
-  const animValue = useRef(new Animated.Value(0)).current;
+  const animValue = useSharedValue(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const isBottom = position === "bottom";
 
   useEffect(() => {
     if (isOpen) {
@@ -60,12 +70,7 @@ export function Toast({
       }
 
       // Animate in
-      Animated.spring(animValue, {
-        toValue: 1,
-        tension: 80,
-        friction: 10,
-        useNativeDriver: true,
-      }).start();
+      animValue.value = withSpring(1, { damping: 10, stiffness: 80 });
 
       // Auto dismiss
       timerRef.current = setTimeout(() => {
@@ -73,12 +78,10 @@ export function Toast({
       }, duration);
     } else {
       // Animate out
-      Animated.timing(animValue, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start(() => {
-        exit();
+      animValue.value = withTiming(0, { duration: 200 }, (finished) => {
+        if (finished) {
+          runOnJS(exit)();
+        }
       });
     }
 
@@ -87,7 +90,7 @@ export function Toast({
         clearTimeout(timerRef.current);
       }
     };
-  }, [isOpen, duration, type, animValue, close, exit]);
+  }, [isOpen, duration, type, close, exit, animValue]);
 
   const handlePress = () => {
     if (onPress) {
@@ -96,21 +99,25 @@ export function Toast({
     close();
   };
 
-  const isBottom = position === "bottom";
-  const translateY = animValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [isBottom ? 100 : -100, 0],
-  });
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: animValue.value,
+    transform: [
+      {
+        translateY: interpolate(
+          animValue.value,
+          [0, 1],
+          [isBottom ? 100 : -100, 0],
+        ),
+      },
+    ],
+  }));
 
   return (
     <Animated.View
       style={[
         styles.container,
         isBottom ? styles.bottomPosition : styles.topPosition,
-        {
-          opacity: animValue,
-          transform: [{ translateY }],
-        },
+        animatedStyle,
       ]}
       pointerEvents="box-none"
     >

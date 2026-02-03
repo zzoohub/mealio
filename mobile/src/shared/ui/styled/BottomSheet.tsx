@@ -10,17 +10,23 @@
  * </BottomSheet>
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Modal,
-  Animated,
   Dimensions,
   Pressable,
   StyleSheet,
   ViewStyle,
   ModalProps,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  runOnJS,
+} from 'react-native-reanimated';
 import { tokens } from '../tokens';
 import { useTheme, createStyles, useStyles } from '../theme';
 
@@ -75,8 +81,8 @@ export function BottomSheet({
 }: BottomSheetProps) {
   const { colors } = useTheme();
   const s = useStyles(styles);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const fadeAnim = useSharedValue(0);
+  const slideAnim = useSharedValue(SCREEN_HEIGHT);
   const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
@@ -84,51 +90,49 @@ export function BottomSheet({
       // Show modal first
       setModalVisible(true);
       // Reset values before animating in
-      fadeAnim.setValue(0);
-      slideAnim.setValue(SCREEN_HEIGHT);
+      fadeAnim.value = 0;
+      slideAnim.value = SCREEN_HEIGHT;
 
       // Start both animations when showing
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: dimOpacity,
-          duration: fadeAnimationDuration,
-          useNativeDriver: true,
-        }),
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          tension: slideAnimationConfig.tension || DEFAULT_SLIDE_CONFIG.tension,
-          friction: slideAnimationConfig.friction || DEFAULT_SLIDE_CONFIG.friction,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      fadeAnim.value = withTiming(dimOpacity, { duration: fadeAnimationDuration });
+      slideAnim.value = withSpring(0, {
+        damping: slideAnimationConfig.friction || DEFAULT_SLIDE_CONFIG.friction,
+        stiffness: slideAnimationConfig.tension || DEFAULT_SLIDE_CONFIG.tension,
+      });
     } else if (modalVisible) {
       // Reverse animations when hiding
       const closeDuration = slideAnimationConfig.duration || tokens.duration.fast;
 
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: fadeAnimationDuration * 0.7, // Slightly faster when closing
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: SCREEN_HEIGHT,
-          duration: closeDuration,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        // Hide modal after animation completes
-        setModalVisible(false);
-        // Call onDismiss callback for cleanup
-        onDismiss?.();
+      fadeAnim.value = withTiming(0, {
+        duration: fadeAnimationDuration * 0.7, // Slightly faster when closing
       });
+      slideAnim.value = withTiming(
+        SCREEN_HEIGHT,
+        { duration: closeDuration },
+        (finished) => {
+          if (finished) {
+            runOnJS(setModalVisible)(false);
+            if (onDismiss) {
+              runOnJS(onDismiss)();
+            }
+          }
+        },
+      );
     }
-  }, [visible, onDismiss]);
+  }, [visible, onDismiss, dimOpacity, fadeAnimationDuration, slideAnimationConfig, modalVisible, fadeAnim, slideAnim]);
 
   const handleClose = () => {
     // Trigger close animation via parent
     onClose();
   };
+
+  const fadeStyle = useAnimatedStyle(() => ({
+    opacity: fadeAnim.value,
+  }));
+
+  const slideStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: slideAnim.value }],
+  }));
 
   return (
     <Modal
@@ -145,9 +149,7 @@ export function BottomSheet({
             style={[
               StyleSheet.absoluteFillObject,
               s.dimOverlay,
-              {
-                opacity: fadeAnim,
-              },
+              fadeStyle,
             ]}
           />
         </Pressable>
@@ -159,8 +161,8 @@ export function BottomSheet({
             {
               backgroundColor: colors.bg.secondary,
               height: height as number | 'auto',
-              transform: [{ translateY: slideAnim }],
             },
+            slideStyle,
             style,
           ]}
         >
