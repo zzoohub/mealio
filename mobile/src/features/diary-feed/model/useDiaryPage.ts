@@ -88,16 +88,11 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
   const selectedDateStr = useMemo(() => formatDateToString(selectedDate), [selectedDate]);
 
   // Auth mode: API query for selected date
-  const diaryQuery = useDiaryEntriesQuery(
-    { start_date: selectedDateStr, end_date: selectedDateStr },
-    isAuthenticated,
-  );
+  const diaryQuery = useDiaryEntriesQuery({ start_date: selectedDateStr, end_date: selectedDateStr }, isAuthenticated);
 
   const apiEntries = useMemo(() => {
     if (!isAuthenticated || !diaryQuery.data) return [];
-    return diaryQuery.data.data
-      .map(apiEntryToEntry)
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return diaryQuery.data.data.map(apiEntryToEntry).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
   }, [isAuthenticated, diaryQuery.data]);
 
   // Handle visible week change from WeekDaySelector swipe
@@ -113,10 +108,10 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
       try {
         const loadedEntries = await entryStorageUtils.getAllEntries();
         const datesSet = new Set<string>();
-        loadedEntries.forEach((entry) => {
-          const dateStr = entry.timestamp.toISOString().split("T")[0];
-          if (dateStr) datesSet.add(dateStr);
+        loadedEntries.forEach(entry => {
+          datesSet.add(formatDateToString(entry.timestamp));
         });
+
         setDatesWithEntries(datesSet);
       } catch (err) {
         console.error("Error loading all entries:", err);
@@ -131,13 +126,12 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
   useEffect(() => {
     if (!isAuthenticated || !diaryQuery.data) return;
     const datesSet = new Set<string>();
-    diaryQuery.data.data.forEach((entry) => {
-      const dateStr = new Date(entry.eaten_at).toISOString().split("T")[0];
-      if (dateStr) datesSet.add(dateStr);
+    diaryQuery.data.data.forEach(entry => {
+      datesSet.add(formatDateToString(new Date(entry.eaten_at)));
     });
-    setDatesWithEntries((prev) => {
+    setDatesWithEntries(prev => {
       const merged = new Set(prev);
-      datesSet.forEach((d) => merged.add(d));
+      datesSet.forEach(d => merged.add(d));
       return merged;
     });
   }, [isAuthenticated, diaryQuery.data]);
@@ -173,20 +167,26 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
   // ACTIONS
   // =============================================================================
 
-  const selectDate = useCallback((date: Date) => {
-    if (date > today && !isSameDay(date, today)) {
-      return;
-    }
-    setSelectedDate(date);
-  }, [today]);
+  const selectDate = useCallback(
+    (date: Date) => {
+      if (date > today && !isSameDay(date, today)) {
+        return;
+      }
+      setSelectedDate(date);
+    },
+    [today],
+  );
 
-  const handleCalendarDayPress = useCallback((day: { dateString: string }) => {
-    const selectedDateFromCalendar = new Date(day.dateString + "T12:00:00");
-    if (selectedDateFromCalendar > today && !isSameDay(selectedDateFromCalendar, today)) {
-      return;
-    }
-    setSelectedDate(selectedDateFromCalendar);
-  }, [today]);
+  const handleCalendarDayPress = useCallback(
+    (day: { dateString: string }) => {
+      const selectedDateFromCalendar = new Date(day.dateString + "T12:00:00");
+      if (selectedDateFromCalendar > today && !isSameDay(selectedDateFromCalendar, today)) {
+        return;
+      }
+      setSelectedDate(selectedDateFromCalendar);
+    },
+    [today],
+  );
 
   // =============================================================================
   // DERIVED DATA
@@ -194,10 +194,9 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
 
   const dateHasEntries = useCallback(
     (date: Date): boolean => {
-      const dateStr = date.toISOString().split("T")[0];
-      return dateStr ? datesWithEntries.has(dateStr) : false;
+      return datesWithEntries.has(formatDateToString(date));
     },
-    [datesWithEntries]
+    [datesWithEntries],
   );
 
   const formattedMonthYear = useMemo(() => {
@@ -208,12 +207,9 @@ export function useDiaryPage(primaryColor: string): UseDiaryPageReturn {
   }, [visibleWeekDays]);
 
   const markedDates = useMemo(() => {
-    const marks: Record<
-      string,
-      { marked: boolean; dotColor: string; selected?: boolean; selectedColor?: string }
-    > = {};
+    const marks: Record<string, { marked: boolean; dotColor: string; selected?: boolean; selectedColor?: string }> = {};
 
-    datesWithEntries.forEach((dateStr) => {
+    datesWithEntries.forEach(dateStr => {
       marks[dateStr] = {
         marked: true,
         dotColor: primaryColor,

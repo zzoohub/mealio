@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Dimensions, FlatList } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 import { useTheme } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
-import { isSameDay, getDayName, getWeekDays } from "@/shared/lib/utils";
+import { getDayName, getWeekDays, formatDateToString } from "@/shared/lib/utils";
 
 // =============================================================================
 // TYPES
@@ -14,7 +14,7 @@ export interface WeekDaySelectorProps {
   today: Date;
   onDateSelect: (date: Date) => void;
   onVisibleWeekChange?: (weekDays: Date[]) => void;
-  dateHasEntries: (date: Date) => boolean;
+  datesWithEntries: Set<string>;
 }
 
 interface WeekData {
@@ -56,7 +56,7 @@ function generateAllWeeks(today: Date): WeekData[] {
     const offsetDate = new Date(todayWeekStart);
     offsetDate.setDate(offsetDate.getDate() + i * 7);
     const days = getWeekDays(offsetDate);
-    const weekId = days[0]?.toISOString().split("T")[0] || `week-${i}`;
+    const weekId = days[0] ? formatDateToString(days[0]) : `week-${i}`;
 
     weeks.push({
       id: weekId,
@@ -72,7 +72,7 @@ function findWeekIndex(weeks: WeekData[], targetDate: Date): number {
   const targetWeekStart = getWeekDays(targetDate)[0];
   if (!targetWeekStart) return INITIAL_INDEX;
 
-  const targetId = targetWeekStart.toISOString().split("T")[0];
+  const targetId = formatDateToString(targetWeekStart);
   const index = weeks.findIndex(w => w.id === targetId);
 
   return index !== -1 ? index : INITIAL_INDEX;
@@ -150,7 +150,7 @@ interface WeekRowProps {
   todayStr: string;
   todayTime: number;
   onDateSelect: (date: Date) => void;
-  entriesSet: Set<string>;
+  datesWithEntries: Set<string>;
 }
 
 const WeekRow = memo(function WeekRow({
@@ -159,16 +159,16 @@ const WeekRow = memo(function WeekRow({
   todayStr,
   todayTime,
   onDateSelect,
-  entriesSet,
+  datesWithEntries,
 }: WeekRowProps) {
   return (
     <View style={styles.weekContainer}>
       {days.map((date, index) => {
-        const dateStr = date.toISOString().split("T")[0] || "";
+        const dateStr = formatDateToString(date);
         const isSelected = dateStr === selectedDateStr;
         const isToday = dateStr === todayStr;
         const isFuture = date.getTime() > todayTime && !isToday;
-        const hasEntries = entriesSet.has(dateStr);
+        const hasEntries = datesWithEntries.has(dateStr);
 
         return (
           <DayItem
@@ -191,12 +191,12 @@ const WeekRow = memo(function WeekRow({
 // COMPONENT
 // =============================================================================
 
-export function WeekDaySelector({
+export const WeekDaySelector = memo(function WeekDaySelector({
   selectedDate,
   today,
   onDateSelect,
   onVisibleWeekChange,
-  dateHasEntries,
+  datesWithEntries,
 }: WeekDaySelectorProps) {
   const flatListRef = useRef<FlatList<WeekData>>(null);
   const currentIndexRef = useRef(INITIAL_INDEX);
@@ -204,28 +204,14 @@ export function WeekDaySelector({
 
   // Pre-compute string versions for stable comparisons
   const selectedDateStr = useMemo(
-    () => selectedDate.toISOString().split("T")[0] || "",
+    () => formatDateToString(selectedDate),
     [selectedDate]
   );
-  const todayStr = useMemo(() => today.toISOString().split("T")[0] || "", [today]);
+  const todayStr = useMemo(() => formatDateToString(today), [today]);
   const todayTime = useMemo(() => today.getTime(), [today]);
 
   // Pre-generate all weeks once
   const weeks = useMemo(() => generateAllWeeks(today), [today]);
-
-  // Build entries set for O(1) lookup - collect all dates that have entries
-  const entriesSet = useMemo(() => {
-    const set = new Set<string>();
-    weeks.forEach(week => {
-      week.days.forEach(date => {
-        if (dateHasEntries(date)) {
-          const dateStr = date.toISOString().split("T")[0];
-          if (dateStr) set.add(dateStr);
-        }
-      });
-    });
-    return set;
-  }, [weeks, dateHasEntries]);
 
   // Scroll to selected date when it changes (e.g., from calendar modal)
   useEffect(() => {
@@ -258,7 +244,7 @@ export function WeekDaySelector({
     [weeks, onVisibleWeekChange]
   );
 
-  // Stable render function - no longer depends on selectedDate
+  // Stable render function
   const renderWeek = useCallback(
     ({ item }: { item: WeekData }) => (
       <WeekRow
@@ -267,10 +253,10 @@ export function WeekDaySelector({
         todayStr={todayStr}
         todayTime={todayTime}
         onDateSelect={onDateSelect}
-        entriesSet={entriesSet}
+        datesWithEntries={datesWithEntries}
       />
     ),
-    [selectedDateStr, todayStr, todayTime, onDateSelect, entriesSet]
+    [selectedDateStr, todayStr, todayTime, onDateSelect, datesWithEntries]
   );
 
   const getItemLayout = useCallback(
@@ -305,7 +291,7 @@ export function WeekDaySelector({
       />
     </View>
   );
-}
+});
 
 // =============================================================================
 // STYLES

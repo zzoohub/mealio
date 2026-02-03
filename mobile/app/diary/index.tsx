@@ -34,7 +34,7 @@ export default function DiaryPage() {
     selectDate,
     handleCalendarDayPress,
     handleVisibleWeekChange,
-    dateHasEntries,
+    datesWithEntries,
   } = useDiaryPage(colors.interactive.primary);
 
   // =============================================================================
@@ -51,7 +51,7 @@ export default function DiaryPage() {
     (entry: Entry) => {
       router.push(`/diary/${entry.id}`);
     },
-    [router]
+    [router],
   );
 
   const handleOpenCalendar = useCallback(() => {
@@ -144,7 +144,7 @@ export default function DiaryPage() {
         today={today}
         onDateSelect={selectDate}
         onVisibleWeekChange={handleVisibleWeekChange}
-        dateHasEntries={dateHasEntries}
+        datesWithEntries={datesWithEntries}
       />
 
       {/* Content */}
@@ -186,10 +186,8 @@ export default function DiaryPage() {
         ) : (
           <FlashList
             data={entries}
-            renderItem={({ item }) => (
-              <EntryFeedItem entry={item} onPress={handleEntryPress} />
-            )}
-            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => <EntryFeedItem entry={item} onPress={handleEntryPress} />}
+            keyExtractor={item => item.id}
             showsVerticalScrollIndicator={false}
           />
         )}
