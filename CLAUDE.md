@@ -25,6 +25,8 @@ Tests live in `src/**/__tests__/**/*.(test|spec).(ts|tsx)`.
 ```bash
 docker compose up -d               # Start local PostgreSQL (postgres:18-alpine, port 5432)
 cargo run                           # Run dev server (port 3000)
+cargo test                          # Run all tests
+cargo test error                    # Run tests matching "error"
 cargo build --release               # Release build
 ```
 Swagger UI available at `http://localhost:3000/swagger-ui` when running.
@@ -48,6 +50,8 @@ Swagger UI available at `http://localhost:3000/swagger-ui` when running.
    - **tester** agent for decide(needs test?) → write → test run
 
 ## API
+
+All routes are nested under `/api/v1` (e.g. `/api/v1/auth/login`, `/api/v1/diary`). Migrations run automatically on startup.
 
 ### Workflow
 1. **data-modeling** → **database-reviewer** (agent) → **api-design** (plan)
@@ -86,15 +90,6 @@ Each feature follows: `mod.rs`, `router.rs`, `handlers.rs`, `models.rs`.
 - **Auth**: `AuthUser` extractor parses JWT Bearer token → `user_id: i64`
 - **Cross-feature**: If used by 2+ features → `shared/`
 
-### Core Stack
-| Layer | Technology |
-|-------|------------|
-| Framework | Axum 0.8+ |
-| Database | SQLx + PostgreSQL |
-| Auth | JWT + OAuth (Google, Apple) |
-| Middleware | Tower layers (CORS, timeout, tracing) |
-| API Docs | utoipa + Swagger UI |
-
 ## Mobile
 
 ### Workflow
@@ -122,8 +117,10 @@ app → widgets → features → entities → shared (never import upward)
 ### Conventions
 - **Features**: Each has `model/` (Zustand + hooks), `ui/` (pure components), `index.ts` (barrel)
 - **State**: Zustand for client, TanStack Query for server, MMKV for persistence
-- **Forms**: TanStack Form + Zod validation
+- **Forms**: TanStack Form + Zod 4 validation
 - **i18n**: i18next + react-i18next
+- **Lists**: FlashList (`@shopify/flash-list`) over FlatList
+- **Images**: `expo-image` (not React Native `Image`)
 
 ### Path Aliases
 ```
