@@ -35,7 +35,7 @@ Swagger UI available at `http://localhost:3000/swagger-ui` when running.
 - Queue: Cloudflare Queues
 - Object Storage: Cloudflare R2
 - Cache: Cloudflare KV
-- Email: Resend
+- Email: Cloudflare Email Routing
 - Error tracking: Sentry
 - Analytics: PostHog
 
