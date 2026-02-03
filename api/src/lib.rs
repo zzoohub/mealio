@@ -17,4 +17,7 @@ pub struct AppState {
     pub apple_team_id: String,
     pub apple_bundle_id: String,
     pub jwks_cache: JwksCache,
+    pub s3_client: aws_sdk_s3::Client,
+    pub r2_bucket: String,
+    pub r2_public_url: String,
 }

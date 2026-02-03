@@ -12,6 +12,8 @@ import {
   mapEntryToCreateRequest,
   mapEntryToUpdateRequest,
 } from "@/shared/api";
+import { uploadPhoto } from "@/shared/api/uploadApi";
+import { photoApi } from "../api/photoApi";
 import type { ApiDiaryQueryParams, ApiDiaryEntry, ApiMealType } from "@/shared/api";
 import { MealType } from "@/entities/meal";
 
@@ -23,7 +25,7 @@ export interface UseEntryDataReturn {
   entries: Entry[];
   isLoading: boolean;
   error: string | null;
-  saveEntry: (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+  saveEntry: (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">, photoUris?: string[]) => Promise<void>;
   updateEntry: (entryId: string, updates: Partial<Omit<Entry, "id" | "createdAt">>) => Promise<void>;
   deleteEntry: (entryId: string) => Promise<void>;
   entriesRemaining: number;
@@ -103,10 +105,25 @@ export function useEntryData(options: UseEntryDataOptions = {}): UseEntryDataRet
     : guestStorage.error;
 
   const saveEntry = useCallback(
-    async (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">) => {
+    async (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">, photoUris?: string[]) => {
       if (isAuthenticated) {
+        // 1. Upload photos to R2 in parallel
+        const urls = photoUris?.length
+          ? await Promise.all(photoUris.map(uploadPhoto))
+          : [];
+
+        // 2. Create diary entry
         const req = mapEntryToCreateRequest(entry);
-        await createMutation.mutateAsync(req);
+        const created = await createMutation.mutateAsync(req);
+
+        // 3. Attach photos to entry
+        for (let i = 0; i < urls.length; i++) {
+          await photoApi.createPhoto(created.id, {
+            url: urls[i]!,
+            is_primary: i === 0,
+            sort_order: i,
+          });
+        }
       } else {
         await guestStorage.saveEntry(entry);
       }

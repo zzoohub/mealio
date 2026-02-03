@@ -9,4 +9,5 @@ export {
   mapEntryToCreateRequest,
   mapEntryToUpdateRequest,
 } from "./mappers";
+export { uploadPhoto } from "./uploadApi";
 export type * from "./types";

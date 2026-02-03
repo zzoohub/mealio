@@ -221,6 +221,21 @@ export interface ApiUpsertLocationRequest {
 }
 
 // =============================================================================
+// UPLOADS
+// =============================================================================
+
+export interface ApiPresignRequest {
+  content_type: string;
+}
+
+export interface ApiPresignResponse {
+  upload_url: string;
+  object_key: string;
+  public_url: string;
+  expires_in: number;
+}
+
+// =============================================================================
 // PHOTOS
 // =============================================================================
 

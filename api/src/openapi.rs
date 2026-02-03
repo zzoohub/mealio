@@ -53,6 +53,8 @@ use utoipa::{Modify, OpenApi};
         crate::features::statistics::handlers::meal_type_stats,
         crate::features::statistics::handlers::top_ingredients,
         crate::features::statistics::handlers::overview,
+        // Uploads
+        crate::features::uploads::handlers::presign,
     ),
     components(
         schemas(
@@ -103,6 +105,9 @@ use utoipa::{Modify, OpenApi};
             crate::features::statistics::handlers::MealTypeCount,
             crate::features::statistics::handlers::TopIngredient,
             crate::features::statistics::handlers::Overview,
+            // Uploads
+            crate::features::uploads::models::PresignRequest,
+            crate::features::uploads::models::PresignResponse,
         ),
     ),
     modifiers(&SecurityAddon),
@@ -116,6 +121,7 @@ use utoipa::{Modify, OpenApi};
         (name = "Nutrition", description = "User nutrition data"),
         (name = "AI Analysis", description = "AI-generated nutrition analysis (not yet implemented — returns 501)"),
         (name = "Statistics", description = "Statistics and analytics"),
+        (name = "Uploads", description = "File upload presigned URLs"),
     ),
 )]
 pub struct ApiDoc;

@@ -28,8 +28,8 @@ export default function Camera() {
   const { saveEntry } = useEntryData();
 
   const handleSaveEntry = useCallback(
-    async (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">) => {
-      await saveEntry(entry);
+    async (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">, photoUris?: string[]) => {
+      await saveEntry(entry, photoUris);
       router.push("/diary");
     },
     [saveEntry, router],

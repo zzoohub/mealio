@@ -22,3 +22,5 @@ uuid = { version = "1", features = ["v4", "serde"] }
 bigdecimal = { version = "0.4", features = ["serde"] }
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "9", features = ["axum"] }
+aws-sdk-s3 = "1"
+aws-config = "1"

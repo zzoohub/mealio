@@ -5,4 +5,5 @@ pub mod ingredients;
 pub mod nutrition;
 pub mod photos;
 pub mod statistics;
+pub mod uploads;
 pub mod users;

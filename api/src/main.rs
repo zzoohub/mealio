@@ -31,6 +31,35 @@ async fn main() {
     let apple_team_id = std::env::var("APPLE_TEAM_ID").unwrap_or_default();
     let apple_bundle_id = std::env::var("APPLE_BUNDLE_ID").unwrap_or_default();
 
+    // R2 / S3-compatible storage
+    let r2_account_id = std::env::var("R2_ACCOUNT_ID").unwrap_or_default();
+    let r2_access_key_id = std::env::var("R2_ACCESS_KEY_ID").unwrap_or_default();
+    let r2_secret_access_key = std::env::var("R2_SECRET_ACCESS_KEY").unwrap_or_default();
+    let r2_bucket = std::env::var("R2_BUCKET_NAME").unwrap_or_else(|_| "mealio-uploads".into());
+    let r2_public_url = std::env::var("R2_PUBLIC_URL").unwrap_or_default();
+
+    let s3_config = aws_config::defaults(aws_config::BehaviorVersion::latest())
+        .endpoint_url(format!(
+            "https://{}.r2.cloudflarestorage.com",
+            r2_account_id
+        ))
+        .region(aws_config::Region::new("auto"))
+        .credentials_provider(aws_sdk_s3::config::Credentials::new(
+            r2_access_key_id,
+            r2_secret_access_key,
+            None,
+            None,
+            "r2",
+        ))
+        .load()
+        .await;
+
+    let s3_client = aws_sdk_s3::Client::from_conf(
+        aws_sdk_s3::config::Builder::from(&s3_config)
+            .force_path_style(true)
+            .build(),
+    );
+
     let db = PgPoolOptions::new()
         .max_connections(10)
         .acquire_timeout(Duration::from_secs(3))
@@ -52,6 +81,9 @@ async fn main() {
         apple_team_id,
         apple_bundle_id,
         jwks_cache,
+        s3_client,
+        r2_bucket,
+        r2_public_url,
     };
 
     let cors = build_cors();
@@ -65,7 +97,8 @@ async fn main() {
         .nest("/diary", features::ai_analyses::router())
         .nest("/ingredients", features::ingredients::ingredient_router())
         .nest("/diary", features::ingredients::entry_ingredient_router())
-        .nest("/statistics", features::statistics::router());
+        .nest("/statistics", features::statistics::router())
+        .nest("/uploads", features::uploads::router());
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))

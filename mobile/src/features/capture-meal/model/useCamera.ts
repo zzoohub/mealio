@@ -20,7 +20,7 @@ const MAX_PHOTOS = 10;
 // =============================================================================
 
 export interface UseCameraOptions {
-  onSaveEntry: (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+  onSaveEntry: (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">, photoUris?: string[]) => Promise<void>;
 }
 
 export interface UseCameraReturn {
@@ -164,7 +164,7 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
         },
       };
 
-      await onSaveEntry(entry);
+      await onSaveEntry(entry, capturedPhotos);
       setCapturedPhotos([]);
 
       toast({
