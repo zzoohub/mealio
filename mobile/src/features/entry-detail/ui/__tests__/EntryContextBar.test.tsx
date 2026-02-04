@@ -23,6 +23,10 @@ jest.mock('react-native', () => ({
   },
 }));
 
+jest.mock('@/shared/ui/styled', () => ({
+  BottomSheet: jest.fn(),
+}));
+
 jest.mock('@react-native-community/datetimepicker', () => {
   const React = require('react');
   return {
@@ -38,6 +42,7 @@ jest.mock('@expo/vector-icons', () => ({
 }));
 
 const mockColors = {
+  bg: { primary: '#ffffff' },
   border: { default: '#ccc', divider: '#ddd' },
   text: { tertiary: '#666' },
   interactive: { primary: '#007aff' },
@@ -53,7 +58,7 @@ jest.mock('@/shared/ui/theme', () => ({
 jest.mock('@/shared/ui/tokens', () => ({
   tokens: {
     spacing: {
-      component: { sm: 8, md: 16 },
+      component: { sm: 8, md: 16, xl: 32 },
     },
     typography: {
       fontSize: { caption: 12, body: 14 },
@@ -78,9 +83,10 @@ jest.mock('@/shared/lib/i18n', () => ({
 }));
 
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent, act } from '@testing-library/react-native';
 import { Platform, ActionSheetIOS, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { BottomSheet } from '@/shared/ui/styled';
 import { EntryContextBar } from '../EntryContextBar';
 import { MealType } from '@/entities/meal';
 import { useCommonI18n, useDiaryI18n } from '@/shared/lib/i18n';
@@ -95,8 +101,15 @@ describe('EntryContextBar', () => {
     jest.clearAllMocks();
     (Platform as any).OS = 'ios';
 
-    // Re-apply useStyles mock (clearAllMocks resets implementations)
+    // Re-apply mocks (resetMocks: true clears implementations before each test)
     (useStyles as jest.Mock).mockImplementation(useStylesImpl);
+
+    (BottomSheet as jest.Mock).mockImplementation(({ children }: any) => children);
+
+    (DateTimePicker as jest.Mock).mockImplementation(({ value, onChange, testID }: any) => {
+      const React = require('react');
+      return React.createElement('DateTimePicker', { value, onChange, testID });
+    });
 
     // Setup i18n mocks
     (useCommonI18n as jest.Mock).mockReturnValue({
@@ -364,13 +377,10 @@ describe('EntryContextBar', () => {
 
       const timeElement = getByText('2:30 PM');
       expect(timeElement).toBeTruthy();
-      // Should be pressable
-      fireEvent.press(timeElement);
-      // Verify DateTimePicker gets rendered
-      expect(DateTimePicker).toHaveBeenCalled();
     });
 
     it('renders time as plain View when onTimestampChange not provided', () => {
+      (BottomSheet as jest.Mock).mockClear();
       const { getByText } = render(
         <EntryContextBar
           mealType={MealType.LUNCH}
@@ -380,15 +390,13 @@ describe('EntryContextBar', () => {
 
       const timeElement = getByText('2:30 PM');
       expect(timeElement).toBeTruthy();
-      // Should not open picker when pressed
-      fireEvent.press(timeElement);
-      // DateTimePicker should not be rendered
-      expect(DateTimePicker).not.toHaveBeenCalled();
+      // BottomSheet should not be rendered without onTimestampChange
+      expect(BottomSheet).not.toHaveBeenCalled();
     });
 
-    it('opens DateTimePicker on iOS when time pressed', () => {
+    it('shows time picker in BottomSheet on iOS when time pressed', () => {
       (Platform as any).OS = 'ios';
-      (DateTimePicker as jest.Mock).mockClear();
+      (BottomSheet as jest.Mock).mockClear();
       const { getByText } = render(
         <EntryContextBar
           mealType={MealType.LUNCH}
@@ -397,13 +405,15 @@ describe('EntryContextBar', () => {
         />
       );
 
-      // DateTimePicker should not be rendered initially
-      expect(DateTimePicker).not.toHaveBeenCalled();
+      // BottomSheet should start with visible=false
+      const initialCall = (BottomSheet as jest.Mock).mock.calls[0];
+      expect(initialCall[0].visible).toBe(false);
 
       fireEvent.press(getByText('2:30 PM'));
 
-      // DateTimePicker should be rendered after press
-      expect(DateTimePicker).toHaveBeenCalled();
+      // BottomSheet should now be called with visible=true
+      const lastCall = (BottomSheet as jest.Mock).mock.calls.at(-1);
+      expect(lastCall[0].visible).toBe(true);
     });
 
     it('opens DateTimePicker on Android when time pressed', () => {
@@ -417,22 +427,38 @@ describe('EntryContextBar', () => {
         />
       );
 
+      // DateTimePicker should not be rendered initially on Android
+      expect(DateTimePicker).not.toHaveBeenCalled();
+
       fireEvent.press(getByText('2:30 PM'));
 
       // DateTimePicker should be rendered after press
       expect(DateTimePicker).toHaveBeenCalled();
     });
 
-    it('calls onTimestampChange when iOS picker value changes', () => {
+    it('renders DateTimePicker with mode="time"', () => {
+      (Platform as any).OS = 'ios';
+      (DateTimePicker as jest.Mock).mockClear();
+
+      render(
+        <EntryContextBar
+          mealType={MealType.LUNCH}
+          timestamp={mockTimestamp}
+          onTimestampChange={mockOnTimestampChange}
+        />
+      );
+
+      expect(DateTimePicker).toHaveBeenCalled();
+      const call = (DateTimePicker as jest.Mock).mock.calls[0]!;
+      expect(call[0].mode).toBe('time');
+    });
+
+    it('calls onTimestampChange with merged time on iOS', () => {
       (Platform as any).OS = 'ios';
       mockOnTimestampChange.mockClear();
-      const newDate = new Date(2025, 0, 10, 10, 15, 0); // past date to pass future-date guard
-
-      let onChangeFn: any;
-      (DateTimePicker as jest.Mock).mockImplementation(({ onChange }) => {
-        onChangeFn = onChange;
-        return null;
-      });
+      (DateTimePicker as jest.Mock).mockClear();
+      // Selected time: 10:15 — should be merged with mockTimestamp's date (Jan 15, 2026)
+      const selectedTime = new Date(2025, 0, 10, 10, 15, 0);
 
       const { getByText } = render(
         <EntryContextBar
@@ -444,11 +470,15 @@ describe('EntryContextBar', () => {
 
       fireEvent.press(getByText('2:30 PM'));
 
-      // Simulate picker value change synchronously
+      // Get the onChange callback passed to DateTimePicker
+      const lastCall = (DateTimePicker as jest.Mock).mock.calls.at(-1)!;
+      const onChangeFn = lastCall[0].onChange;
       expect(onChangeFn).toBeDefined();
-      onChangeFn({ type: 'set' }, newDate);
+      onChangeFn({ type: 'set' }, selectedTime);
 
-      expect(mockOnTimestampChange).toHaveBeenCalledWith(newDate);
+      // Should merge selected hours/minutes with the entry's original date
+      const expectedDate = new Date(2026, 0, 15, 10, 15, 0, 0);
+      expect(mockOnTimestampChange).toHaveBeenCalledWith(expectedDate);
     });
 
     it('handles iOS picker dismissal without calling onTimestampChange', () => {
@@ -477,7 +507,7 @@ describe('EntryContextBar', () => {
       expect(mockOnTimestampChange).not.toHaveBeenCalled();
     });
 
-    it('handles Android date picker followed by time picker', () => {
+    it('calls onTimestampChange with merged time on Android', () => {
       (Platform as any).OS = 'android';
       mockOnTimestampChange.mockClear();
       (DateTimePicker as jest.Mock).mockClear();
@@ -498,38 +528,18 @@ describe('EntryContextBar', () => {
 
       fireEvent.press(getByText('2:30 PM'));
 
-      // Simulate date selection — our handler merges date and calls onTimestampChange
+      // Simulate time selection (16:00)
       expect(onChangeFn).toBeDefined();
-      onChangeFn({ type: 'set' }, new Date(2026, 0, 16, 14, 30, 0));
+      onChangeFn({ type: 'set' }, new Date(2026, 0, 15, 16, 0, 0));
 
-      // onTimestampChange should have been called with the merged date
-      expect(mockOnTimestampChange).toHaveBeenCalled();
-      // DateTimePicker should have been rendered
-      expect(DateTimePicker).toHaveBeenCalled();
+      // Should merge selected time with entry's date
+      const expectedDate = new Date(2026, 0, 15, 16, 0, 0, 0);
+      expect(mockOnTimestampChange).toHaveBeenCalledWith(expectedDate);
     });
 
-    it('does not open picker when disabled', () => {
-      (DateTimePicker as jest.Mock).mockClear();
-      const { getByText, getByRole } = render(
-        <EntryContextBar
-          mealType={MealType.LUNCH}
-          timestamp={mockTimestamp}
-          onTimestampChange={mockOnTimestampChange}
-          disabled
-        />
-      );
-
-      // The Pressable should be disabled, so pressing the text won't open the picker
-      // Note: fireEvent.press may still fire even on disabled, but the handler checks disabled
-      fireEvent.press(getByText('2:30 PM'));
-
-      // The DateTimePicker should not have rendered because handler returns early when disabled
-      expect(DateTimePicker).not.toHaveBeenCalled();
-    });
-
-    it('passes maximumDate prop to DateTimePicker', () => {
+    it('dismisses iOS picker via onClose callback', () => {
       (Platform as any).OS = 'ios';
-      (DateTimePicker as jest.Mock).mockClear();
+      (BottomSheet as jest.Mock).mockClear();
       const { getByText } = render(
         <EntryContextBar
           mealType={MealType.LUNCH}
@@ -538,14 +548,52 @@ describe('EntryContextBar', () => {
         />
       );
 
+      // Open picker
+      fireEvent.press(getByText('2:30 PM'));
+      expect((BottomSheet as jest.Mock).mock.calls.at(-1)![0].visible).toBe(true);
+
+      // Simulate BottomSheet onClose (backdrop tap or Done press)
+      const onClose = (BottomSheet as jest.Mock).mock.calls.at(-1)![0].onClose;
+      act(() => { onClose(); });
+
+      // BottomSheet should now be called with visible=false
+      expect((BottomSheet as jest.Mock).mock.calls.at(-1)![0].visible).toBe(false);
+    });
+
+    it('does not open picker when disabled', () => {
+      (Platform as any).OS = 'ios';
+      (BottomSheet as jest.Mock).mockClear();
+      const { getByText } = render(
+        <EntryContextBar
+          mealType={MealType.LUNCH}
+          timestamp={mockTimestamp}
+          onTimestampChange={mockOnTimestampChange}
+          disabled
+        />
+      );
+
       fireEvent.press(getByText('2:30 PM'));
 
-      // Check that DateTimePicker was called with maximumDate
-      const call = (DateTimePicker as jest.Mock).mock.calls[0];
-      expect(call).toBeDefined();
-      expect(call[0]).toEqual(expect.objectContaining({
-        maximumDate: expect.any(Date),
-      }));
+      // BottomSheet should remain not visible because handler returns early when disabled
+      const lastCall = (BottomSheet as jest.Mock).mock.calls.at(-1);
+      expect(lastCall[0].visible).toBe(false);
+    });
+
+    it('passes maximumDate prop to DateTimePicker on iOS', () => {
+      (Platform as any).OS = 'ios';
+      (DateTimePicker as jest.Mock).mockClear();
+
+      render(
+        <EntryContextBar
+          mealType={MealType.LUNCH}
+          timestamp={mockTimestamp}
+          onTimestampChange={mockOnTimestampChange}
+        />
+      );
+
+      expect(DateTimePicker).toHaveBeenCalled();
+      const call = (DateTimePicker as jest.Mock).mock.calls[0]!;
+      expect(call[0].maximumDate).toBeInstanceOf(Date);
     });
   });
 

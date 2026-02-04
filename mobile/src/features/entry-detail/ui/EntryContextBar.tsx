@@ -22,6 +22,7 @@ import DateTimePicker, { type DateTimePickerEvent } from '@react-native-communit
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles } from '@/shared/ui/theme';
+import { BottomSheet } from '@/shared/ui/styled';
 import { MealType } from '@/entities/meal';
 import type { Location } from '@/entities/entry';
 import { useCommonI18n, useDiaryI18n } from '@/shared/lib/i18n';
@@ -114,9 +115,7 @@ export function EntryContextBar({
   const diary = useDiaryI18n();
 
   // DateTimePicker state
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  // Android needs sequential date → time picking
-  const [androidPickerMode, setAndroidPickerMode] = useState<'date' | 'time'>('date');
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const getMealTypeLabel = (mt: string): string => {
     switch (mt.toLowerCase()) {
@@ -172,47 +171,31 @@ export function EntryContextBar({
 
   const handleTimestampPress = () => {
     if (disabled || !onTimestampChange) return;
-    if (Platform.OS === 'android') {
-      setAndroidPickerMode('date');
-    }
-    setShowDatePicker(true);
+    setShowTimePicker(true);
   };
 
-  const handleDateTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    if (event.type === 'dismissed') {
-      setShowDatePicker(false);
-      return;
+  const handleTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      // Android: dialog dismisses automatically
+      setShowTimePicker(false);
     }
 
-    const now = new Date();
+    if (event.type === 'dismissed') return;
 
-    if (Platform.OS === 'android') {
-      if (androidPickerMode === 'date' && selectedDate) {
-        // Store the selected date, then show time picker
-        setAndroidPickerMode('time');
-        // Merge selected date with current time
-        const merged = new Date(selectedDate);
-        merged.setHours(timestamp.getHours(), timestamp.getMinutes());
-        if (merged <= now) {
-          onTimestampChange?.(merged);
-        }
-      } else {
-        // Time selected — final step
-        setShowDatePicker(false);
-        if (selectedDate && selectedDate <= now) {
-          onTimestampChange?.(selectedDate);
-        }
-      }
-    } else {
-      // iOS: inline spinner updates continuously
-      if (selectedDate && selectedDate <= now) {
-        onTimestampChange?.(selectedDate);
+    if (selectedDate) {
+      // Merge selected time with the entry's existing date
+      const merged = new Date(timestamp);
+      merged.setHours(selectedDate.getHours(), selectedDate.getMinutes(), 0, 0);
+
+      const now = new Date();
+      if (merged <= now) {
+        onTimestampChange?.(merged);
       }
     }
   };
 
   const handleDismissIOSPicker = () => {
-    setShowDatePicker(false);
+    setShowTimePicker(false);
   };
 
   return (
@@ -287,32 +270,37 @@ export function EntryContextBar({
         )}
       </View>
 
-      {/* iOS: Inline DateTimePicker with dismiss button */}
-      {showDatePicker && Platform.OS === 'ios' && (
-        <View style={s.pickerContainer}>
-          <View style={s.pickerHeader}>
-            <Pressable onPress={handleDismissIOSPicker}>
+      {/* iOS: Native time picker in BottomSheet */}
+      {onTimestampChange && Platform.OS === 'ios' && (
+        <BottomSheet
+          visible={showTimePicker}
+          onClose={handleDismissIOSPicker}
+          style={s.pickerSheet}
+        >
+          <View style={s.pickerDoneRow}>
+            <Pressable onPress={handleDismissIOSPicker} hitSlop={8}>
               <Text style={s.pickerDoneText}>{common.done}</Text>
             </Pressable>
           </View>
-          <DateTimePicker
-            value={timestamp}
-            mode="datetime"
-            display="spinner"
-            onChange={handleDateTimeChange}
-            maximumDate={new Date()}
-          />
-        </View>
+          <View style={s.pickerBody}>
+            <DateTimePicker
+              value={timestamp}
+              mode="time"
+              display="spinner"
+              onChange={handleTimeChange}
+              maximumDate={new Date()}
+            />
+          </View>
+        </BottomSheet>
       )}
 
-      {/* Android: Sequential date then time dialogs */}
-      {showDatePicker && Platform.OS === 'android' && (
+      {/* Android: Native time dialog */}
+      {showTimePicker && Platform.OS === 'android' && (
         <DateTimePicker
           value={timestamp}
-          mode={androidPickerMode}
+          mode="time"
           display="default"
-          onChange={handleDateTimeChange}
-          maximumDate={new Date()}
+          onChange={handleTimeChange}
         />
       )}
     </View>
@@ -365,19 +353,22 @@ const styles = createStyles((colors) => ({
   iconColor: {
     color: colors.text.tertiary,
   },
-  pickerContainer: {
-    borderBottomWidth: tokens.borderWidth.default,
-    borderBottomColor: colors.border.default,
+  pickerSheet: {
+    backgroundColor: '#ffffff',
   },
-  pickerHeader: {
+  pickerDoneRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     paddingHorizontal: tokens.spacing.component.md,
-    paddingTop: tokens.spacing.component.sm,
+    paddingVertical: tokens.spacing.component.sm,
   },
   pickerDoneText: {
     fontSize: tokens.typography.fontSize.body,
     fontWeight: tokens.typography.fontWeight.semibold,
     color: colors.interactive.primary,
+  },
+  pickerBody: {
+    alignItems: 'center',
+    paddingBottom: tokens.spacing.component.md,
   },
 }));

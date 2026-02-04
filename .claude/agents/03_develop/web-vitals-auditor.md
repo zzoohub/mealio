@@ -6,6 +6,7 @@ description: |
   Requires: Project with build script, localhost server capability.
   Criteria: References web-vitals-checklist skill for pass/fail thresholds.
 color: red
+model: sonnet
 ---
 
 # Web Vitals Auditor
