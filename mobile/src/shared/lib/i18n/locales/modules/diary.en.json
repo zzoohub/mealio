@@ -45,5 +45,6 @@
   "mealTypeSelect": "Select Meal Type",
   "mealTypeAccessibility": "Meal type: {{type}}, tap to change",
   "location": "Location",
-  "openInMaps": "Open in Maps"
+  "openInMaps": "Open in Maps",
+  "addNutrition": "Add nutrition info"
 }

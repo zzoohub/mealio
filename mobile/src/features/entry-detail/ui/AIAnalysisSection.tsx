@@ -1,82 +1,59 @@
 /**
- * AIAnalysisSection - Displays AI-analyzed ingredients and nutrition
+ * IngredientsSection - Displays and edits ingredient chips
  *
- * Only renders when AI analysis data is available.
- * Ingredients shown as horizontal chip list (editable).
- * Nutrition shown as key-value grid (editable).
+ * Only renders when ingredients exist or user is editing.
  *
  * @example
  * ```tsx
- * <AIAnalysisSection
+ * <IngredientsSection
  *   ingredients={['닭가슴살', '현미밥', '브로콜리']}
- *   nutrition={{ calories: 450, protein: 35, fat: 12, sugar: 8 }}
  *   onIngredientsChange={(ingredients) => update({ ingredients })}
- *   onNutritionChange={(nutrition) => update({ nutrition })}
  * />
  * ```
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles, useTheme } from '@/shared/ui/theme';
-import type { NutritionInfo } from '@/entities/meal';
 import { useDiaryI18n, useCommonI18n } from '@/shared/lib/i18n';
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-export interface AIAnalysisSectionProps {
+export interface IngredientsSectionProps {
   /** List of detected ingredients */
   ingredients?: string[] | null | undefined;
-  /** Nutrition information */
-  nutrition?: NutritionInfo | null | undefined;
   /** Callback when ingredients change */
   onIngredientsChange?: ((ingredients: string[]) => void) | undefined;
-  /** Callback when nutrition changes */
-  onNutritionChange?: ((nutrition: NutritionInfo) => void) | undefined;
   /** Whether editing is disabled */
   disabled?: boolean | undefined;
   /** Test ID for testing */
   testID?: string | undefined;
 }
 
-const ALL_NUTRIENTS: (keyof NutritionInfo)[] = ['calories', 'protein', 'fat', 'carbs', 'fiber', 'sugar', 'sodium'];
+/** @deprecated Use IngredientsSectionProps instead */
+export type AIAnalysisSectionProps = IngredientsSectionProps;
 
 // =============================================================================
 // COMPONENT
 // =============================================================================
 
-export function AIAnalysisSection({
+export function IngredientsSection({
   ingredients,
-  nutrition,
   onIngredientsChange,
-  onNutritionChange,
   disabled = false,
   testID,
-}: AIAnalysisSectionProps) {
+}: IngredientsSectionProps) {
   const s = useStyles(styles);
   const { colors } = useTheme();
   const diary = useDiaryI18n();
   const common = useCommonI18n();
 
-  const NUTRITION_LABELS: Record<keyof NutritionInfo, { label: string; unit: string }> = useMemo(() => ({
-    calories: { label: diary.nutritionCalories, unit: 'kcal' },
-    protein: { label: diary.nutritionProtein, unit: 'g' },
-    fat: { label: diary.nutritionFat, unit: 'g' },
-    carbs: { label: diary.nutritionCarbs, unit: 'g' },
-    fiber: { label: diary.nutritionFiber, unit: 'g' },
-    sugar: { label: diary.nutritionSugar, unit: 'g' },
-    sodium: { label: diary.nutritionSodium, unit: 'mg' },
-  }), [diary.nutritionCalories, diary.nutritionProtein, diary.nutritionFat, diary.nutritionCarbs, diary.nutritionFiber, diary.nutritionSugar, diary.nutritionSodium]);
-
   const [isEditing, setIsEditing] = useState(false);
   const [localIngredients, setLocalIngredients] = useState<string[]>(ingredients || []);
-  const [localNutrition, setLocalNutrition] = useState<NutritionInfo>(
-    nutrition || { calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0, sodium: 0 }
-  );
   const [newIngredient, setNewIngredient] = useState('');
 
   // Sync local state with props
@@ -84,22 +61,14 @@ export function AIAnalysisSection({
     setLocalIngredients(ingredients || []);
   }, [ingredients]);
 
-  useEffect(() => {
-    if (nutrition) {
-      setLocalNutrition(nutrition);
-    }
-  }, [nutrition]);
-
   // Don't render if no data and not editing
-  if (!ingredients?.length && !nutrition && !isEditing) {
+  if (!ingredients?.length && !isEditing) {
     return null;
   }
 
   const handleEditToggle = () => {
     if (isEditing) {
-      // Save changes
       onIngredientsChange?.(localIngredients);
-      onNutritionChange?.(localNutrition);
     }
     setIsEditing(!isEditing);
   };
@@ -117,30 +86,19 @@ export function AIAnalysisSection({
     }
   };
 
-  const handleNutritionChange = (key: keyof NutritionInfo, value: string) => {
-    const numValue = parseInt(value, 10) || 0;
-    setLocalNutrition((prev) => ({ ...prev, [key]: numValue }));
-  };
-
-  const nutritionEntries = ALL_NUTRIENTS.map((key) => ({
-    key,
-    value: localNutrition[key] ?? 0,
-    ...NUTRITION_LABELS[key],
-  }));
-
   return (
     <View style={s.container} testID={testID}>
       {/* Section Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
           <Ionicons
-            name="sparkles"
+            name="leaf-outline"
             size={tokens.size.icon.xs}
             color={s.headerIcon.color as string}
           />
-          <Text style={s.headerText}>{diary.aiAnalysis}</Text>
+          <Text style={s.headerText}>{diary.ingredients}</Text>
         </View>
-        {!disabled && (onIngredientsChange || onNutritionChange) && (
+        {!disabled && onIngredientsChange && (
           <Pressable
             style={s.editButton}
             onPress={handleEditToggle}
@@ -156,75 +114,52 @@ export function AIAnalysisSection({
       </View>
 
       {/* Ingredients */}
-      <View style={s.section}>
-        <Text style={s.sectionLabel}>{diary.ingredients}</Text>
-        <View style={s.ingredientsList}>
-          {localIngredients.map((ingredient, index) => (
-            <View key={index} style={s.ingredientChipWrapper}>
-              <View style={s.ingredientChip}>
-                <Text style={s.ingredientText}>{ingredient}</Text>
-              </View>
-              {isEditing && (
-                <Pressable
-                  onPress={() => handleRemoveIngredient(index)}
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                  style={s.removeButton}
-                >
-                  <View style={s.removeButtonInner}>
-                    <Ionicons name="close" size={10} color={colors.bg.primary} />
-                  </View>
-                </Pressable>
-              )}
+      <View style={s.ingredientsList}>
+        {localIngredients.map((ingredient, index) => (
+          <View key={index} style={s.ingredientChipWrapper}>
+            <View style={s.ingredientChip}>
+              <Text style={s.ingredientText}>{ingredient}</Text>
             </View>
-          ))}
-          {isEditing && (
-            <View style={s.addIngredientContainer}>
-              <TextInput
-                style={s.addIngredientInput}
-                value={newIngredient}
-                onChangeText={setNewIngredient}
-                placeholder={diary.addIngredient}
-                placeholderTextColor={colors.text.tertiary}
-                onSubmitEditing={handleAddIngredient}
-                returnKeyType="done"
-              />
-              {newIngredient.trim() && (
-                <Pressable onPress={handleAddIngredient} style={s.addButton}>
-                  <Ionicons name="add" size={16} color={colors.interactive.primary} />
-                </Pressable>
-              )}
-            </View>
-          )}
-        </View>
-      </View>
-
-      {/* Nutrition */}
-      <View style={s.section}>
-        <Text style={s.sectionLabel}>{diary.nutritionInfo}</Text>
-        <View style={s.nutritionGrid}>
-          {nutritionEntries.map((item) => (
-            <View key={item.key} style={s.nutritionItem}>
-              <Text style={s.nutritionLabel}>{item.label}</Text>
-              <View style={s.nutritionInputRow}>
-                <TextInput
-                  style={[s.nutritionInput, !isEditing && s.nutritionInputDisabled]}
-                  value={String(item.value || '')}
-                  onChangeText={(v) => handleNutritionChange(item.key, v)}
-                  keyboardType="numeric"
-                  selectTextOnFocus
-                  editable={isEditing}
-                />
-                <Text style={s.nutritionUnit}>{item.unit}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
+            {isEditing && (
+              <Pressable
+                onPress={() => handleRemoveIngredient(index)}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                style={s.removeButton}
+              >
+                <View style={s.removeButtonInner}>
+                  <Ionicons name="close" size={10} color={colors.bg.primary} />
+                </View>
+              </Pressable>
+            )}
+          </View>
+        ))}
+        {isEditing && (
+          <View style={s.addIngredientContainer}>
+            <TextInput
+              style={s.addIngredientInput}
+              value={newIngredient}
+              onChangeText={setNewIngredient}
+              placeholder={diary.addIngredient}
+              placeholderTextColor={colors.text.tertiary}
+              onSubmitEditing={handleAddIngredient}
+              returnKeyType="done"
+            />
+            {newIngredient.trim() && (
+              <Pressable onPress={handleAddIngredient} style={s.addButton}>
+                <Ionicons name="add" size={16} color={colors.interactive.primary} />
+              </Pressable>
+            )}
+          </View>
+        )}
       </View>
     </View>
   );
 }
 
-export default AIAnalysisSection;
+/** @deprecated Use IngredientsSection instead */
+export const AIAnalysisSection = IngredientsSection;
+
+export default IngredientsSection;
 
 // =============================================================================
 // STYLES
@@ -264,15 +199,6 @@ const styles = createStyles((colors) => ({
     fontSize: tokens.typography.fontSize.bodySmall,
     fontWeight: tokens.typography.fontWeight.medium,
     color: colors.interactive.primary,
-  },
-  section: {
-    marginBottom: tokens.spacing.layout.sm,
-  },
-  sectionLabel: {
-    fontSize: tokens.typography.fontSize.caption,
-    fontWeight: tokens.typography.fontWeight.medium,
-    color: colors.text.secondary,
-    marginBottom: tokens.spacing.component.sm,
   },
   ingredientsList: {
     flexDirection: 'row',
@@ -329,55 +255,5 @@ const styles = createStyles((colors) => ({
   },
   addButton: {
     marginLeft: tokens.spacing.component.xs,
-  },
-  nutritionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: tokens.spacing.component.sm,
-  },
-  nutritionItem: {
-    backgroundColor: colors.bg.secondary,
-    paddingHorizontal: tokens.spacing.component.md,
-    paddingVertical: tokens.spacing.component.sm,
-    borderRadius: tokens.radius.md,
-    minWidth: '45%',
-    flexGrow: 1,
-  },
-  nutritionLabel: {
-    fontSize: tokens.typography.fontSize.caption,
-    fontWeight: tokens.typography.fontWeight.normal,
-    color: colors.text.tertiary,
-    marginBottom: 2,
-  },
-  nutritionValue: {
-    fontSize: tokens.typography.fontSize.body,
-    fontWeight: tokens.typography.fontWeight.semibold,
-    color: colors.text.primary,
-  },
-  nutritionInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: tokens.spacing.component.xs,
-    height: 28,
-  },
-  nutritionInput: {
-    fontSize: tokens.typography.fontSize.body,
-    fontWeight: tokens.typography.fontWeight.semibold,
-    color: colors.text.primary,
-    backgroundColor: colors.bg.primary,
-    borderRadius: tokens.radius.sm,
-    paddingHorizontal: tokens.spacing.component.sm,
-    paddingVertical: 0,
-    minWidth: 50,
-    height: 28,
-    textAlign: 'right',
-  },
-  nutritionInputDisabled: {
-    backgroundColor: 'transparent',
-  },
-  nutritionUnit: {
-    fontSize: tokens.typography.fontSize.caption,
-    fontWeight: tokens.typography.fontWeight.normal,
-    color: colors.text.tertiary,
   },
 }));

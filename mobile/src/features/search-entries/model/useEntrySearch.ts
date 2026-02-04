@@ -139,6 +139,9 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isSorting, setIsSorting] = useState(false);
+
+  // Tracks filter generation so loadMore discards stale appends
+  const loadVersionRef = useRef(0);
   const [error, setError] = useState<Error | null>(null);
 
   // Pagination
@@ -217,6 +220,8 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
 
   // Load data on filter changes
   useEffect(() => {
+    let stale = false;
+
     const loadData = async () => {
       try {
         setIsLoading(true);
@@ -239,6 +244,7 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
           if (params?.wouldEatAgain !== undefined) apiParams.would_eat_again = params.wouldEatAgain;
 
           const response = await entryApi.list(apiParams);
+          if (stale) return;
           const mapped = response.data.map(apiEntryToEntry);
           setEntries(mapped);
           setHasMore(response.meta.page < response.meta.total_pages);
@@ -250,19 +256,23 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
           if (datePeriod.endDate) filter.endDate = datePeriod.endDate;
 
           const loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
+          if (stale) return;
           const paginatedEntries = loadedEntries.slice(0, ITEMS_PER_PAGE);
           setEntries(paginatedEntries);
           setHasMore(ITEMS_PER_PAGE < loadedEntries.length);
         }
       } catch (err) {
+        if (stale) return;
         console.error("Error loading entries:", err);
         setError(err instanceof Error ? err : new Error("Failed to load entries"));
       } finally {
-        setIsLoading(false);
+        if (!stale) setIsLoading(false);
       }
     };
 
+    loadVersionRef.current += 1;
     loadData();
+    return () => { stale = true; };
   }, [debouncedQuery, datePeriod.startDate, datePeriod.endDate, isAuthenticated, deviceTz, params?.mealType, params?.sortOption, params?.wouldEatAgain]);
 
   // =============================================================================
@@ -315,6 +325,8 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
   const loadMore = useCallback(async () => {
     if (isLoadingMore || !hasMore) return;
 
+    const version = loadVersionRef.current;
+
     try {
       setIsLoadingMore(true);
 
@@ -334,6 +346,7 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
         if (params?.wouldEatAgain !== undefined) apiParams.would_eat_again = params.wouldEatAgain;
 
         const response = await entryApi.list(apiParams);
+        if (loadVersionRef.current !== version) return;
         const mapped = response.data.map(apiEntryToEntry);
 
         if (mapped.length > 0) {
@@ -349,6 +362,7 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
         if (datePeriod.endDate) filter.endDate = datePeriod.endDate;
 
         const loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
+        if (loadVersionRef.current !== version) return;
         const startIndex = page * ITEMS_PER_PAGE;
         const endIndex = startIndex + ITEMS_PER_PAGE;
         const newEntries = loadedEntries.slice(startIndex, endIndex);
@@ -360,6 +374,7 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
         setHasMore(endIndex < loadedEntries.length);
       }
     } catch (err) {
+      if (loadVersionRef.current !== version) return;
       console.error("Error loading more entries:", err);
     } finally {
       setIsLoadingMore(false);

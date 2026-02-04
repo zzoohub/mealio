@@ -9,7 +9,8 @@ import {
   AICommentBanner,
   EntryContextBar,
   EntryNotesSection,
-  AIAnalysisSection,
+  IngredientsSection,
+  NutritionSection,
   EntryLocationMap,
   EntryDeleteButton,
 } from "@/features/entry-detail";
@@ -99,11 +100,16 @@ export default function DiaryEntryScreen() {
           disabled={isDisabled}
         />
 
-        {/* AI Analysis Section */}
-        <AIAnalysisSection
+        {/* Ingredients Section */}
+        <IngredientsSection
           ingredients={entry?.meal.ingredients ?? entry?.meal.aiAnalysis?.ingredients}
-          nutrition={entry?.meal.nutrition ?? entry?.meal.aiAnalysis?.nutrition}
           onIngredientsChange={updateIngredients}
+          disabled={isDisabled}
+        />
+
+        {/* Nutrition Section */}
+        <NutritionSection
+          nutrition={entry?.meal.nutrition ?? entry?.meal.aiAnalysis?.nutrition}
           onNutritionChange={updateNutrition}
           disabled={isDisabled}
         />

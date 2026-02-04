@@ -334,6 +334,7 @@ export const useDiaryI18n = () => {
       mealTypeAccessibility: (type: string) => t("mealTypeAccessibility", { type }),
       location: t("location"),
       openInMaps: t("openInMaps"),
+      addNutrition: t("addNutrition"),
       stat: (key: string) => t(key as DiaryKeys),
     }),
     [t],

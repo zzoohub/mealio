@@ -141,6 +141,7 @@ export interface DiaryTranslations {
   mealTypeAccessibility: string;
   location: string;
   openInMaps: string;
+  addNutrition: string;
 }
 
 // Settings translations

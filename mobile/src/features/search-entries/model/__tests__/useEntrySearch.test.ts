@@ -1123,6 +1123,334 @@ describe("useEntrySearch", () => {
   });
 
   // =============================================================================
+  // Race Condition Tests
+  // =============================================================================
+
+  describe("Race condition guards", () => {
+    beforeEach(() => {
+      mockUseIsAuthenticated.mockReturnValue(true);
+    });
+
+    it("discards stale loadData response when filter changes during in-flight request", async () => {
+      // Simulate slow first API call
+      let resolveFirstCall: (value: any) => void;
+      const firstCallPromise = new Promise((resolve) => {
+        resolveFirstCall = resolve;
+      });
+
+      mockEntryApiList
+        .mockImplementationOnce(() => firstCallPromise)
+        .mockResolvedValueOnce(
+          mockApiResponse([createMockApiEntry({ id: 2, title: "Second Response" })])
+        );
+
+      const { result } = renderHook(() => useEntrySearch());
+
+      // Wait for initial load to start
+      await waitFor(() => {
+        expect(mockEntryApiList).toHaveBeenCalledTimes(1);
+      });
+
+      // Change filter while first request is in-flight
+      act(() => {
+        result.current.setSearchQuery("pizza");
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(300);
+      });
+
+      // Second API call fires
+      await waitFor(() => {
+        expect(mockEntryApiList).toHaveBeenCalledTimes(2);
+        expect(result.current.entries.length).toBe(1);
+        expect(result.current.entries[0].id).toBe("2");
+      });
+
+      // Now resolve the first (stale) call
+      await act(async () => {
+        resolveFirstCall!(
+          mockApiResponse([createMockApiEntry({ id: 1, title: "First Response (Stale)" })])
+        );
+      });
+
+      // Entries should only contain the second response, not the first
+      expect(result.current.entries.length).toBe(1);
+      expect(result.current.entries[0].id).toBe("2");
+    });
+
+    it("discards stale loadMore response when loadData fires during in-flight loadMore", async () => {
+      const page1Data = [createMockApiEntry({ id: 1 })];
+      const page2Data = [createMockApiEntry({ id: 2, title: "Page 2 (Stale)" })];
+      const freshData = [createMockApiEntry({ id: 3, title: "Fresh Data" })];
+
+      // Initial load succeeds
+      mockEntryApiList.mockResolvedValueOnce(mockApiResponse(page1Data, 1, 2));
+
+      const { result } = renderHook(() => useEntrySearch());
+
+      await waitFor(() => {
+        expect(result.current.entries.length).toBe(1);
+        expect(result.current.hasMore).toBe(true);
+      });
+
+      // Simulate slow loadMore
+      let resolveLoadMore: (value: any) => void;
+      const loadMorePromise = new Promise((resolve) => {
+        resolveLoadMore = resolve;
+      });
+      mockEntryApiList.mockImplementationOnce(() => loadMorePromise);
+
+      // Start loadMore
+      act(() => {
+        result.current.loadMore();
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoadingMore).toBe(true);
+      });
+
+      // Change filter while loadMore is in-flight (triggers loadData)
+      mockEntryApiList.mockResolvedValueOnce(mockApiResponse(freshData));
+
+      act(() => {
+        result.current.setSearchQuery("burger");
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(300);
+      });
+
+      // Wait for new loadData to complete
+      await waitFor(() => {
+        expect(result.current.entries.length).toBe(1);
+        expect(result.current.entries[0].id).toBe("3");
+      });
+
+      // Now resolve the stale loadMore
+      await act(async () => {
+        resolveLoadMore!(mockApiResponse(page2Data, 2, 2));
+      });
+
+      // Entries should still only contain fresh data, not appended stale page 2
+      expect(result.current.entries.length).toBe(1);
+      expect(result.current.entries[0].id).toBe("3");
+    });
+
+    it("discards stale loadMore response when filters change before loadMore completes", async () => {
+      const page1Data = [createMockApiEntry({ id: 1 })];
+      const page2Data = [createMockApiEntry({ id: 2, title: "Page 2 (Stale)" })];
+      const freshData = [createMockApiEntry({ id: 3, title: "Fresh Data" })];
+
+      mockEntryApiList.mockResolvedValueOnce(mockApiResponse(page1Data, 1, 2));
+
+      const { result } = renderHook(() => useEntrySearch());
+
+      await waitFor(() => {
+        expect(result.current.entries.length).toBe(1);
+        expect(result.current.hasMore).toBe(true);
+      });
+
+      // Simulate slow loadMore
+      let resolveLoadMore: (value: any) => void;
+      const loadMorePromise = new Promise((resolve) => {
+        resolveLoadMore = resolve;
+      });
+      mockEntryApiList.mockImplementationOnce(() => loadMorePromise);
+
+      // Start loadMore
+      act(() => {
+        result.current.loadMore();
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoadingMore).toBe(true);
+      });
+
+      // Change date range filter (triggers loadData with new version)
+      mockEntryApiList.mockResolvedValueOnce(mockApiResponse(freshData));
+
+      act(() => {
+        result.current.setDateRangePreset(7);
+      });
+
+      // Wait for new loadData to complete
+      await waitFor(() => {
+        expect(result.current.entries.length).toBe(1);
+        expect(result.current.entries[0].id).toBe("3");
+      });
+
+      // Now resolve the stale loadMore
+      await act(async () => {
+        resolveLoadMore!(mockApiResponse(page2Data, 2, 2));
+      });
+
+      // Entries should not be appended with stale page 2
+      expect(result.current.entries.length).toBe(1);
+      expect(result.current.entries[0].id).toBe("3");
+    });
+
+    it("handles multiple rapid filter changes with only latest response applied", async () => {
+      const responses = [
+        mockApiResponse([createMockApiEntry({ id: 1, title: "First" })]),
+        mockApiResponse([createMockApiEntry({ id: 2, title: "Second" })]),
+        mockApiResponse([createMockApiEntry({ id: 3, title: "Third (Latest)" })]),
+      ];
+
+      let resolvers: Array<(value: any) => void> = [];
+
+      // Mock three slow API calls
+      mockEntryApiList
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              resolvers.push(resolve);
+            })
+        )
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              resolvers.push(resolve);
+            })
+        )
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              resolvers.push(resolve);
+            })
+        );
+
+      const { result } = renderHook(() => useEntrySearch());
+
+      // Wait for initial load to start
+      await waitFor(() => {
+        expect(mockEntryApiList).toHaveBeenCalledTimes(1);
+      });
+
+      // Trigger second load
+      act(() => {
+        result.current.setSearchQuery("first");
+      });
+      act(() => {
+        jest.advanceTimersByTime(300);
+      });
+
+      await waitFor(() => {
+        expect(mockEntryApiList).toHaveBeenCalledTimes(2);
+      });
+
+      // Trigger third load
+      act(() => {
+        result.current.setSearchQuery("second");
+      });
+      act(() => {
+        jest.advanceTimersByTime(300);
+      });
+
+      await waitFor(() => {
+        expect(mockEntryApiList).toHaveBeenCalledTimes(3);
+      });
+
+      // Resolve all in reverse order (newest first)
+      await act(async () => {
+        resolvers[2](responses[2]); // Latest
+      });
+
+      await waitFor(() => {
+        expect(result.current.entries.length).toBe(1);
+      });
+
+      // Resolve older stale responses
+      await act(async () => {
+        resolvers[0](responses[0]);
+        resolvers[1](responses[1]);
+      });
+
+      // Should still only have the latest response
+      expect(result.current.entries.length).toBe(1);
+      expect(result.current.entries[0].id).toBe("3");
+    });
+
+    it("does not discard loadMore response when no filter changes occur", async () => {
+      const page1Data = [createMockApiEntry({ id: 1 })];
+      const page2Data = [createMockApiEntry({ id: 2 })];
+
+      mockEntryApiList
+        .mockResolvedValueOnce(mockApiResponse(page1Data, 1, 2))
+        .mockResolvedValueOnce(mockApiResponse(page2Data, 2, 2));
+
+      const { result } = renderHook(() => useEntrySearch());
+
+      await waitFor(() => {
+        expect(result.current.entries.length).toBe(1);
+        expect(result.current.hasMore).toBe(true);
+      });
+
+      // Call loadMore without any filter changes
+      act(() => {
+        result.current.loadMore();
+      });
+
+      await waitFor(() => {
+        expect(result.current.entries.length).toBe(2);
+        expect(result.current.hasMore).toBe(false);
+      });
+
+      // Both entries should be present
+      expect(result.current.entries[0].id).toBe("1");
+      expect(result.current.entries[1].id).toBe("2");
+    });
+
+    it("handles race condition in guest mode with local storage", async () => {
+      mockUseIsAuthenticated.mockReturnValue(false);
+
+      const firstEntries = [createMockEntry({ id: "1", notes: "First (Stale)" })];
+      const secondEntries = [createMockEntry({ id: "2", notes: "Second (Latest)" })];
+
+      let resolveFirstCall: (value: any) => void;
+      const firstCallPromise = new Promise((resolve) => {
+        resolveFirstCall = resolve;
+      });
+
+      mockGetEntriesFiltered
+        .mockImplementationOnce(() => firstCallPromise)
+        .mockResolvedValueOnce(secondEntries);
+
+      const { result } = renderHook(() => useEntrySearch());
+
+      // Wait for initial load to start
+      await waitFor(() => {
+        expect(mockGetEntriesFiltered).toHaveBeenCalledTimes(1);
+      });
+
+      // Change filter while first request is in-flight
+      act(() => {
+        result.current.setSearchQuery("test");
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(300);
+      });
+
+      // Second call fires
+      await waitFor(() => {
+        expect(mockGetEntriesFiltered).toHaveBeenCalledTimes(2);
+        expect(result.current.entries.length).toBe(1);
+        expect(result.current.entries[0].id).toBe("2");
+      });
+
+      // Now resolve the first (stale) call
+      await act(async () => {
+        resolveFirstCall!(firstEntries);
+      });
+
+      // Entries should only contain the second response
+      expect(result.current.entries.length).toBe(1);
+      expect(result.current.entries[0].id).toBe("2");
+    });
+  });
+
+  // =============================================================================
   // Refetch Tests
   // =============================================================================
   // Debounce Tests

@@ -45,5 +45,6 @@
   "mealTypeSelect": "식사 종류 선택",
   "mealTypeAccessibility": "식사 종류: {{type}}, 탭하여 변경",
   "location": "위치",
-  "openInMaps": "지도에서 열기"
+  "openInMaps": "지도에서 열기",
+  "addNutrition": "영양정보 추가"
 }
