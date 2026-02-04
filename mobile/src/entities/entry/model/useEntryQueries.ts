@@ -3,6 +3,7 @@ import { queryKeys } from "@/shared/config";
 import { mapApiDiaryEntryDetailToEntry } from "@/shared/api";
 import type { ApiDiaryQueryParams, ApiCreateEntryRequest, ApiUpdateEntryRequest, ApiUpsertNutritionRequest } from "@/shared/api";
 import { entryApi } from "../api/entryApi";
+import { ingredientApi } from "../api/ingredientApi";
 import { nutritionApi } from "../api/nutritionApi";
 
 // =============================================================================
@@ -78,6 +79,36 @@ export function useDeleteEntryMutation() {
     mutationFn: (id: number) => entryApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.diary.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() });
+    },
+  });
+}
+
+export function useSyncIngredientsMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ entryId, ingredientNames }: { entryId: number; ingredientNames: string[] }) => {
+      // Deduplicate names (case-insensitive) before resolution
+      const uniqueNames = [...new Set(ingredientNames.map((n) => n.trim().toLowerCase()))].filter(Boolean);
+
+      // Resolve ingredient names to IDs (search first, create if not found)
+      const resolvedIngredients = await Promise.all(
+        uniqueNames.map(async (name) => {
+          const result = await ingredientApi.search(name);
+          const exact = result.data.find(
+            (i) => i.name.toLowerCase() === name.toLowerCase(),
+          );
+          if (exact) return { ingredient_id: exact.id };
+          const created = await ingredientApi.create(name);
+          return { ingredient_id: created.id };
+        }),
+      );
+
+      return ingredientApi.sync(entryId, { ingredients: resolvedIngredients });
+    },
+    onSuccess: (_data, { entryId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.diary.detail(entryId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() });
     },
   });

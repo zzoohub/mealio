@@ -127,6 +127,9 @@ export function mapApiDiaryEntryDetailToEntry(detail: ApiDiaryEntryDetail): Entr
   if (nutrition) {
     meal.nutrition = nutrition;
   }
+  if (detail.ingredients && detail.ingredients.length > 0) {
+    meal.ingredients = detail.ingredients.map((i) => i.ingredient_name);
+  }
 
   const entry: Entry = {
     id: String(detail.id),
@@ -137,6 +140,13 @@ export function mapApiDiaryEntryDetailToEntry(detail: ApiDiaryEntryDetail): Entr
     createdAt: new Date(detail.created_at),
     updatedAt: new Date(detail.updated_at),
   };
+
+  if (detail.rating != null) {
+    entry.rating = detail.rating;
+  }
+  if (detail.would_eat_again != null) {
+    entry.wouldEatAgain = detail.would_eat_again;
+  }
 
   if (location) {
     entry.location = location;
@@ -187,6 +197,12 @@ export function mapEntryToUpdateRequest(
   }
   if (updates.timestamp) {
     req.eaten_at = updates.timestamp.toISOString();
+  }
+  if (updates.rating !== undefined) {
+    req.rating = updates.rating;
+  }
+  if (updates.wouldEatAgain !== undefined) {
+    req.would_eat_again = updates.wouldEatAgain;
   }
 
   return req;

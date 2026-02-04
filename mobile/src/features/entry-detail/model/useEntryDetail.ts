@@ -7,6 +7,7 @@ import {
   entryStorageUtils,
   useEntryDetailQuery,
   useUpdateEntryMutation,
+  useSyncIngredientsMutation,
   useUpsertNutritionMutation,
   useDeleteEntryMutation,
 } from "@/entities/entry";
@@ -68,6 +69,7 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
 
   const apiDetailQuery = useEntryDetailQuery(numericId, isApiEntry);
   const updateEntryMutation = useUpdateEntryMutation();
+  const syncIngredientsMutation = useSyncIngredientsMutation();
   const upsertNutritionMutation = useUpsertNutritionMutation();
   const deleteEntryMutation = useDeleteEntryMutation();
 
@@ -178,25 +180,47 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
 
   const updateRating = useCallback(
     (rating: number) => {
-      updateGuestEntry({ rating });
+      if (isApiEntry) {
+        updateEntryMutation.mutate({
+          id: numericId,
+          body: mapEntryToUpdateRequest({ rating }),
+        });
+      } else {
+        updateGuestEntry({ rating });
+      }
     },
-    [updateGuestEntry]
+    [isApiEntry, numericId, updateEntryMutation, updateGuestEntry]
   );
 
   const updateWouldEatAgain = useCallback(
     (wouldEatAgain: boolean) => {
-      updateGuestEntry({ wouldEatAgain });
+      if (isApiEntry) {
+        updateEntryMutation.mutate({
+          id: numericId,
+          body: mapEntryToUpdateRequest({ wouldEatAgain }),
+        });
+      } else {
+        updateGuestEntry({ wouldEatAgain });
+      }
     },
-    [updateGuestEntry]
+    [isApiEntry, numericId, updateEntryMutation, updateGuestEntry]
   );
 
   const updateIngredients = useCallback(
     (ingredients: string[]) => {
       const current = entryRef.current;
       if (!current) return;
-      updateGuestEntry({ meal: { ...current.meal, ingredients } });
+
+      if (isApiEntry) {
+        syncIngredientsMutation.mutate({
+          entryId: numericId,
+          ingredientNames: ingredients,
+        });
+      } else {
+        updateGuestEntry({ meal: { ...current.meal, ingredients } });
+      }
     },
-    [updateGuestEntry]
+    [isApiEntry, numericId, syncIngredientsMutation, updateGuestEntry]
   );
 
   const updateNutrition = useCallback(

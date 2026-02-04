@@ -59,7 +59,13 @@ pub async fn create_ingredient(
     Db(db): Db,
     Json(req): Json<CreateIngredientRequest>,
 ) -> Result<response::Created<Ingredient>, AppError> {
-    let ingredient = Ingredient::create(&db, &req.name, req.category.as_deref()).await?;
+    let name = req.name.trim();
+    if name.is_empty() || name.len() > 200 {
+        return Err(AppError::BadRequest(
+            "ingredient name must be between 1 and 200 characters".into(),
+        ));
+    }
+    let ingredient = Ingredient::create(&db, name, req.category.as_deref()).await?;
     Ok(response::Created(ingredient))
 }
 
@@ -125,6 +131,11 @@ pub async fn sync_ingredients(
     Path(entry_id): Path<i64>,
     Json(req): Json<SyncIngredientsRequest>,
 ) -> Result<response::Ok<Vec<EntryIngredientWithName>>, AppError> {
+    if req.ingredients.len() > 100 {
+        return Err(AppError::BadRequest(
+            "cannot sync more than 100 ingredients at once".into(),
+        ));
+    }
     DiaryEntry::verify_ownership(&db, entry_id, auth.user_id).await?;
     let ingredients = EntryIngredient::sync(&db, entry_id, &req.ingredients).await?;
     Ok(response::Ok(ingredients))

@@ -72,8 +72,8 @@ export const EntryFeedItem = memo(function EntryFeedItem({ entry, onPress }: Ent
   const photoUris = entry.meal.photoUris ?? (entry.meal.photoUri ? [entry.meal.photoUri] : []);
 
   return (
-    <Pressable style={styles.container} onPress={handlePress}>
-      {/* Photo Carousel */}
+    <View style={styles.container}>
+      {/* Photo Carousel — outside Pressable so PagerView receives swipe gestures */}
       <View>
         <PhotoCarousel photoUris={photoUris} onPhotoPress={onPress ? () => handlePress() : undefined} />
 
@@ -86,7 +86,7 @@ export const EntryFeedItem = memo(function EntryFeedItem({ entry, onPress }: Ent
       </View>
 
       {/* Info Section - Below Photo */}
-      <View style={styles.infoSection}>
+      <Pressable style={styles.infoSection} onPress={handlePress}>
         {/* Notes */}
         {hasNotes && (
           <Text
@@ -123,8 +123,8 @@ export const EntryFeedItem = memo(function EntryFeedItem({ entry, onPress }: Ent
             </>
           )}
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </View>
   );
 });
 

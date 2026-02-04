@@ -16,6 +16,8 @@ pub struct DiaryEntry {
     pub updated_at: DateTime<Utc>,
     pub primary_photo_url: Option<String>,
     pub photo_urls: Vec<String>,
+    pub rating: Option<i16>,
+    pub would_eat_again: Option<bool>,
 }
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
@@ -25,6 +27,7 @@ pub struct DiaryEntryDetail {
     pub location: Option<EntryLocation>,
     pub photos: Vec<super::super::photos::models::EntryPhoto>,
     pub nutrition: Option<super::super::nutrition::models::UserNutrition>,
+    pub ingredients: Vec<super::super::ingredients::models::EntryIngredientWithName>,
 }
 
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
@@ -50,6 +53,8 @@ pub struct UpdateEntryRequest {
     pub title: Option<String>,
     pub notes: Option<String>,
     pub eaten_at: Option<DateTime<Utc>>,
+    pub rating: Option<i16>,
+    pub would_eat_again: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, utoipa::IntoParams)]
@@ -134,7 +139,8 @@ impl DiaryEntry {
                      LIMIT 1) AS primary_photo_url,
                     ARRAY(SELECT ep.url FROM entry_photos ep
                           WHERE ep.entry_id = d.id
-                          ORDER BY ep.sort_order, ep.created_at) AS photo_urls
+                          ORDER BY ep.sort_order, ep.created_at) AS photo_urls,
+                    d.rating, d.would_eat_again
              FROM diary_entries d
              WHERE d.user_id = $1 AND d.deleted_at IS NULL
              AND ($2::date IS NULL OR (d.eaten_at AT TIME ZONE COALESCE($8, 'UTC'))::date >= $2)
@@ -167,7 +173,8 @@ impl DiaryEntry {
                      LIMIT 1) AS primary_photo_url,
                     ARRAY(SELECT ep.url FROM entry_photos ep
                           WHERE ep.entry_id = d.id
-                          ORDER BY ep.sort_order, ep.created_at) AS photo_urls
+                          ORDER BY ep.sort_order, ep.created_at) AS photo_urls,
+                    d.rating, d.would_eat_again
              FROM diary_entries d WHERE d.id = $1 AND d.user_id = $2 AND d.deleted_at IS NULL",
         )
         .bind(id)
@@ -189,7 +196,8 @@ impl DiaryEntry {
              VALUES ($1, $2, $3, $4, COALESCE($5, now()))
              RETURNING id, user_id, meal_type, title, notes, eaten_at, created_at, updated_at,
                        NULL::text AS primary_photo_url,
-                       ARRAY[]::text[] AS photo_urls",
+                       ARRAY[]::text[] AS photo_urls,
+                       rating, would_eat_again",
         )
         .bind(user_id)
         .bind(meal_type)
@@ -208,13 +216,17 @@ impl DiaryEntry {
         title: Option<&str>,
         notes: Option<&str>,
         eaten_at: Option<DateTime<Utc>>,
+        rating: Option<i16>,
+        would_eat_again: Option<bool>,
     ) -> Result<Self, sqlx::Error> {
         sqlx::query_as::<_, DiaryEntry>(
             "UPDATE diary_entries
              SET meal_type = COALESCE($3, meal_type),
                  title = COALESCE($4, title),
                  notes = COALESCE($5, notes),
-                 eaten_at = COALESCE($6, eaten_at)
+                 eaten_at = COALESCE($6, eaten_at),
+                 rating = COALESCE($7, rating),
+                 would_eat_again = COALESCE($8, would_eat_again)
              WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
              RETURNING id, user_id, meal_type, title, notes, eaten_at, created_at, updated_at,
                        (SELECT ep.url FROM entry_photos ep
@@ -223,7 +235,8 @@ impl DiaryEntry {
                         LIMIT 1) AS primary_photo_url,
                        ARRAY(SELECT ep.url FROM entry_photos ep
                              WHERE ep.entry_id = id
-                             ORDER BY ep.sort_order, ep.created_at) AS photo_urls",
+                             ORDER BY ep.sort_order, ep.created_at) AS photo_urls,
+                       rating, would_eat_again",
         )
         .bind(id)
         .bind(user_id)
@@ -231,6 +244,8 @@ impl DiaryEntry {
         .bind(title)
         .bind(notes)
         .bind(eaten_at)
+        .bind(rating)
+        .bind(would_eat_again)
         .fetch_one(db)
         .await
     }

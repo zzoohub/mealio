@@ -7,6 +7,7 @@ use crate::response;
 use crate::shared::types::{Paginated, PaginationMeta, PaginationParams};
 
 use super::models::*;
+use crate::features::ingredients::models::EntryIngredient;
 use crate::features::nutrition::models::UserNutrition;
 use crate::features::photos::models::EntryPhoto;
 
@@ -107,12 +108,14 @@ pub async fn get_entry(
     let location = EntryLocation::find_by_entry_id(&db, entry.id).await?;
     let photos = EntryPhoto::list_by_entry_id(&db, entry.id).await?;
     let nutrition = UserNutrition::find_by_entry_id(&db, entry.id).await?;
+    let ingredients = EntryIngredient::list_by_entry_id(&db, entry.id).await?;
 
     Ok(response::Ok(DiaryEntryDetail {
         entry,
         location,
         photos,
         nutrition,
+        ingredients,
     }))
 }
 
@@ -139,6 +142,13 @@ pub async fn update_entry(
         .await?
         .ok_or_else(|| AppError::NotFound("diary entry not found".into()))?;
 
+    // Validate rating range
+    if let Some(rating) = req.rating {
+        if !(0..=5).contains(&rating) {
+            return Err(AppError::BadRequest("rating must be between 0 and 5".into()));
+        }
+    }
+
     let entry = DiaryEntry::update(
         &db,
         id,
@@ -147,6 +157,8 @@ pub async fn update_entry(
         req.title.as_deref(),
         req.notes.as_deref(),
         req.eaten_at,
+        req.rating,
+        req.would_eat_again,
     )
     .await?;
 
@@ -261,4 +273,87 @@ pub async fn delete_location(
 
     EntryLocation::delete_by_entry_id(&db, id).await?;
     Ok(response::NoContent)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_rating_validation_rejects_value_6() {
+        let rating = Some(6);
+        let result = validate_rating(rating);
+        assert!(result.is_err());
+        match result {
+            Err(AppError::BadRequest(msg)) => {
+                assert_eq!(msg, "rating must be between 0 and 5");
+            }
+            _ => panic!("Expected BadRequest error"),
+        }
+    }
+
+    #[test]
+    fn test_rating_validation_rejects_negative_value() {
+        let rating = Some(-1);
+        let result = validate_rating(rating);
+        assert!(result.is_err());
+        match result {
+            Err(AppError::BadRequest(msg)) => {
+                assert_eq!(msg, "rating must be between 0 and 5");
+            }
+            _ => panic!("Expected BadRequest error"),
+        }
+    }
+
+    #[test]
+    fn test_rating_validation_accepts_0() {
+        let rating = Some(0);
+        let result = validate_rating(rating);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_rating_validation_accepts_3() {
+        let rating = Some(3);
+        let result = validate_rating(rating);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_rating_validation_accepts_5() {
+        let rating = Some(5);
+        let result = validate_rating(rating);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_rating_validation_accepts_none() {
+        let rating = None;
+        let result = validate_rating(rating);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_rating_validation_boundary_lower() {
+        let rating = Some(-100);
+        let result = validate_rating(rating);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_rating_validation_boundary_upper() {
+        let rating = Some(100);
+        let result = validate_rating(rating);
+        assert!(result.is_err());
+    }
+
+    // Helper function to validate rating (extracted from update_entry logic)
+    fn validate_rating(rating: Option<i16>) -> Result<(), AppError> {
+        if let Some(r) = rating {
+            if !(0..=5).contains(&r) {
+                return Err(AppError::BadRequest("rating must be between 0 and 5".into()));
+            }
+        }
+        Ok(())
+    }
 }

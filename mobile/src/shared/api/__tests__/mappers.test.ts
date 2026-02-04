@@ -375,9 +375,12 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       eaten_at: "2024-01-01T08:00:00Z",
       created_at: "2024-01-01T08:00:00Z",
       updated_at: "2024-01-01T08:00:00Z",
+      rating: null,
+      would_eat_again: null,
       location,
       photos,
       nutrition,
+      ingredients: [],
     };
 
     const result = mapApiDiaryEntryDetailToEntry(detail);
@@ -451,9 +454,12 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       eaten_at: "2024-01-01T12:00:00Z",
       created_at: "2024-01-01T12:00:00Z",
       updated_at: "2024-01-01T12:00:00Z",
+      rating: null,
+      would_eat_again: null,
       location: null,
       photos,
       nutrition: null,
+      ingredients: [],
     };
 
     const result = mapApiDiaryEntryDetailToEntry(detail);
@@ -498,9 +504,12 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       eaten_at: "2024-01-01T18:00:00Z",
       created_at: "2024-01-01T18:00:00Z",
       updated_at: "2024-01-01T18:00:00Z",
+      rating: null,
+      would_eat_again: null,
       location: null,
       photos,
       nutrition: null,
+      ingredients: [],
     };
 
     const result = mapApiDiaryEntryDetailToEntry(detail);
@@ -518,9 +527,12 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       eaten_at: "2024-01-01T15:00:00Z",
       created_at: "2024-01-01T15:00:00Z",
       updated_at: "2024-01-01T15:00:00Z",
+      rating: null,
+      would_eat_again: null,
       location: null,
       photos: [],
       nutrition: null,
+      ingredients: [],
     };
 
     const result = mapApiDiaryEntryDetailToEntry(detail);
@@ -539,9 +551,12 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       eaten_at: "2024-01-01T15:00:00Z",
       created_at: "2024-01-01T15:00:00Z",
       updated_at: "2024-01-01T15:00:00Z",
+      rating: null,
+      would_eat_again: null,
       location: null,
       photos: [],
       nutrition: null,
+      ingredients: [],
     };
 
     const result = mapApiDiaryEntryDetailToEntry(detail);
@@ -559,9 +574,12 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       eaten_at: "2024-01-01T12:00:00Z",
       created_at: "2024-01-01T12:00:00Z",
       updated_at: "2024-01-01T12:00:00Z",
+      rating: null,
+      would_eat_again: null,
       location: null,
       photos: [],
       nutrition: null,
+      ingredients: [],
     };
 
     const result = mapApiDiaryEntryDetailToEntry(detail);
@@ -590,9 +608,12 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       eaten_at: "2024-01-01T18:00:00Z",
       created_at: "2024-01-01T18:00:00Z",
       updated_at: "2024-01-01T18:00:00Z",
+      rating: null,
+      would_eat_again: null,
       location,
       photos: [],
       nutrition: null,
+      ingredients: [],
     };
 
     const result = mapApiDiaryEntryDetailToEntry(detail);
@@ -613,9 +634,12 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       eaten_at: "2024-01-01T08:00:00Z",
       created_at: "2024-01-01T08:00:00Z",
       updated_at: "2024-01-01T08:00:00Z",
+      rating: null,
+      would_eat_again: null,
       location: null,
       photos: [],
       nutrition: null,
+      ingredients: [],
     };
 
     const result = mapApiDiaryEntryDetailToEntry(detail);
@@ -633,9 +657,12 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       eaten_at: "2024-01-01T08:00:00Z",
       created_at: "2024-01-01T08:00:00Z",
       updated_at: "2024-01-01T08:00:00Z",
+      rating: null,
+      would_eat_again: null,
       location: null,
       photos: [],
       nutrition: null,
+      ingredients: [],
     };
 
     const result = mapApiDiaryEntryDetailToEntry(detail);
@@ -664,9 +691,12 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
         eaten_at: "2024-01-01T12:00:00Z",
         created_at: "2024-01-01T12:00:00Z",
         updated_at: "2024-01-01T12:00:00Z",
+        rating: null,
+        would_eat_again: null,
         location: null,
         photos: [],
         nutrition: null,
+        ingredients: [],
       };
 
       const result = mapApiDiaryEntryDetailToEntry(detail);
@@ -833,5 +863,295 @@ describe("mapEntryToUpdateRequest", () => {
     const result = mapEntryToUpdateRequest(updates);
 
     expect(result).toEqual({});
+  });
+
+  it("maps rating field", () => {
+    const updates: Partial<Omit<Entry, "id" | "createdAt">> = {
+      rating: 4,
+    };
+
+    const result = mapEntryToUpdateRequest(updates);
+
+    expect(result.rating).toBe(4);
+  });
+
+  it("maps wouldEatAgain to would_eat_again", () => {
+    const updates: Partial<Omit<Entry, "id" | "createdAt">> = {
+      wouldEatAgain: true,
+    };
+
+    const result = mapEntryToUpdateRequest(updates);
+
+    expect(result.would_eat_again).toBe(true);
+  });
+
+  it("handles update with only rating", () => {
+    const updates: Partial<Omit<Entry, "id" | "createdAt">> = {
+      rating: 5,
+    };
+
+    const result = mapEntryToUpdateRequest(updates);
+
+    expect(result.rating).toBe(5);
+    expect(result.notes).toBeUndefined();
+    expect(result.meal_type).toBeUndefined();
+    expect(result.eaten_at).toBeUndefined();
+    expect(result.would_eat_again).toBeUndefined();
+  });
+
+  it("handles update with only wouldEatAgain", () => {
+    const updates: Partial<Omit<Entry, "id" | "createdAt">> = {
+      wouldEatAgain: false,
+    };
+
+    const result = mapEntryToUpdateRequest(updates);
+
+    expect(result.would_eat_again).toBe(false);
+    expect(result.notes).toBeUndefined();
+    expect(result.meal_type).toBeUndefined();
+    expect(result.eaten_at).toBeUndefined();
+    expect(result.rating).toBeUndefined();
+  });
+
+  it("handles rating value 0", () => {
+    const updates: Partial<Omit<Entry, "id" | "createdAt">> = {
+      rating: 0,
+    };
+
+    const result = mapEntryToUpdateRequest(updates);
+
+    expect(result.rating).toBe(0);
+  });
+});
+
+// =============================================================================
+// Diary Entry Detail - New Fields
+// =============================================================================
+
+describe("mapApiDiaryEntryDetailToEntry - new fields", () => {
+  it("maps rating from detail to entry", () => {
+    const detail: ApiDiaryEntryDetail = {
+      id: 100,
+      user_id: 1,
+      meal_type: "breakfast",
+      title: "Breakfast",
+      notes: null,
+      eaten_at: "2024-01-01T08:00:00Z",
+      created_at: "2024-01-01T08:00:00Z",
+      updated_at: "2024-01-01T08:00:00Z",
+      rating: 4,
+      would_eat_again: null,
+      location: null,
+      photos: [],
+      nutrition: null,
+      ingredients: [],
+    };
+
+    const result = mapApiDiaryEntryDetailToEntry(detail);
+
+    expect(result.rating).toBe(4);
+  });
+
+  it("maps would_eat_again from detail to entry.wouldEatAgain", () => {
+    const detail: ApiDiaryEntryDetail = {
+      id: 100,
+      user_id: 1,
+      meal_type: "lunch",
+      title: "Lunch",
+      notes: null,
+      eaten_at: "2024-01-01T12:00:00Z",
+      created_at: "2024-01-01T12:00:00Z",
+      updated_at: "2024-01-01T12:00:00Z",
+      rating: null,
+      would_eat_again: true,
+      location: null,
+      photos: [],
+      nutrition: null,
+      ingredients: [],
+    };
+
+    const result = mapApiDiaryEntryDetailToEntry(detail);
+
+    expect(result.wouldEatAgain).toBe(true);
+  });
+
+  it("maps ingredients to meal.ingredients as string array", () => {
+    const detail: ApiDiaryEntryDetail = {
+      id: 100,
+      user_id: 1,
+      meal_type: "dinner",
+      title: "Dinner",
+      notes: null,
+      eaten_at: "2024-01-01T18:00:00Z",
+      created_at: "2024-01-01T18:00:00Z",
+      updated_at: "2024-01-01T18:00:00Z",
+      rating: null,
+      would_eat_again: null,
+      location: null,
+      photos: [],
+      nutrition: null,
+      ingredients: [
+        {
+          id: 1,
+          entry_id: 100,
+          ingredient_id: 10,
+          ingredient_name: "Chicken",
+          amount: "200",
+          unit: "g",
+          created_at: "2024-01-01T18:00:00Z",
+        },
+        {
+          id: 2,
+          entry_id: 100,
+          ingredient_id: 11,
+          ingredient_name: "Rice",
+          amount: null,
+          unit: null,
+          created_at: "2024-01-01T18:00:00Z",
+        },
+      ],
+    };
+
+    const result = mapApiDiaryEntryDetailToEntry(detail);
+
+    expect(result.meal.ingredients).toEqual(["Chicken", "Rice"]);
+  });
+
+  it("handles null rating", () => {
+    const detail: ApiDiaryEntryDetail = {
+      id: 100,
+      user_id: 1,
+      meal_type: "snack",
+      title: "Snack",
+      notes: null,
+      eaten_at: "2024-01-01T15:00:00Z",
+      created_at: "2024-01-01T15:00:00Z",
+      updated_at: "2024-01-01T15:00:00Z",
+      rating: null,
+      would_eat_again: null,
+      location: null,
+      photos: [],
+      nutrition: null,
+      ingredients: [],
+    };
+
+    const result = mapApiDiaryEntryDetailToEntry(detail);
+
+    expect(result.rating).toBeUndefined();
+  });
+
+  it("handles null would_eat_again", () => {
+    const detail: ApiDiaryEntryDetail = {
+      id: 100,
+      user_id: 1,
+      meal_type: "dessert",
+      title: "Dessert",
+      notes: null,
+      eaten_at: "2024-01-01T20:00:00Z",
+      created_at: "2024-01-01T20:00:00Z",
+      updated_at: "2024-01-01T20:00:00Z",
+      rating: null,
+      would_eat_again: null,
+      location: null,
+      photos: [],
+      nutrition: null,
+      ingredients: [],
+    };
+
+    const result = mapApiDiaryEntryDetailToEntry(detail);
+
+    expect(result.wouldEatAgain).toBeUndefined();
+  });
+
+  it("handles empty ingredients array", () => {
+    const detail: ApiDiaryEntryDetail = {
+      id: 100,
+      user_id: 1,
+      meal_type: "breakfast",
+      title: "Breakfast",
+      notes: null,
+      eaten_at: "2024-01-01T08:00:00Z",
+      created_at: "2024-01-01T08:00:00Z",
+      updated_at: "2024-01-01T08:00:00Z",
+      rating: null,
+      would_eat_again: null,
+      location: null,
+      photos: [],
+      nutrition: null,
+      ingredients: [],
+    };
+
+    const result = mapApiDiaryEntryDetailToEntry(detail);
+
+    expect(result.meal.ingredients).toBeUndefined();
+  });
+
+  it("maps rating value 0", () => {
+    const detail: ApiDiaryEntryDetail = {
+      id: 100,
+      user_id: 1,
+      meal_type: "breakfast",
+      title: "Breakfast",
+      notes: null,
+      eaten_at: "2024-01-01T08:00:00Z",
+      created_at: "2024-01-01T08:00:00Z",
+      updated_at: "2024-01-01T08:00:00Z",
+      rating: 0,
+      would_eat_again: null,
+      location: null,
+      photos: [],
+      nutrition: null,
+      ingredients: [],
+    };
+
+    const result = mapApiDiaryEntryDetailToEntry(detail);
+
+    expect(result.rating).toBe(0);
+  });
+
+  it("maps rating value 5", () => {
+    const detail: ApiDiaryEntryDetail = {
+      id: 100,
+      user_id: 1,
+      meal_type: "breakfast",
+      title: "Breakfast",
+      notes: null,
+      eaten_at: "2024-01-01T08:00:00Z",
+      created_at: "2024-01-01T08:00:00Z",
+      updated_at: "2024-01-01T08:00:00Z",
+      rating: 5,
+      would_eat_again: null,
+      location: null,
+      photos: [],
+      nutrition: null,
+      ingredients: [],
+    };
+
+    const result = mapApiDiaryEntryDetailToEntry(detail);
+
+    expect(result.rating).toBe(5);
+  });
+
+  it("maps would_eat_again false", () => {
+    const detail: ApiDiaryEntryDetail = {
+      id: 100,
+      user_id: 1,
+      meal_type: "lunch",
+      title: "Lunch",
+      notes: null,
+      eaten_at: "2024-01-01T12:00:00Z",
+      created_at: "2024-01-01T12:00:00Z",
+      updated_at: "2024-01-01T12:00:00Z",
+      rating: null,
+      would_eat_again: false,
+      location: null,
+      photos: [],
+      nutrition: null,
+      ingredients: [],
+    };
+
+    const result = mapApiDiaryEntryDetailToEntry(detail);
+
+    expect(result.wouldEatAgain).toBe(false);
   });
 });

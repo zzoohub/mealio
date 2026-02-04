@@ -125,6 +125,8 @@ export interface ApiDiaryEntry {
   updated_at: string;
   primary_photo_url: string | null;
   photo_urls?: string[];
+  rating: number | null;
+  would_eat_again: boolean | null;
 }
 
 export interface ApiEntryLocation {
@@ -188,9 +190,12 @@ export interface ApiDiaryEntryDetail {
   eaten_at: string;
   created_at: string;
   updated_at: string;
+  rating: number | null;
+  would_eat_again: boolean | null;
   location: ApiEntryLocation | null;
   photos: ApiEntryPhoto[];
   nutrition: ApiUserNutrition | null;
+  ingredients: ApiEntryIngredientWithName[];
 }
 
 export interface ApiCreateEntryRequest {
@@ -213,6 +218,8 @@ export interface ApiUpdateEntryRequest {
   title?: string;
   notes?: string;
   eaten_at?: string;
+  rating?: number;
+  would_eat_again?: boolean;
 }
 
 export interface ApiUpsertLocationRequest {
