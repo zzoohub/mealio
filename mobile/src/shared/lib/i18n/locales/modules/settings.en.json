@@ -1,8 +1,13 @@
 {
   "title": "Settings",
   "account": {
+    "title": "Account",
     "signIn": "Sign in",
-    "signInDescription": "Sync your meals across devices"
+    "signInDescription": "Sync your meals across devices",
+    "signOut": "Sign Out",
+    "signOutDescription": "Sign out of your account",
+    "deleteAccount": "Delete Account",
+    "deleteAccountDescription": "Permanently delete your account"
   },
   "language": {
     "title": "Language",

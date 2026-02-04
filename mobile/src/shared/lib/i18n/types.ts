@@ -11,6 +11,7 @@ export interface TranslationResources {
   errors: ErrorTranslations;
   settings: SettingsTranslations;
   diary: DiaryTranslations;
+  auth: AuthTranslations;
 }
 
 // Navigation translations
@@ -52,6 +53,23 @@ export interface CameraTranslations {
   };
 }
 
+// Auth translations
+export interface AuthTranslations {
+  welcomeTitle: string;
+  welcomeSubtitle: string;
+  continueWithApple: string;
+  continueWithGoogle: string;
+  termsFooter: string;
+  syncLocalEntries: string;
+  syncLocalEntriesMessage: string;
+  syncLocalEntryMessage: string;
+  skip: string;
+  sync: string;
+  migrationError: string;
+  migrationErrorMessage: string;
+  signInFailed: string;
+}
+
 // Common translations
 export interface CommonTranslations {
   loading: string;
@@ -80,7 +98,14 @@ export interface CommonTranslations {
   mealTypeLunch: string;
   mealTypeDinner: string;
   mealTypeSnack: string;
+  mealTypeDessert: string;
+  mealTypeDrink: string;
+  mealTypeOther: string;
   mealTypeMeal: string;
+  apply: string;
+  user: string;
+  signedIn: string;
+  sortBy: string;
 }
 
 // Error translations
@@ -146,14 +171,68 @@ export interface DiaryTranslations {
   maxPhotosReached: string;
   maxPhotosMessage: string;
   addPhotoFailed: string;
+  selectDateRange: string;
+  quickSelect: string;
+  allTime: string;
+  last7Days: string;
+  last30Days: string;
+  last3Months: string;
+  calendarInstructions: string;
+  clearSelection: string;
+  deleteEntry: string;
+  deleteEntryHint: string;
+  deletingEntry: string;
+  sortLatestFirst: string;
+  sortLatestFirstDesc: string;
+  sortOldestFirst: string;
+  sortOldestFirstDesc: string;
+  sortHighestCalories: string;
+  sortHighestCaloriesDesc: string;
+  sortLowestCalories: string;
+  sortLowestCaloriesDesc: string;
+  sortHighestProtein: string;
+  sortHighestProteinDesc: string;
+  sortLowestProtein: string;
+  sortLowestProteinDesc: string;
+  sortHealthiestFirst: string;
+  sortHealthiestFirstDesc: string;
+  sortLeastHealthy: string;
+  sortLeastHealthyDesc: string;
+  sortMostNutritious: string;
+  sortMostNutritiousDesc: string;
+  sortLeastDense: string;
+  sortLeastDenseDesc: string;
+  rangeLight: string;
+  rangeModerate: string;
+  rangeSubstantial: string;
+  rangeLarge: string;
+  rangeVeryLarge: string;
+  rangeLowProtein: string;
+  rangeModerateProtein: string;
+  rangeHighProtein: string;
+  rangeVeryHighProtein: string;
+  rangeExcellent: string;
+  rangeGood: string;
+  rangeFair: string;
+  rangePoor: string;
+  rangeVeryDense: string;
+  rangeDense: string;
+  rangeModerateDensity: string;
+  rangeLowDensity: string;
+  allEntries: string;
 }
 
 // Settings translations
 export interface SettingsTranslations {
   title: string;
   account: {
+    title: string;
     signIn: string;
     signInDescription: string;
+    signOut: string;
+    signOutDescription: string;
+    deleteAccount: string;
+    deleteAccountDescription: string;
   };
   language: {
     title: string;
@@ -240,7 +319,8 @@ export type TranslationKey =
   | `common.${keyof CommonTranslations}`
   | `errors.${keyof ErrorTranslations}`
   | `settings.${KeyPath<SettingsTranslations>}`
-  | `diary.${keyof DiaryTranslations}`;
+  | `diary.${keyof DiaryTranslations}`
+  | `auth.${keyof AuthTranslations}`;
 
 // Utility type for nested key paths
 type KeyPath<T> = T extends object
@@ -256,6 +336,7 @@ export type CommonKeys = keyof CommonTranslations;
 export type ErrorKeys = keyof ErrorTranslations;
 export type SettingsKeys = KeyPath<SettingsTranslations>;
 export type DiaryKeys = keyof DiaryTranslations;
+export type AuthKeys = keyof AuthTranslations;
 
 // Formatter function types
 export interface FormattersType {

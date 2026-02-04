@@ -61,10 +61,10 @@ export function ActiveFilters({
     [MealType.LUNCH]: common.mealTypeLunch,
     [MealType.DINNER]: common.mealTypeDinner,
     [MealType.SNACK]: common.mealTypeSnack,
-    [MealType.DESSERT]: "Dessert",
-    [MealType.DRINK]: "Drink",
-    [MealType.OTHER]: "Other",
-  }), [common.mealTypeBreakfast, common.mealTypeLunch, common.mealTypeDinner, common.mealTypeSnack]);
+    [MealType.DESSERT]: common.mealTypeDessert,
+    [MealType.DRINK]: common.mealTypeDrink,
+    [MealType.OTHER]: common.mealTypeOther,
+  }), [common.mealTypeBreakfast, common.mealTypeLunch, common.mealTypeDinner, common.mealTypeSnack, common.mealTypeDessert, common.mealTypeDrink, common.mealTypeOther]);
 
   const DATE_PRESET_LABELS: Record<string, string> = useMemo(() => ({
     today: diary.today,

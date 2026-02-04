@@ -1,8 +1,13 @@
 {
   "title": "설정",
   "account": {
+    "title": "계정",
     "signIn": "로그인",
-    "signInDescription": "기기 간 식사 기록 동기화"
+    "signInDescription": "기기 간 식사 기록 동기화",
+    "signOut": "로그아웃",
+    "signOutDescription": "계정에서 로그아웃합니다",
+    "deleteAccount": "계정 삭제",
+    "deleteAccountDescription": "계정을 영구적으로 삭제합니다"
   },
   "language": {
     "title": "언어",

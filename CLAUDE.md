@@ -45,9 +45,9 @@ Swagger UI available at `http://localhost:3000/swagger-ui` when running.
 1. All implementation must use skills (even if after plan mode.)
    - mobile: Use **react-native** skill
    - api: Use **axum** skill + **postgresql** skill for queries
-2. After any implementation
-   - Use **security-guidance** plugin for security audit → fix
-   - Run a **tester** sub-agent that runs in parallel on the implemented code.
+2. Once the implementation is complete, run the two sub-agents below in parallel.
+   - Run a **security-reviewer** sub-agent for security audit → fix
+   - Run a **tester** sub-agent for testing → fix
 **100% test coverage is not optional**
 
 ## API
@@ -119,7 +119,7 @@ app → widgets → features → entities → shared (never import upward)
 - **Features**: Each has `model/` (Zustand + hooks), `ui/` (pure components), `index.ts` (barrel)
 - **State**: Zustand for client, TanStack Query for server, MMKV for persistence
 - **Forms**: TanStack Form + Zod 4 validation
-- **i18n**: i18next + react-i18next
+- **i18n**: i18next + react-i18next (all text should be translated by english or korean)
 - **Lists**: FlashList (`@shopify/flash-list`) over FlatList
 - **Images**: `expo-image` (not React Native `Image`)
 

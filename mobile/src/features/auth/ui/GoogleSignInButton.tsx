@@ -12,7 +12,7 @@ interface GoogleSignInButtonProps {
   onPress: () => void;
   isLoading?: boolean;
   disabled?: boolean;
-  label?: string;
+  label: string;
 }
 
 // =============================================================================
@@ -23,7 +23,7 @@ export function GoogleSignInButton({
   onPress,
   isLoading = false,
   disabled = false,
-  label = "Continue with Google",
+  label,
 }: GoogleSignInButtonProps) {
   const s = useStyles(styles);
   const { colors } = useTheme();

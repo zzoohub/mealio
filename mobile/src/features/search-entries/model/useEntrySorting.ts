@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { Entry, SortMethod } from "@/entities/entry";
+import { useDiaryI18n, getCurrentLanguage } from "@/shared/lib/i18n";
 
 export interface SortMetadata {
   key: SortMethod;
@@ -14,102 +15,87 @@ export interface SortedSection {
   data: Entry[];
 }
 
+// i18n context for sort utility functions
+export interface SortI18n {
+  today: string;
+  yesterday: string;
+  allEntries: (label: string) => string;
+  locale: string;
+  ranges: {
+    rangeLight: string;
+    rangeModerate: string;
+    rangeSubstantial: string;
+    rangeLarge: string;
+    rangeVeryLarge: string;
+    rangeLowProtein: string;
+    rangeModerateProtein: string;
+    rangeHighProtein: string;
+    rangeVeryHighProtein: string;
+    rangeExcellent: string;
+    rangeGood: string;
+    rangeFair: string;
+    rangePoor: string;
+    rangeVeryDense: string;
+    rangeDense: string;
+    rangeModerateDensity: string;
+    rangeLowDensity: string;
+  };
+}
+
+// Sort option key-based definitions (labels resolved via i18n in the hook)
+interface SortOptionDef {
+  key: SortMethod;
+  labelKey: string;
+  icon: string;
+  descriptionKey: string;
+  ascending: boolean;
+}
+
 // Constants
 const CHUNK_SIZE = 50;
 
-// Sort metadata for UI display
-const SORT_OPTIONS: SortMetadata[] = [
-  {
-    key: "date-desc",
-    label: "Latest First",
-    icon: "time",
-    description: "Most recent meals first",
-    ascending: false,
-  },
-  {
-    key: "date-asc",
-    label: "Oldest First",
-    icon: "time-outline",
-    description: "Oldest meals first",
-    ascending: true,
-  },
-  {
-    key: "calories-desc",
-    label: "Highest Calories",
-    icon: "flame",
-    description: "Meals with most calories first",
-    ascending: false,
-  },
-  {
-    key: "calories-asc",
-    label: "Lowest Calories",
-    icon: "flame-outline",
-    description: "Meals with least calories first",
-    ascending: true,
-  },
-  {
-    key: "protein-desc",
-    label: "Highest Protein",
-    icon: "fitness",
-    description: "High protein meals first",
-    ascending: false,
-  },
-  {
-    key: "protein-asc",
-    label: "Lowest Protein",
-    icon: "fitness-outline",
-    description: "Low protein meals first",
-    ascending: true,
-  },
-  {
-    key: "health-score-desc",
-    label: "Healthiest First",
-    icon: "heart",
-    description: "Highest health score first",
-    ascending: false,
-  },
-  {
-    key: "health-score-asc",
-    label: "Least Healthy",
-    icon: "heart-outline",
-    description: "Lowest health score first",
-    ascending: true,
-  },
-  {
-    key: "nutrition-density-desc",
-    label: "Most Nutritious",
-    icon: "nutrition",
-    description: "Highest nutrition per calorie",
-    ascending: false,
-  },
-  {
-    key: "nutrition-density-asc",
-    label: "Least Dense",
-    icon: "nutrition-outline",
-    description: "Lowest nutrition density",
-    ascending: true,
-  },
+// Sort option definitions with i18n keys
+const SORT_OPTION_DEFS: SortOptionDef[] = [
+  { key: "date-desc", labelKey: "sortLatestFirst", icon: "time", descriptionKey: "sortLatestFirstDesc", ascending: false },
+  { key: "date-asc", labelKey: "sortOldestFirst", icon: "time-outline", descriptionKey: "sortOldestFirstDesc", ascending: true },
+  { key: "calories-desc", labelKey: "sortHighestCalories", icon: "flame", descriptionKey: "sortHighestCaloriesDesc", ascending: false },
+  { key: "calories-asc", labelKey: "sortLowestCalories", icon: "flame-outline", descriptionKey: "sortLowestCaloriesDesc", ascending: true },
+  { key: "protein-desc", labelKey: "sortHighestProtein", icon: "fitness", descriptionKey: "sortHighestProteinDesc", ascending: false },
+  { key: "protein-asc", labelKey: "sortLowestProtein", icon: "fitness-outline", descriptionKey: "sortLowestProteinDesc", ascending: true },
+  { key: "health-score-desc", labelKey: "sortHealthiestFirst", icon: "heart", descriptionKey: "sortHealthiestFirstDesc", ascending: false },
+  { key: "health-score-asc", labelKey: "sortLeastHealthy", icon: "heart-outline", descriptionKey: "sortLeastHealthyDesc", ascending: true },
+  { key: "nutrition-density-desc", labelKey: "sortMostNutritious", icon: "nutrition", descriptionKey: "sortMostNutritiousDesc", ascending: false },
+  { key: "nutrition-density-asc", labelKey: "sortLeastDense", icon: "nutrition-outline", descriptionKey: "sortLeastDenseDesc", ascending: true },
 ];
 
 // Entry sorting utility functions
 export const entrySortingUtils = {
   /**
-   * Gets all available sort options with metadata
+   * Gets all available sort options with localized metadata
    */
-  getSortOptions: (): SortMetadata[] => {
-    return [...SORT_OPTIONS];
+  getSortOptions: (diaryT: (key: string) => string): SortMetadata[] => {
+    return SORT_OPTION_DEFS.map(def => ({
+      key: def.key,
+      label: diaryT(def.labelKey),
+      icon: def.icon,
+      description: diaryT(def.descriptionKey),
+      ascending: def.ascending,
+    }));
   },
 
   /**
    * Gets metadata for a specific sort method
    */
-  getSortMetadata: (sortMethod: SortMethod): SortMetadata => {
-    const metadata = SORT_OPTIONS.find(option => option.key === sortMethod);
-    if (!metadata) {
-      // Fallback to first option if not found
-      return SORT_OPTIONS[0]!;
-    }
-    return metadata;
+  getSortMetadata: (sortMethod: SortMethod, diaryT: (key: string) => string): SortMetadata => {
+    const def = SORT_OPTION_DEFS.find(option => option.key === sortMethod);
+    const resolved = def ?? SORT_OPTION_DEFS[0]!;
+    return {
+      key: resolved.key,
+      label: diaryT(resolved.labelKey),
+      icon: resolved.icon,
+      description: diaryT(resolved.descriptionKey),
+      ascending: resolved.ascending,
+    };
   },
 
   /**
@@ -197,12 +183,12 @@ export const entrySortingUtils = {
    * Compares two entries based on sort method
    */
   compareEntries: (a: Entry, b: Entry, sortMethod: SortMethod): number => {
-    const metadata = entrySortingUtils.getSortMetadata(sortMethod);
+    const def = SORT_OPTION_DEFS.find(o => o.key === sortMethod) ?? SORT_OPTION_DEFS[0]!;
     const valueA = entrySortingUtils.getSortValue(a, sortMethod);
     const valueB = entrySortingUtils.getSortValue(b, sortMethod);
 
     const comparison = valueA - valueB;
-    return metadata.ascending ? comparison : -comparison;
+    return def.ascending ? comparison : -comparison;
   },
 
   /**
@@ -276,22 +262,22 @@ export const entrySortingUtils = {
   /**
    * Groups sorted entries into sections
    */
-  groupEntriesIntoSections: (sortedEntries: Entry[], sortMethod: SortMethod): SortedSection[] => {
+  groupEntriesIntoSections: (sortedEntries: Entry[], sortMethod: SortMethod, i18n: SortI18n): SortedSection[] => {
     if (sortedEntries.length === 0) return [];
 
     // For date-based sorting, group by date
     if (sortMethod === "date-desc" || sortMethod === "date-asc") {
-      return entrySortingUtils.groupByDate(sortedEntries);
+      return entrySortingUtils.groupByDate(sortedEntries, i18n);
     }
 
     // For other sorting methods, group by ranges
-    return entrySortingUtils.groupByValueRange(sortedEntries, sortMethod);
+    return entrySortingUtils.groupByValueRange(sortedEntries, sortMethod, i18n);
   },
 
   /**
    * Groups entries by date
    */
-  groupByDate: (entries: Entry[]): SortedSection[] => {
+  groupByDate: (entries: Entry[], i18n: SortI18n): SortedSection[] => {
     const grouped = entries.reduce((acc, entry) => {
       const date = entry.timestamp.toDateString();
       if (!acc[date]) {
@@ -310,11 +296,11 @@ export const entrySortingUtils = {
 
         let title: string;
         if (sectionDate.toDateString() === today.toDateString()) {
-          title = "Today";
+          title = i18n.today;
         } else if (sectionDate.toDateString() === yesterday.toDateString()) {
-          title = "Yesterday";
+          title = i18n.yesterday;
         } else {
-          title = sectionDate.toLocaleDateString("en-US", {
+          title = sectionDate.toLocaleDateString(i18n.locale, {
             weekday: "long",
             month: "short",
             day: "numeric",
@@ -336,47 +322,46 @@ export const entrySortingUtils = {
   /**
    * Groups entries by value ranges for non-date sorting
    */
-  groupByValueRange: (entries: Entry[], sortMethod: SortMethod): SortedSection[] => {
-    const metadata = entrySortingUtils.getSortMetadata(sortMethod);
-
+  groupByValueRange: (entries: Entry[], sortMethod: SortMethod, i18n: SortI18n): SortedSection[] => {
     switch (sortMethod) {
       case "calories-desc":
       case "calories-asc":
-        return entrySortingUtils.groupByCalorieRanges(entries);
+        return entrySortingUtils.groupByCalorieRanges(entries, i18n);
 
       case "protein-desc":
       case "protein-asc":
-        return entrySortingUtils.groupByProteinRanges(entries);
+        return entrySortingUtils.groupByProteinRanges(entries, i18n);
 
       case "health-score-desc":
       case "health-score-asc":
-        return entrySortingUtils.groupByHealthScore(entries);
+        return entrySortingUtils.groupByHealthScore(entries, i18n);
 
       case "nutrition-density-desc":
       case "nutrition-density-asc":
-        return entrySortingUtils.groupByDensityRanges(entries);
+        return entrySortingUtils.groupByDensityRanges(entries, i18n);
 
-      default:
-        // Single section for unsupported groupings
+      default: {
+        const def = SORT_OPTION_DEFS.find(o => o.key === sortMethod) ?? SORT_OPTION_DEFS[0]!;
         return [
           {
-            title: `All Entries (${metadata.label})`,
+            title: i18n.allEntries(def.labelKey),
             data: entries,
           },
         ];
+      }
     }
   },
 
   /**
    * Groups entries by calorie ranges
    */
-  groupByCalorieRanges: (entries: Entry[]): SortedSection[] => {
+  groupByCalorieRanges: (entries: Entry[], i18n: SortI18n): SortedSection[] => {
     const ranges = [
-      { min: 0, max: 200, label: "Light (0-200 cal)" },
-      { min: 200, max: 400, label: "Moderate (200-400 cal)" },
-      { min: 400, max: 600, label: "Substantial (400-600 cal)" },
-      { min: 600, max: 800, label: "Large (600-800 cal)" },
-      { min: 800, max: Infinity, label: "Very Large (800+ cal)" },
+      { min: 0, max: 200, label: i18n.ranges.rangeLight },
+      { min: 200, max: 400, label: i18n.ranges.rangeModerate },
+      { min: 400, max: 600, label: i18n.ranges.rangeSubstantial },
+      { min: 600, max: 800, label: i18n.ranges.rangeLarge },
+      { min: 800, max: Infinity, label: i18n.ranges.rangeVeryLarge },
     ];
 
     return entrySortingUtils.groupByRanges(entries, ranges, entry => entry.meal.nutrition?.calories || 0);
@@ -385,12 +370,12 @@ export const entrySortingUtils = {
   /**
    * Groups entries by protein ranges
    */
-  groupByProteinRanges: (entries: Entry[]): SortedSection[] => {
+  groupByProteinRanges: (entries: Entry[], i18n: SortI18n): SortedSection[] => {
     const ranges = [
-      { min: 0, max: 10, label: "Low Protein (0-10g)" },
-      { min: 10, max: 20, label: "Moderate Protein (10-20g)" },
-      { min: 20, max: 30, label: "High Protein (20-30g)" },
-      { min: 30, max: Infinity, label: "Very High Protein (30g+)" },
+      { min: 0, max: 10, label: i18n.ranges.rangeLowProtein },
+      { min: 10, max: 20, label: i18n.ranges.rangeModerateProtein },
+      { min: 20, max: 30, label: i18n.ranges.rangeHighProtein },
+      { min: 30, max: Infinity, label: i18n.ranges.rangeVeryHighProtein },
     ];
 
     return entrySortingUtils.groupByRanges(entries, ranges, entry => entry.meal.nutrition?.protein || 0);
@@ -399,12 +384,12 @@ export const entrySortingUtils = {
   /**
    * Groups entries by health score
    */
-  groupByHealthScore: (entries: Entry[]): SortedSection[] => {
+  groupByHealthScore: (entries: Entry[], i18n: SortI18n): SortedSection[] => {
     const ranges = [
-      { min: 80, max: 100, label: "Excellent (80-100)" },
-      { min: 60, max: 80, label: "Good (60-80)" },
-      { min: 40, max: 60, label: "Fair (40-60)" },
-      { min: 0, max: 40, label: "Poor (0-40)" },
+      { min: 80, max: 100, label: i18n.ranges.rangeExcellent },
+      { min: 60, max: 80, label: i18n.ranges.rangeGood },
+      { min: 40, max: 60, label: i18n.ranges.rangeFair },
+      { min: 0, max: 40, label: i18n.ranges.rangePoor },
     ];
 
     return entrySortingUtils.groupByRanges(entries, ranges, entry => entrySortingUtils.getHealthScore(entry));
@@ -413,12 +398,12 @@ export const entrySortingUtils = {
   /**
    * Groups entries by nutrition density
    */
-  groupByDensityRanges: (entries: Entry[]): SortedSection[] => {
+  groupByDensityRanges: (entries: Entry[], i18n: SortI18n): SortedSection[] => {
     const ranges = [
-      { min: 10, max: Infinity, label: "Very Dense (10+)" },
-      { min: 5, max: 10, label: "Dense (5-10)" },
-      { min: 2, max: 5, label: "Moderate (2-5)" },
-      { min: 0, max: 2, label: "Low (0-2)" },
+      { min: 10, max: Infinity, label: i18n.ranges.rangeVeryDense },
+      { min: 5, max: 10, label: i18n.ranges.rangeDense },
+      { min: 2, max: 5, label: i18n.ranges.rangeModerateDensity },
+      { min: 0, max: 2, label: i18n.ranges.rangeLowDensity },
     ];
 
     return entrySortingUtils.groupByRanges(entries, ranges, entry => entrySortingUtils.calculateNutritionDensity(entry));
@@ -454,7 +439,7 @@ export const entrySortingUtils = {
   /**
    * Main sorting function that handles large datasets efficiently
    */
-  sortEntries: async (entries: Entry[], sortMethod: SortMethod): Promise<SortedSection[]> => {
+  sortEntries: async (entries: Entry[], sortMethod: SortMethod, i18n: SortI18n): Promise<SortedSection[]> => {
     try {
       if (entries.length === 0) {
         return [];
@@ -464,12 +449,12 @@ export const entrySortingUtils = {
       const sortedEntries = await entrySortingUtils.sortEntriesInChunks(entries, sortMethod);
 
       // Group into sections
-      return entrySortingUtils.groupEntriesIntoSections(sortedEntries, sortMethod);
+      return entrySortingUtils.groupEntriesIntoSections(sortedEntries, sortMethod, i18n);
     } catch (error) {
       console.error("Error sorting entries:", error);
 
       // Fallback to simple date-based grouping
-      return entrySortingUtils.groupByDate(entries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()));
+      return entrySortingUtils.groupByDate(entries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()), i18n);
     }
   },
 
@@ -499,24 +484,60 @@ export const entrySortingUtils = {
 export const useEntrySorting = () => {
   const [sortingInProgress, setSortingInProgress] = useState(false);
   const [currentSortMethod, setCurrentSortMethod] = useState<SortMethod>("date-desc");
+  const diary = useDiaryI18n();
 
-  const sortOptions = useMemo(() => entrySortingUtils.getSortOptions(), []);
+  const sortI18n: SortI18n = useMemo(
+    () => ({
+      today: diary.today,
+      yesterday: diary.yesterday,
+      allEntries: diary.allEntries,
+      locale: getCurrentLanguage(),
+      ranges: {
+        rangeLight: diary.rangeLight,
+        rangeModerate: diary.rangeModerate,
+        rangeSubstantial: diary.rangeSubstantial,
+        rangeLarge: diary.rangeLarge,
+        rangeVeryLarge: diary.rangeVeryLarge,
+        rangeLowProtein: diary.rangeLowProtein,
+        rangeModerateProtein: diary.rangeModerateProtein,
+        rangeHighProtein: diary.rangeHighProtein,
+        rangeVeryHighProtein: diary.rangeVeryHighProtein,
+        rangeExcellent: diary.rangeExcellent,
+        rangeGood: diary.rangeGood,
+        rangeFair: diary.rangeFair,
+        rangePoor: diary.rangePoor,
+        rangeVeryDense: diary.rangeVeryDense,
+        rangeDense: diary.rangeDense,
+        rangeModerateDensity: diary.rangeModerateDensity,
+        rangeLowDensity: diary.rangeLowDensity,
+      },
+    }),
+    [diary],
+  );
 
-  const sortEntries = useCallback(async (entries: Entry[], sortMethod: SortMethod): Promise<SortedSection[]> => {
-    setSortingInProgress(true);
-    setCurrentSortMethod(sortMethod);
+  const sortOptions = useMemo(() => entrySortingUtils.getSortOptions(diary.stat), [diary.stat]);
 
-    try {
-      const result = await entrySortingUtils.sortEntries(entries, sortMethod);
-      return result;
-    } finally {
-      setSortingInProgress(false);
-    }
-  }, []);
+  const sortEntries = useCallback(
+    async (entries: Entry[], sortMethod: SortMethod): Promise<SortedSection[]> => {
+      setSortingInProgress(true);
+      setCurrentSortMethod(sortMethod);
 
-  const getSortMetadata = useCallback((sortMethod: SortMethod) => {
-    return entrySortingUtils.getSortMetadata(sortMethod);
-  }, []);
+      try {
+        const result = await entrySortingUtils.sortEntries(entries, sortMethod, sortI18n);
+        return result;
+      } finally {
+        setSortingInProgress(false);
+      }
+    },
+    [sortI18n],
+  );
+
+  const getSortMetadata = useCallback(
+    (sortMethod: SortMethod) => {
+      return entrySortingUtils.getSortMetadata(sortMethod, diary.stat);
+    },
+    [diary.stat],
+  );
 
   const getEstimatedSortTime = useCallback((entryCount: number) => {
     return entrySortingUtils.getEstimatedSortTime(entryCount);

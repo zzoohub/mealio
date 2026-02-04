@@ -25,5 +25,12 @@
   "mealTypeLunch": "Lunch",
   "mealTypeDinner": "Dinner",
   "mealTypeSnack": "Snack",
-  "mealTypeMeal": "Meal"
+  "mealTypeDessert": "Dessert",
+  "mealTypeDrink": "Drink",
+  "mealTypeOther": "Other",
+  "mealTypeMeal": "Meal",
+  "apply": "Apply",
+  "user": "User",
+  "signedIn": "Signed in",
+  "sortBy": "Sort By"
 }

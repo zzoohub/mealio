@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
 import { formatDateToString } from "@/shared/lib/utils";
+import { useDiaryI18n, useCommonI18n } from "@/shared/lib/i18n";
 
 // =============================================================================
 // CONSTANTS
@@ -100,6 +101,8 @@ export function EntryDateRangeModal({
   onClose,
 }: EntryDateRangeModalProps) {
   const { colors } = useTheme();
+  const diary = useDiaryI18n();
+  const common = useCommonI18n();
 
   // Internal calendar state — isolated from parent's stale closure
   const [startDate, setStartDate] = useState<Date | null>(initialStartDate ?? null);
@@ -175,7 +178,7 @@ export function EntryDateRangeModal({
   return (
     <>
       <View style={[styles.header, { borderBottomColor: colors.border.default }]}>
-        <Text style={[styles.title, { color: colors.text.primary }]}>Select Date Range</Text>
+        <Text style={[styles.title, { color: colors.text.primary }]}>{diary.selectDateRange}</Text>
         <Pressable onPress={onClose}>
           <Ionicons name="close" size={24} color={colors.text.secondary} />
         </Pressable>
@@ -184,46 +187,46 @@ export function EntryDateRangeModal({
       <ScrollView style={styles.scrollContent}>
         {/* Quick Presets */}
         <View style={[styles.presetsContainer, { borderBottomColor: colors.border.default }]}>
-          <Text style={[styles.presetsTitle, { color: colors.text.primary }]}>Quick Select</Text>
+          <Text style={[styles.presetsTitle, { color: colors.text.primary }]}>{diary.quickSelect}</Text>
           <View style={styles.presetsGrid}>
             <Pressable
               style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
               onPress={handleClearAll}
             >
-              <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>All Time</Text>
+              <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>{diary.allTime}</Text>
             </Pressable>
             <Pressable
               style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
               onPress={() => handlePreset(1)}
             >
-              <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>Today</Text>
+              <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>{diary.today}</Text>
             </Pressable>
             <Pressable
               style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
               onPress={() => handlePreset(7)}
             >
-              <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>Last 7 Days</Text>
+              <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>{diary.last7Days}</Text>
             </Pressable>
             <Pressable
               style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
               onPress={() => handlePreset(30)}
             >
-              <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>Last 30 Days</Text>
+              <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>{diary.last30Days}</Text>
             </Pressable>
             <Pressable
               style={[styles.presetButton, { backgroundColor: colors.bg.secondary }]}
               onPress={() => handlePreset(90)}
             >
-              <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>Last 3 Months</Text>
+              <Text style={[styles.presetButtonText, { color: colors.text.secondary }]}>{diary.last3Months}</Text>
             </Pressable>
           </View>
         </View>
 
         {/* Calendar */}
         <View style={styles.calendarContainer}>
-          <Text style={[styles.calendarTitle, { color: colors.text.primary }]}>Select Date Range</Text>
+          <Text style={[styles.calendarTitle, { color: colors.text.primary }]}>{diary.selectDateRange}</Text>
           <Text style={[styles.calendarInstructions, { color: colors.text.secondary }]}>
-            Tap to select start date, tap again to select end date
+            {diary.calendarInstructions}
           </Text>
 
           <Calendar
@@ -259,7 +262,7 @@ export function EntryDateRangeModal({
               style={[styles.applyButton, { backgroundColor: colors.interactive.primary }]}
               onPress={handleApply}
             >
-              <Text style={styles.applyButtonText}>Apply</Text>
+              <Text style={styles.applyButtonText}>{common.apply}</Text>
             </Pressable>
           )}
 
@@ -270,7 +273,7 @@ export function EntryDateRangeModal({
             disabled={!hasSelection}
           >
             <Ionicons name="trash-outline" size={16} color={colors.text.secondary} />
-            <Text style={[styles.clearButtonText, { color: colors.interactive.primary }]}>Clear Selection</Text>
+            <Text style={[styles.clearButtonText, { color: colors.interactive.primary }]}>{diary.clearSelection}</Text>
           </Pressable>
         </View>
       </ScrollView>

@@ -3,4 +3,4 @@ export type { NotificationSettings, DisplaySettings, CameraSettings, SettingsSta
 export { useSettingsScreen } from './useSettingsScreen';
 export type { UseSettingsScreenReturn } from './useSettingsScreen';
 export { settingsApi } from './settingsApi';
-export { useUserSettingsQuery, useUpdateSettingsMutation } from './useSettingsQueries';
+export { useUserSettingsQuery, useUpdateSettingsMutation, useDeleteAccountMutation } from './useSettingsQueries';

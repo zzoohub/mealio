@@ -1,0 +1,15 @@
+{
+  "welcomeTitle": "Welcome to Mealio",
+  "welcomeSubtitle": "Sign in to sync your meals across devices",
+  "continueWithApple": "Continue with Apple",
+  "continueWithGoogle": "Continue with Google",
+  "termsFooter": "By continuing, you agree to our Terms of Service and Privacy Policy",
+  "syncLocalEntries": "Sync Local Entries",
+  "syncLocalEntriesMessage": "You have {{count}} local entries. Sync them to your account?",
+  "syncLocalEntryMessage": "You have {{count}} local entry. Sync it to your account?",
+  "skip": "Skip",
+  "sync": "Sync",
+  "migrationError": "Migration Error",
+  "migrationErrorMessage": "Some entries could not be synced. You can try again later.",
+  "signInFailed": "Failed to sign in with {{provider}}. Please try again."
+}

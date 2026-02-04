@@ -5,6 +5,7 @@ import PagerView from "react-native-pager-view";
 import { useTheme } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
 import { getDayName, getWeekDays, formatDateToString } from "@/shared/lib/utils";
+import { getCurrentLanguage } from "@/shared/lib/i18n";
 
 // =============================================================================
 // TYPES
@@ -134,7 +135,7 @@ const DayItem = memo(function DayItem({
           isFuture && styles.futureText,
         ]}
       >
-        {getDayName(dayIndex, "ko")}
+        {getDayName(dayIndex, getCurrentLanguage())}
       </Text>
       <Text
         style={[

@@ -18,6 +18,7 @@ import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles } from '@/shared/ui/theme';
+import { useDiaryI18n } from '@/shared/lib/i18n';
 
 // =============================================================================
 // TYPES
@@ -40,7 +41,7 @@ export interface EntryDeleteButtonProps {
 // CONSTANTS
 // =============================================================================
 
-const DEFAULT_LABEL = 'Delete Entry';
+// Label resolved via i18n in the component
 
 // =============================================================================
 // COMPONENT
@@ -50,11 +51,13 @@ export function EntryDeleteButton({
   onPress,
   loading = false,
   disabled = false,
-  label = DEFAULT_LABEL,
+  label: labelProp,
   testID,
 }: EntryDeleteButtonProps) {
   const s = useStyles(styles);
   const insets = useSafeAreaInsets();
+  const diary = useDiaryI18n();
+  const label = labelProp ?? diary.deleteEntry;
   const isDisabled = disabled || loading;
 
   return (
@@ -70,13 +73,13 @@ export function EntryDeleteButton({
         accessibilityLabel={label}
         accessibilityRole="button"
         accessibilityState={{ disabled: isDisabled }}
-        accessibilityHint="Double tap to delete this entry"
+        accessibilityHint={diary.deleteEntryHint}
       >
         {loading ? (
           <ActivityIndicator
             size="small"
             color={s.loadingIndicator.color as string}
-            accessibilityLabel="Deleting entry"
+            accessibilityLabel={diary.deletingEntry}
           />
         ) : (
           <Text style={[s.buttonText, isDisabled && s.buttonTextDisabled]}>

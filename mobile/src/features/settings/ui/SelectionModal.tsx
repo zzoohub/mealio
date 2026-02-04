@@ -5,6 +5,7 @@ import { createStyles, useStyles, useTheme } from '@/shared/ui/theme';
 import { Text, Card, Button } from '@/shared/ui/styled';
 import { tokens } from '@/shared/ui/tokens';
 import * as Haptics from 'expo-haptics';
+import { useCommonI18n } from '@/shared/lib/i18n';
 
 interface SelectionOption {
   value: any;
@@ -29,6 +30,7 @@ export function SelectionModal({
 }: SelectionModalProps) {
   const s = useStyles(styles);
   const { colors } = useTheme();
+  const common = useCommonI18n();
 
   const handleSelect = (value: any) => {
     try {
@@ -95,7 +97,7 @@ export function SelectionModal({
 
       <View style={s.footer}>
         <Button variant="outline" size="lg" onPress={handleClose}>
-          Cancel
+          {common.cancel}
         </Button>
       </View>
     </>

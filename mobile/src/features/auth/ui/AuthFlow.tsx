@@ -13,6 +13,7 @@ import { useGoogleAuth } from "../model/useGoogleAuth";
 import { useAppleAuth } from "../model/useAppleAuth";
 import { useMigration } from "@/entities/entry";
 import type { AuthCredential } from "@/entities/user";
+import { useAuthI18n, useCommonI18n } from "@/shared/lib/i18n";
 
 // =============================================================================
 // TYPES
@@ -29,6 +30,8 @@ interface AuthFlowProps {
 export function AuthFlow({ onComplete }: AuthFlowProps) {
   const s = useStyles(styles);
   const { colors } = useTheme();
+  const auth = useAuthI18n();
+  const common = useCommonI18n();
 
   const { login, isLoading } = useAuthStore();
   const { signIn: googleSignIn, isSigningIn: isGoogleSigningIn } = useGoogleAuth();
@@ -45,28 +48,28 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
     }
 
     Alert.alert(
-      "Sync Local Entries",
-      `You have ${count} local ${count === 1 ? "entry" : "entries"}. Sync them to your account?`,
+      auth.syncLocalEntries,
+      auth.syncLocalEntriesMessage(count),
       [
         {
-          text: "Skip",
+          text: auth.skip,
           style: "cancel",
           onPress: () => onComplete(),
         },
         {
-          text: "Sync",
+          text: auth.sync,
           onPress: async () => {
             try {
               await migrateLocalEntries();
             } catch {
-              Alert.alert("Migration Error", "Some entries could not be synced. You can try again later.");
+              Alert.alert(auth.migrationError, auth.migrationErrorMessage);
             }
             onComplete();
           },
         },
       ],
     );
-  }, [checkLocalEntries, migrateLocalEntries, onComplete]);
+  }, [checkLocalEntries, migrateLocalEntries, onComplete, auth]);
 
   const handleSignIn = useCallback(
     async (signInFn: () => Promise<AuthCredential | null>, providerName: string) => {
@@ -77,10 +80,10 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
           await promptMigration();
         }
       } catch {
-        Alert.alert("Error", `Failed to sign in with ${providerName}. Please try again.`);
+        Alert.alert(common.error, auth.signInFailed(providerName));
       }
     },
-    [login, promptMigration],
+    [login, promptMigration, common.error, auth],
   );
 
   const handleGoogleSignIn = useCallback(() => {
@@ -105,18 +108,18 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
 
       <View style={s.content}>
         <View style={s.titleSection}>
-          <Text style={s.title}>Welcome to Mealio</Text>
-          <Text style={s.subtitle}>Sign in to sync your meals across devices</Text>
+          <Text style={s.title}>{auth.welcomeTitle}</Text>
+          <Text style={s.subtitle}>{auth.welcomeSubtitle}</Text>
         </View>
 
         <View style={s.buttonsSection}>
-          <GoogleSignInButton onPress={handleGoogleSignIn} isLoading={isSigningIn || isLoading} />
-          <AppleSignInButton onPress={handleAppleSignIn} isLoading={isAppleSigningIn || isLoading} />
+          <GoogleSignInButton onPress={handleGoogleSignIn} isLoading={isSigningIn || isLoading} label={auth.continueWithGoogle} />
+          <AppleSignInButton onPress={handleAppleSignIn} isLoading={isAppleSigningIn || isLoading} label={auth.continueWithApple} />
         </View>
       </View>
 
       <View style={s.footer}>
-        <Text style={s.footerText}>By continuing, you agree to our Terms of Service and Privacy Policy</Text>
+        <Text style={s.footerText}>{auth.termsFooter}</Text>
       </View>
     </SafeAreaView>
   );

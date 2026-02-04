@@ -21,3 +21,9 @@ export function useUpdateSettingsMutation() {
     },
   });
 }
+
+export function useDeleteAccountMutation() {
+  return useMutation({
+    mutationFn: () => settingsApi.deleteMe(),
+  });
+}

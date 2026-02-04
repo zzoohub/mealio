@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
 import { useSettingsStore, type DisplaySettings, type NotificationSettings } from "./settingsStore";
+import { useDeleteAccountMutation } from "./useSettingsQueries";
 import { useAuthStore } from "@/features/auth";
 import { changeLanguage, useSettingsI18n, type SupportedLanguage } from "@/shared/lib/i18n";
 import type { User } from "@/entities/user";
@@ -52,6 +53,7 @@ export function useSettingsScreen(): UseSettingsScreenReturn {
   // Stores
   const { user, logout, isLoading: authLoading } = useAuthStore();
   const { display, notifications, updateDisplay, updateNotifications, isLoading } = useSettingsStore();
+  const deleteAccountMutation = useDeleteAccountMutation();
 
   // Derived state
   const isAuthenticated = !!user;
@@ -126,14 +128,18 @@ export function useSettingsScreen(): UseSettingsScreenReturn {
         {
           text: "Delete Account",
           style: "destructive",
-          onPress: () => {
-            // TODO: Implement account deletion
-            console.log("Delete account");
+          onPress: async () => {
+            try {
+              await deleteAccountMutation.mutateAsync();
+              await logout();
+            } catch {
+              Alert.alert("Error", "Failed to delete account. Please try again.");
+            }
           },
         },
       ]
     );
-  }, []);
+  }, [deleteAccountMutation, logout]);
 
   return {
     // User state

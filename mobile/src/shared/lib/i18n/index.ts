@@ -32,6 +32,7 @@ export {
   useErrorI18n,
   useSettingsI18n,
   useDiaryI18n,
+  useAuthI18n,
 } from "./hooks";
 
 // Export TypeScript types
@@ -44,6 +45,7 @@ export type {
   ErrorTranslations,
   SettingsTranslations,
   DiaryTranslations,
+  AuthTranslations,
   FormattersType,
 } from "./types";
 

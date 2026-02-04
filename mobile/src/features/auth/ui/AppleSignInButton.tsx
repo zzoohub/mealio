@@ -14,7 +14,7 @@ interface AppleSignInButtonProps {
   onPress: () => void;
   isLoading?: boolean;
   disabled?: boolean;
-  label?: string;
+  label: string;
 }
 
 // =============================================================================
@@ -25,7 +25,7 @@ export function AppleSignInButton({
   onPress,
   isLoading = false,
   disabled = false,
-  label = "Continue with Apple",
+  label,
 }: AppleSignInButtonProps) {
   const s = useStyles(styles);
   const { colors } = useTheme();

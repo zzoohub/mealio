@@ -25,5 +25,12 @@
   "mealTypeLunch": "점심",
   "mealTypeDinner": "저녁",
   "mealTypeSnack": "간식",
-  "mealTypeMeal": "식사"
+  "mealTypeDessert": "디저트",
+  "mealTypeDrink": "음료",
+  "mealTypeOther": "기타",
+  "mealTypeMeal": "식사",
+  "apply": "적용",
+  "user": "사용자",
+  "signedIn": "로그인됨",
+  "sortBy": "정렬 기준"
 }

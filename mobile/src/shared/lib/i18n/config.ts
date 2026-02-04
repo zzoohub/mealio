@@ -20,6 +20,7 @@ const loadTranslations = async (language: string): Promise<TranslationResources>
           errors: await import("./locales/modules/errors.ko.json").then(m => m.default),
           settings: await import("./locales/modules/settings.ko.json").then(m => m.default),
           diary: await import("./locales/modules/diary.ko.json").then(m => m.default),
+          auth: await import("./locales/modules/auth.ko.json").then(m => m.default),
         };
       default:
         return {
@@ -29,6 +30,7 @@ const loadTranslations = async (language: string): Promise<TranslationResources>
           errors: await import("./locales/modules/errors.en.json").then(m => m.default),
           settings: await import("./locales/modules/settings.en.json").then(m => m.default),
           diary: await import("./locales/modules/diary.en.json").then(m => m.default),
+          auth: await import("./locales/modules/auth.en.json").then(m => m.default),
         };
     }
   } catch (error) {

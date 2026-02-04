@@ -5,6 +5,7 @@ import { useTheme } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
 import { SortMethod } from "@/entities/entry";
 import { SortMetadata } from "../model/useEntrySorting";
+import { useCommonI18n } from "@/shared/lib/i18n";
 
 // =============================================================================
 // TYPES
@@ -30,6 +31,7 @@ export function EntrySortModal({
   onSelect,
 }: EntrySortModalProps) {
   const { colors } = useTheme();
+  const common = useCommonI18n();
 
   const renderSortOption = ({ item }: { item: SortMetadata }) => {
     const isSelected = currentSortMethod === item.key;
@@ -81,7 +83,7 @@ export function EntrySortModal({
       <View style={styles.overlay}>
         <View style={[styles.modal, { backgroundColor: colors.bg.primary }]}>
           <View style={[styles.header, { borderBottomColor: colors.border.default }]}>
-            <Text style={[styles.title, { color: colors.text.primary }]}>Sort By</Text>
+            <Text style={[styles.title, { color: colors.text.primary }]}>{common.sortBy}</Text>
             <Pressable onPress={onClose}>
               <Ionicons name="close" size={24} color={colors.text.secondary} />
             </Pressable>

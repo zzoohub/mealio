@@ -6,7 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useTheme, createStyles, useStyles } from "@/shared/ui/theme";
 import { Card, Text, HStack, VStack, Toggle } from "@/shared/ui/styled";
 import { SelectionModal, SettingsLayout, useSettingsScreen } from "@/features/settings";
-import { useSettingsI18n } from "@/shared/lib/i18n";
+import { useSettingsI18n, useCommonI18n } from "@/shared/lib/i18n";
 import { tokens } from "@/shared/ui/tokens";
 import { useOverlayHelpers } from "@/app/providers/overlay";
 
@@ -39,13 +39,13 @@ function UserProfileCard({ name, email }: UserProfileCardProps) {
         </LinearGradient>
         <VStack gap="xs" style={s.profileTextContainer}>
           <Text variant="body" weight="semibold">
-            {name || "User"}
+            {name || common.user}
           </Text>
           <Text variant="caption" color="secondary">
-            {email || "Signed in"}
+            {email || common.signedIn}
           </Text>
         </VStack>
-        <Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />
+        {/*<Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />*/}
       </HStack>
     </View>
   );
@@ -209,6 +209,7 @@ export default function SettingsScreen() {
   const { colors } = useTheme();
   const s = useStyles(styles);
   const settings = useSettingsI18n();
+  const common = useCommonI18n();
   const { bottomSheet } = useOverlayHelpers();
 
   const {
@@ -230,7 +231,7 @@ export default function SettingsScreen() {
   const handleOpenThemeSelection = useCallback(() => {
     bottomSheet(({ close }) => (
       <SelectionModal
-        title="Choose Theme"
+        title={settings.display.theme.select}
         options={themeOptions}
         selectedValue={display.theme}
         onSelect={value => {
@@ -306,12 +307,12 @@ export default function SettingsScreen() {
 
       {/* Account Settings (Logged In Only) */}
       {isAuthenticated && (
-        <SettingsGroup title="Account">
+        <SettingsGroup title={settings.account.title}>
           <SettingsRow
             icon="log-out-outline"
             iconColor={colors.text.secondary}
-            title="Sign Out"
-            description="Sign out of your account"
+            title={settings.account.signOut}
+            description={settings.account.signOutDescription}
             type="navigation"
             onPress={handleLogout}
             disabled={authLoading}
@@ -319,8 +320,8 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="trash-outline"
             iconColor={colors.status.error}
-            title="Delete Account"
-            description="Permanently delete your account"
+            title={settings.account.deleteAccount}
+            description={settings.account.deleteAccountDescription}
             type="navigation"
             onPress={handleDeleteAccount}
             disabled={authLoading}
@@ -333,7 +334,7 @@ export default function SettingsScreen() {
       {/* App Version */}
       <VStack gap="sm" align="center" style={s.appInfo}>
         <Text variant="caption" color="tertiary">
-          Version 1.0.0
+          {settings.about.version("1.0.0")}
         </Text>
       </VStack>
     </SettingsLayout>
