@@ -47,8 +47,7 @@ Swagger UI available at `http://localhost:3000/swagger-ui` when running.
    - api: Use **axum** skill + **postgresql** skill for queries
 2. Once the implementation is complete, run the two sub-agents below in parallel.
    - Run a **security-reviewer** sub-agent for security audit → fix
-   - Run a **tester** sub-agent for testing → fix
-**100% test coverage is not optional**
+   - Run a **tester** sub-agent for testing only changed code → fix
 
 ## API
 

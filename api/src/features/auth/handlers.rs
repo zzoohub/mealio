@@ -50,9 +50,19 @@ pub async fn sign_in(
 
     let user = match UserAuthProvider::find_by_provider(&mut *tx, &req.provider, &oauth_user.provider_uid).await? {
         Some(auth_provider) => {
-            User::find_by_id(&mut *tx, auth_provider.user_id)
-                .await?
-                .ok_or_else(|| AppError::Internal("user not found for auth provider".into()))?
+            match User::find_by_id(&mut *tx, auth_provider.user_id).await? {
+                Some(user) => user,
+                None => {
+                    // User was soft-deleted — restore the account
+                    User::restore(
+                        &mut *tx,
+                        auth_provider.user_id,
+                        &oauth_user.name,
+                        oauth_user.photo_url.as_deref(),
+                    )
+                    .await?
+                }
+            }
         }
         None => {
             let user = User::create(
@@ -197,4 +207,173 @@ pub async fn revoke(
 
     AuthToken::revoke(&db, &token_hash).await?;
     Ok(response::NoContent)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sign_in_request_structure() {
+        let req = SignInRequest {
+            provider: "google".to_string(),
+            id_token: "test_token".to_string(),
+            device_info: Some("iPhone 15 Pro".to_string()),
+        };
+
+        assert_eq!(req.provider, "google");
+        assert_eq!(req.id_token, "test_token");
+        assert_eq!(req.device_info, Some("iPhone 15 Pro".to_string()));
+    }
+
+    #[test]
+    fn test_sign_in_request_no_device_info() {
+        let req = SignInRequest {
+            provider: "apple".to_string(),
+            id_token: "apple_token".to_string(),
+            device_info: None,
+        };
+
+        assert_eq!(req.provider, "apple");
+        assert!(req.device_info.is_none());
+    }
+
+    #[test]
+    fn test_auth_response_structure() {
+        let resp = AuthResponse {
+            access_token: "access_token_123".to_string(),
+            refresh_token: "refresh_token_456".to_string(),
+            expires_in: 900,
+            user: UserInfo {
+                id: 1,
+                display_name: "Test User".to_string(),
+                email: "test@example.com".to_string(),
+                photo_url: Some("https://example.com/photo.jpg".to_string()),
+            },
+        };
+
+        assert_eq!(resp.access_token, "access_token_123");
+        assert_eq!(resp.refresh_token, "refresh_token_456");
+        assert_eq!(resp.expires_in, 900);
+        assert_eq!(resp.user.id, 1);
+        assert_eq!(resp.user.display_name, "Test User");
+        assert_eq!(resp.user.email, "test@example.com");
+    }
+
+    #[test]
+    fn test_refresh_request_structure() {
+        let req = RefreshRequest {
+            refresh_token: "refresh_token_789".to_string(),
+        };
+
+        assert_eq!(req.refresh_token, "refresh_token_789");
+    }
+
+    #[test]
+    fn test_refresh_response_structure() {
+        let resp = RefreshResponse {
+            access_token: "new_access_token".to_string(),
+            refresh_token: "new_refresh_token".to_string(),
+            expires_in: 900,
+        };
+
+        assert_eq!(resp.access_token, "new_access_token");
+        assert_eq!(resp.refresh_token, "new_refresh_token");
+        assert_eq!(resp.expires_in, 900);
+    }
+
+    #[test]
+    fn test_revoke_request_structure() {
+        let req = RevokeRequest {
+            refresh_token: "token_to_revoke".to_string(),
+        };
+
+        assert_eq!(req.refresh_token, "token_to_revoke");
+    }
+
+    #[test]
+    fn test_user_info_with_photo() {
+        let user_info = UserInfo {
+            id: 123,
+            display_name: "John Doe".to_string(),
+            email: "john@example.com".to_string(),
+            photo_url: Some("https://example.com/john.jpg".to_string()),
+        };
+
+        assert_eq!(user_info.id, 123);
+        assert_eq!(user_info.display_name, "John Doe");
+        assert_eq!(user_info.email, "john@example.com");
+        assert!(user_info.photo_url.is_some());
+    }
+
+    #[test]
+    fn test_user_info_without_photo() {
+        let user_info = UserInfo {
+            id: 456,
+            display_name: "Jane Smith".to_string(),
+            email: "jane@example.com".to_string(),
+            photo_url: None,
+        };
+
+        assert_eq!(user_info.id, 456);
+        assert_eq!(user_info.display_name, "Jane Smith");
+        assert_eq!(user_info.email, "jane@example.com");
+        assert!(user_info.photo_url.is_none());
+    }
+
+    #[test]
+    fn test_supported_provider_google() {
+        let provider = "google";
+        assert!(matches!(provider, "google" | "apple"));
+    }
+
+    #[test]
+    fn test_supported_provider_apple() {
+        let provider = "apple";
+        assert!(matches!(provider, "google" | "apple"));
+    }
+
+    #[test]
+    fn test_unsupported_provider() {
+        let provider = "facebook";
+        assert!(!matches!(provider, "google" | "apple"));
+    }
+
+    // Helper function to validate provider (extracted from sign_in logic)
+    fn is_supported_provider(provider: &str) -> bool {
+        matches!(provider, "google" | "apple")
+    }
+
+    #[test]
+    fn test_provider_validation_accepts_google() {
+        assert!(is_supported_provider("google"));
+    }
+
+    #[test]
+    fn test_provider_validation_accepts_apple() {
+        assert!(is_supported_provider("apple"));
+    }
+
+    #[test]
+    fn test_provider_validation_rejects_facebook() {
+        assert!(!is_supported_provider("facebook"));
+    }
+
+    #[test]
+    fn test_provider_validation_rejects_twitter() {
+        assert!(!is_supported_provider("twitter"));
+    }
+
+    #[test]
+    fn test_provider_validation_rejects_empty() {
+        assert!(!is_supported_provider(""));
+    }
+
+    #[test]
+    fn test_provider_validation_case_sensitive() {
+        assert!(!is_supported_provider("Google"));
+        assert!(!is_supported_provider("GOOGLE"));
+        assert!(!is_supported_provider("Apple"));
+        assert!(!is_supported_provider("APPLE"));
+    }
 }

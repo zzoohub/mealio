@@ -215,4 +215,247 @@ mod tests {
         assert_eq!(paginated.meta.total, 0);
         assert_eq!(paginated.meta.total_pages, 0);
     }
+
+    #[test]
+    fn test_date_range_params_both_dates() {
+        use chrono::NaiveDate;
+
+        let params = DateRangeParams {
+            start_date: Some(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
+            end_date: Some(NaiveDate::from_ymd_opt(2024, 12, 31).unwrap()),
+        };
+
+        assert!(params.start_date.is_some());
+        assert!(params.end_date.is_some());
+    }
+
+    #[test]
+    fn test_date_range_params_start_only() {
+        use chrono::NaiveDate;
+
+        let params = DateRangeParams {
+            start_date: Some(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
+            end_date: None,
+        };
+
+        assert!(params.start_date.is_some());
+        assert!(params.end_date.is_none());
+    }
+
+    #[test]
+    fn test_date_range_params_end_only() {
+        use chrono::NaiveDate;
+
+        let params = DateRangeParams {
+            start_date: None,
+            end_date: Some(NaiveDate::from_ymd_opt(2024, 12, 31).unwrap()),
+        };
+
+        assert!(params.start_date.is_none());
+        assert!(params.end_date.is_some());
+    }
+
+    #[test]
+    fn test_date_range_params_neither() {
+        let params = DateRangeParams {
+            start_date: None,
+            end_date: None,
+        };
+
+        assert!(params.start_date.is_none());
+        assert!(params.end_date.is_none());
+    }
+
+    #[test]
+    fn test_meal_type_breakfast() {
+        let meal = MealType::Breakfast;
+        assert_eq!(meal, MealType::Breakfast);
+    }
+
+    #[test]
+    fn test_meal_type_lunch() {
+        let meal = MealType::Lunch;
+        assert_eq!(meal, MealType::Lunch);
+    }
+
+    #[test]
+    fn test_meal_type_dinner() {
+        let meal = MealType::Dinner;
+        assert_eq!(meal, MealType::Dinner);
+    }
+
+    #[test]
+    fn test_meal_type_snack() {
+        let meal = MealType::Snack;
+        assert_eq!(meal, MealType::Snack);
+    }
+
+    #[test]
+    fn test_meal_type_dessert() {
+        let meal = MealType::Dessert;
+        assert_eq!(meal, MealType::Dessert);
+    }
+
+    #[test]
+    fn test_meal_type_drink() {
+        let meal = MealType::Drink;
+        assert_eq!(meal, MealType::Drink);
+    }
+
+    #[test]
+    fn test_meal_type_other() {
+        let meal = MealType::Other;
+        assert_eq!(meal, MealType::Other);
+    }
+
+    #[test]
+    fn test_meal_type_clone() {
+        let meal1 = MealType::Breakfast;
+        let meal2 = meal1.clone();
+        assert_eq!(meal1, meal2);
+    }
+
+    #[test]
+    fn test_meal_type_not_equal() {
+        let breakfast = MealType::Breakfast;
+        let lunch = MealType::Lunch;
+        assert_ne!(breakfast, lunch);
+    }
+
+    #[test]
+    fn test_meal_type_serialize_deserialize() {
+        let meal = MealType::Breakfast;
+        let serialized = serde_json::to_string(&meal).unwrap();
+        assert_eq!(serialized, "\"breakfast\"");
+
+        let deserialized: MealType = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(deserialized, MealType::Breakfast);
+    }
+
+    #[test]
+    fn test_meal_type_all_variants_serialize() {
+        let variants = vec![
+            (MealType::Breakfast, "\"breakfast\""),
+            (MealType::Lunch, "\"lunch\""),
+            (MealType::Dinner, "\"dinner\""),
+            (MealType::Snack, "\"snack\""),
+            (MealType::Dessert, "\"dessert\""),
+            (MealType::Drink, "\"drink\""),
+            (MealType::Other, "\"other\""),
+        ];
+
+        for (meal_type, expected_json) in variants {
+            let serialized = serde_json::to_string(&meal_type).unwrap();
+            assert_eq!(serialized, expected_json);
+        }
+    }
+
+    #[test]
+    fn test_meal_type_all_variants_deserialize() {
+        let variants = vec![
+            ("\"breakfast\"", MealType::Breakfast),
+            ("\"lunch\"", MealType::Lunch),
+            ("\"dinner\"", MealType::Dinner),
+            ("\"snack\"", MealType::Snack),
+            ("\"dessert\"", MealType::Dessert),
+            ("\"drink\"", MealType::Drink),
+            ("\"other\"", MealType::Other),
+        ];
+
+        for (json, expected_meal) in variants {
+            let deserialized: MealType = serde_json::from_str(json).unwrap();
+            assert_eq!(deserialized, expected_meal);
+        }
+    }
+
+    #[test]
+    fn test_pagination_meta_structure() {
+        let meta = PaginationMeta {
+            page: 2,
+            per_page: 20,
+            total: 100,
+            total_pages: 5,
+        };
+
+        assert_eq!(meta.page, 2);
+        assert_eq!(meta.per_page, 20);
+        assert_eq!(meta.total, 100);
+        assert_eq!(meta.total_pages, 5);
+    }
+
+    #[test]
+    fn test_paginated_with_string_data() {
+        let data = vec!["one".to_string(), "two".to_string(), "three".to_string()];
+        let params = PaginationParams {
+            page: Some(1),
+            per_page: Some(10),
+        };
+
+        let paginated = Paginated::new(data.clone(), 3, &params);
+
+        assert_eq!(paginated.data.len(), 3);
+        assert_eq!(paginated.meta.total, 3);
+        assert_eq!(paginated.meta.total_pages, 1);
+    }
+
+    #[test]
+    fn test_pagination_params_large_page_number() {
+        let params = PaginationParams {
+            page: Some(1000),
+            per_page: Some(20),
+        };
+
+        assert_eq!(params.page(), 1000);
+        assert_eq!(params.offset(), 19980); // (1000 - 1) * 20
+    }
+
+    #[test]
+    fn test_pagination_params_boundary_per_page_1() {
+        let params = PaginationParams {
+            page: Some(5),
+            per_page: Some(1),
+        };
+
+        assert_eq!(params.limit(), 1);
+        assert_eq!(params.offset(), 4); // (5 - 1) * 1
+    }
+
+    #[test]
+    fn test_pagination_params_boundary_per_page_100() {
+        let params = PaginationParams {
+            page: Some(2),
+            per_page: Some(100),
+        };
+
+        assert_eq!(params.limit(), 100);
+        assert_eq!(params.offset(), 100); // (2 - 1) * 100
+    }
+
+    #[test]
+    fn test_paginated_single_item() {
+        let data = vec![42];
+        let params = PaginationParams {
+            page: Some(1),
+            per_page: Some(10),
+        };
+
+        let paginated = Paginated::new(data, 1, &params);
+
+        assert_eq!(paginated.data.len(), 1);
+        assert_eq!(paginated.meta.total, 1);
+        assert_eq!(paginated.meta.total_pages, 1);
+    }
+
+    #[test]
+    fn test_date_range_params_same_date() {
+        use chrono::NaiveDate;
+
+        let date = NaiveDate::from_ymd_opt(2024, 6, 15).unwrap();
+        let params = DateRangeParams {
+            start_date: Some(date),
+            end_date: Some(date),
+        };
+
+        assert_eq!(params.start_date, params.end_date);
+    }
 }

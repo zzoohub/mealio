@@ -101,6 +101,28 @@ impl User {
             .await?;
         Ok(())
     }
+
+    pub async fn restore<'e, E: Executor<'e, Database = Postgres>>(
+        db: E,
+        id: i64,
+        display_name: &str,
+        photo_url: Option<&str>,
+    ) -> Result<Self, sqlx::Error> {
+        sqlx::query_as::<_, User>(
+            "UPDATE users
+             SET deleted_at = NULL,
+                 display_name = $2,
+                 photo_url = $3,
+                 updated_at = now()
+             WHERE id = $1 AND deleted_at IS NOT NULL
+             RETURNING id, display_name, email, photo_url, created_at, updated_at, deleted_at",
+        )
+        .bind(id)
+        .bind(display_name)
+        .bind(photo_url)
+        .fetch_one(db)
+        .await
+    }
 }
 
 impl UserSettings {
@@ -141,5 +163,162 @@ impl UserSettings {
         .bind(privacy_profile_public)
         .fetch_one(db)
         .await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_user_struct_has_all_required_fields() {
+        let now = Utc::now();
+        let user = User {
+            id: 1,
+            display_name: "Test User".to_string(),
+            email: "test@example.com".to_string(),
+            photo_url: Some("https://example.com/photo.jpg".to_string()),
+            created_at: now,
+            updated_at: now,
+            deleted_at: None,
+        };
+
+        assert_eq!(user.id, 1);
+        assert_eq!(user.display_name, "Test User");
+        assert_eq!(user.email, "test@example.com");
+        assert_eq!(user.photo_url, Some("https://example.com/photo.jpg".to_string()));
+        assert!(user.deleted_at.is_none());
+    }
+
+    #[test]
+    fn test_user_soft_deleted_has_deleted_at() {
+        let now = Utc::now();
+        let user = User {
+            id: 2,
+            display_name: "Deleted User".to_string(),
+            email: "deleted@example.com".to_string(),
+            photo_url: None,
+            created_at: now,
+            updated_at: now,
+            deleted_at: Some(now),
+        };
+
+        assert!(user.deleted_at.is_some());
+    }
+
+    #[test]
+    fn test_user_restored_has_no_deleted_at() {
+        let now = Utc::now();
+        let user = User {
+            id: 3,
+            display_name: "Restored User".to_string(),
+            email: "restored@example.com".to_string(),
+            photo_url: Some("https://example.com/restored.jpg".to_string()),
+            created_at: now,
+            updated_at: now,
+            deleted_at: None,
+        };
+
+        assert!(user.deleted_at.is_none());
+    }
+
+    #[test]
+    fn test_update_user_request_all_fields() {
+        let req = UpdateUserRequest {
+            display_name: Some("New Name".to_string()),
+            photo_url: Some("https://example.com/new.jpg".to_string()),
+        };
+
+        assert_eq!(req.display_name, Some("New Name".to_string()));
+        assert_eq!(req.photo_url, Some("https://example.com/new.jpg".to_string()));
+    }
+
+    #[test]
+    fn test_update_user_request_partial_fields() {
+        let req = UpdateUserRequest {
+            display_name: Some("Only Name".to_string()),
+            photo_url: None,
+        };
+
+        assert_eq!(req.display_name, Some("Only Name".to_string()));
+        assert!(req.photo_url.is_none());
+    }
+
+    #[test]
+    fn test_update_user_request_no_fields() {
+        let req = UpdateUserRequest {
+            display_name: None,
+            photo_url: None,
+        };
+
+        assert!(req.display_name.is_none());
+        assert!(req.photo_url.is_none());
+    }
+
+    #[test]
+    fn test_user_settings_struct() {
+        let now = Utc::now();
+        let settings = UserSettings {
+            id: 1,
+            user_id: 123,
+            theme: "dark".to_string(),
+            language: "en".to_string(),
+            notifications_enabled: true,
+            privacy_profile_public: false,
+            created_at: now,
+            updated_at: now,
+        };
+
+        assert_eq!(settings.id, 1);
+        assert_eq!(settings.user_id, 123);
+        assert_eq!(settings.theme, "dark");
+        assert_eq!(settings.language, "en");
+        assert!(settings.notifications_enabled);
+        assert!(!settings.privacy_profile_public);
+    }
+
+    #[test]
+    fn test_update_settings_request_all_fields() {
+        let req = UpdateSettingsRequest {
+            theme: Some("light".to_string()),
+            language: Some("ko".to_string()),
+            notifications_enabled: Some(false),
+            privacy_profile_public: Some(true),
+        };
+
+        assert_eq!(req.theme, Some("light".to_string()));
+        assert_eq!(req.language, Some("ko".to_string()));
+        assert_eq!(req.notifications_enabled, Some(false));
+        assert_eq!(req.privacy_profile_public, Some(true));
+    }
+
+    #[test]
+    fn test_update_settings_request_partial_fields() {
+        let req = UpdateSettingsRequest {
+            theme: Some("dark".to_string()),
+            language: None,
+            notifications_enabled: None,
+            privacy_profile_public: Some(false),
+        };
+
+        assert_eq!(req.theme, Some("dark".to_string()));
+        assert!(req.language.is_none());
+        assert!(req.notifications_enabled.is_none());
+        assert_eq!(req.privacy_profile_public, Some(false));
+    }
+
+    #[test]
+    fn test_update_settings_request_no_fields() {
+        let req = UpdateSettingsRequest {
+            theme: None,
+            language: None,
+            notifications_enabled: None,
+            privacy_profile_public: None,
+        };
+
+        assert!(req.theme.is_none());
+        assert!(req.language.is_none());
+        assert!(req.notifications_enabled.is_none());
+        assert!(req.privacy_profile_public.is_none());
     }
 }
