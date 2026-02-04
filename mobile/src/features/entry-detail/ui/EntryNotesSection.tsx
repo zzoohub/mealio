@@ -205,7 +205,7 @@ export default EntryNotesSection;
 // =============================================================================
 
 // Minimum height for notes area
-const NOTES_MIN_HEIGHT = 100;
+const NOTES_MIN_HEIGHT = 148;
 
 const styles = createStyles((colors) => ({
   container: {

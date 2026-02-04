@@ -10,6 +10,7 @@ import {
   EntryContextBar,
   EntryNotesSection,
   AIAnalysisSection,
+  EntryLocationMap,
   EntryDeleteButton,
 } from "@/features/entry-detail";
 import { PhotoCarousel } from "@/shared/ui/styled";
@@ -106,6 +107,9 @@ export default function DiaryEntryScreen() {
           onNutritionChange={updateNutrition}
           disabled={isDisabled}
         />
+
+        {/* Location Map */}
+        <EntryLocationMap location={entry?.location} />
 
         {/* Spacer */}
         <View style={s.spacer} />

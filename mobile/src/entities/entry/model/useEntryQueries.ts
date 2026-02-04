@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/shared/config";
-import { mapApiDiaryEntryDetailToEntry } from "@/shared/api";
+import { mapApiDiaryEntryDetailToEntry, apiMealTypeToEnum } from "@/shared/api";
 import type { ApiDiaryQueryParams, ApiCreateEntryRequest, ApiUpdateEntryRequest, ApiUpsertNutritionRequest } from "@/shared/api";
+import type { Entry } from "./types";
 import { entryApi } from "../api/entryApi";
 import { ingredientApi } from "../api/ingredientApi";
 import { nutritionApi } from "../api/nutritionApi";
@@ -65,7 +66,41 @@ export function useUpdateEntryMutation() {
   return useMutation({
     mutationFn: ({ id, body }: { id: number; body: ApiUpdateEntryRequest }) =>
       entryApi.update(id, body),
-    onSuccess: (_data, { id }) => {
+    onMutate: async ({ id, body }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.diary.detail(id) });
+
+      const previous = queryClient.getQueryData<Entry>(queryKeys.diary.detail(id));
+
+      if (previous) {
+        const updated = { ...previous };
+
+        if (body.meal_type !== undefined) {
+          updated.meal = { ...updated.meal, mealType: apiMealTypeToEnum(body.meal_type) };
+        }
+        if (body.rating !== undefined) {
+          updated.rating = body.rating;
+        }
+        if (body.would_eat_again !== undefined) {
+          updated.wouldEatAgain = body.would_eat_again;
+        }
+        if (body.notes !== undefined) {
+          updated.notes = body.notes;
+        }
+        if (body.eaten_at !== undefined) {
+          updated.timestamp = new Date(body.eaten_at);
+        }
+
+        queryClient.setQueryData(queryKeys.diary.detail(id), updated);
+      }
+
+      return { previous };
+    },
+    onError: (_err, { id }, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.diary.detail(id), context.previous);
+      }
+    },
+    onSettled: (_data, _error, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.diary.detail(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.diary.list() });
     },

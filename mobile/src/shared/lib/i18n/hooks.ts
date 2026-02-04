@@ -332,6 +332,8 @@ export const useDiaryI18n = () => {
       searchRecordPrompt: t("searchRecordPrompt"),
       mealTypeSelect: t("mealTypeSelect"),
       mealTypeAccessibility: (type: string) => t("mealTypeAccessibility", { type }),
+      location: t("location"),
+      openInMaps: t("openInMaps"),
       stat: (key: string) => t(key as DiaryKeys),
     }),
     [t],

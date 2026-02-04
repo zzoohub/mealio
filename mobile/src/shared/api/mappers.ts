@@ -22,7 +22,7 @@ function parseDecimal(value: string | null | undefined): number {
   return isNaN(n) ? 0 : n;
 }
 
-function apiMealTypeToEnum(apiType: ApiMealType): MealType {
+export function apiMealTypeToEnum(apiType: ApiMealType): MealType {
   const map: Record<ApiMealType, MealType> = {
     breakfast: MealType.BREAKFAST,
     lunch: MealType.LUNCH,

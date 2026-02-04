@@ -43,5 +43,7 @@
   "searchAdjustFilters": "Try adjusting your filters",
   "searchRecordPrompt": "Recorded meals will appear here",
   "mealTypeSelect": "Select Meal Type",
-  "mealTypeAccessibility": "Meal type: {{type}}, tap to change"
+  "mealTypeAccessibility": "Meal type: {{type}}, tap to change",
+  "location": "Location",
+  "openInMaps": "Open in Maps"
 }

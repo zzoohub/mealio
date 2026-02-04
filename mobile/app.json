@@ -80,6 +80,12 @@
           "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to tag meals."
         }
       ],
+      [
+        "./plugins/withGoogleMaps",
+        {
+          "apiKey": "GOOGLE_MAP_API_KEY"
+        }
+      ],
       "expo-font",
       "expo-image",
       "expo-localization",

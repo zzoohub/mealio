@@ -43,5 +43,7 @@
   "searchAdjustFilters": "필터를 조정해보세요",
   "searchRecordPrompt": "식사를 기록하면 여기에 표시됩니다",
   "mealTypeSelect": "식사 종류 선택",
-  "mealTypeAccessibility": "식사 종류: {{type}}, 탭하여 변경"
+  "mealTypeAccessibility": "식사 종류: {{type}}, 탭하여 변경",
+  "location": "위치",
+  "openInMaps": "지도에서 열기"
 }

@@ -114,10 +114,21 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
   }, [entryId, isApiEntry]);
 
   // =============================================================================
+  // DEFERRED NOTES REFS (API path only)
+  // =============================================================================
+
+  const originalNotesRef = useRef<string | null>(null);
+  const pendingNotesRef = useRef<string | null>(null);
+  const flushNotesRef = useRef<() => void>(() => {});
+
+  // =============================================================================
   // UNIFIED DATA
   // =============================================================================
 
-  const entry = isApiEntry ? (apiDetailQuery.data ?? null) : guestEntry;
+  const rawEntry = isApiEntry ? (apiDetailQuery.data ?? null) : guestEntry;
+  const entry = rawEntry && pendingNotesRef.current !== null
+    ? { ...rawEntry, notes: pendingNotesRef.current }
+    : rawEntry;
   const isLoading = isApiEntry ? apiDetailQuery.isLoading : guestLoading;
   const error = isApiEntry ? (apiDetailQuery.error ?? null) : guestError;
 
@@ -167,15 +178,12 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
   const updateNotes = useCallback(
     (notes: string) => {
       if (isApiEntry) {
-        updateEntryMutation.mutate({
-          id: numericId,
-          body: mapEntryToUpdateRequest({ notes }),
-        });
+        pendingNotesRef.current = notes;
       } else {
         updateGuestEntry({ notes });
       }
     },
-    [isApiEntry, numericId, updateEntryMutation, updateGuestEntry]
+    [isApiEntry, updateGuestEntry]
   );
 
   const updateRating = useCallback(
@@ -271,6 +279,46 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
       ]
     );
   }, [entryId, isApiEntry, numericId, deleteEntryMutation, router, diary.deleteEntryTitle, diary.deleteEntryMessage, common.cancel, common.delete, common.error, errors.deleteFailed]);
+
+  // =============================================================================
+  // DEFERRED NOTES: flush closure + unmount + baseline sync
+  // =============================================================================
+
+  // Keep flushNotesRef always pointing at a closure with latest values
+  flushNotesRef.current = () => {
+    if (
+      pendingNotesRef.current !== null &&
+      pendingNotesRef.current !== originalNotesRef.current
+    ) {
+      updateEntryMutation.mutate({
+        id: numericId,
+        body: mapEntryToUpdateRequest({ notes: pendingNotesRef.current }),
+      });
+    }
+  };
+
+  // Flush pending notes on unmount
+  useEffect(() => {
+    return () => {
+      flushNotesRef.current();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Flush and reset refs when entryId changes (prevents cross-entry contamination)
+  useEffect(() => {
+    return () => {
+      flushNotesRef.current();
+      pendingNotesRef.current = null;
+      originalNotesRef.current = null;
+    };
+  }, [entryId]);
+
+  // Sync originalNotesRef with server data when there are no pending edits
+  useEffect(() => {
+    if (rawEntry && pendingNotesRef.current === null) {
+      originalNotesRef.current = rawEntry.notes;
+    }
+  }, [rawEntry]);
 
   // =============================================================================
   // NAVIGATION

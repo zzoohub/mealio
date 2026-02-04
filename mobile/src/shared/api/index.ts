@@ -8,6 +8,7 @@ export {
   mapApiDiaryEntryDetailToEntry,
   mapEntryToCreateRequest,
   mapEntryToUpdateRequest,
+  apiMealTypeToEnum,
 } from "./mappers";
 export { uploadPhoto } from "./uploadApi";
 export type * from "./types";

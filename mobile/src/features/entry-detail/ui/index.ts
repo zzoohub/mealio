@@ -5,4 +5,5 @@ export { EntryContextBar } from './EntryContextBar';
 export { EntryNotesSection } from './EntryNotesSection';
 export { AIAnalysisSection } from './AIAnalysisSection';
 export { EntryDeleteButton } from './EntryDeleteButton';
+export { EntryLocationMap } from './EntryLocationMap';
 export { MealNutritionRow } from './MealNutritionRow';

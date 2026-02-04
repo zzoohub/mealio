@@ -139,6 +139,8 @@ export interface DiaryTranslations {
   searchRecordPrompt: string;
   mealTypeSelect: string;
   mealTypeAccessibility: string;
+  location: string;
+  openInMaps: string;
 }
 
 // Settings translations
