@@ -1,9 +1,11 @@
 // Mock native modules and barrels that pull in RN dependencies
 jest.mock("react-native", () => ({
   View: "View",
-  Pressable: "Pressable",
   Dimensions: { get: jest.fn(() => ({ width: 375, height: 812 })) },
   ActivityIndicator: "ActivityIndicator",
+}));
+jest.mock("react-native-gesture-handler", () => ({
+  Pressable: "Pressable",
 }));
 jest.mock("react-native-pager-view", () => "PagerView");
 jest.mock("expo-image", () => ({ Image: "Image" }));

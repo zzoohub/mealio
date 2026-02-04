@@ -10,21 +10,15 @@ import type { Entry } from "@/entities/entry";
 
 const mealTypeValues = Object.values(MealType) as [string, ...string[]];
 
-const entryFormSchema = z
-  .object({
-    title: z.string(),
-    notes: z.string(),
-    mealType: z.enum(mealTypeValues),
-    eatenAt: z.date(),
-    photoUri: z.string(),
-    locationLatitude: z.number().nullable(),
-    locationLongitude: z.number().nullable(),
-    locationAddress: z.string(),
-  })
-  .refine((data) => data.title || data.notes, {
-    message: "Title or notes is required",
-    path: ["title"],
-  });
+const entryFormSchema = z.object({
+  notes: z.string(),
+  mealType: z.enum(mealTypeValues),
+  eatenAt: z.date(),
+  photoUri: z.string(),
+  locationLatitude: z.number().nullable(),
+  locationLongitude: z.number().nullable(),
+  locationAddress: z.string(),
+});
 
 // =============================================================================
 // TYPES
@@ -44,7 +38,6 @@ interface UseEntryFormOptions {
 export function useEntryForm({ onSubmit, defaultValues }: UseEntryFormOptions) {
   const form = useForm({
     defaultValues: {
-      title: defaultValues?.title ?? "",
       notes: defaultValues?.notes ?? "",
       mealType: defaultValues?.mealType ?? MealType.LUNCH,
       eatenAt: defaultValues?.eatenAt ?? new Date(),
@@ -57,7 +50,7 @@ export function useEntryForm({ onSubmit, defaultValues }: UseEntryFormOptions) {
       const entry: Omit<Entry, "id" | "createdAt" | "updatedAt"> = {
         userId: "",
         timestamp: value.eatenAt,
-        notes: value.notes || value.title,
+        notes: value.notes,
         meal: {
           photoUri: value.photoUri,
           mealType: value.mealType as MealType,

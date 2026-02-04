@@ -370,7 +370,6 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       id: 100,
       user_id: 1,
       meal_type: "breakfast",
-      title: "Breakfast",
       notes: "Delicious meal",
       eaten_at: "2024-01-01T08:00:00Z",
       created_at: "2024-01-01T08:00:00Z",
@@ -449,7 +448,6 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       id: 100,
       user_id: 1,
       meal_type: "lunch",
-      title: "Lunch",
       notes: null,
       eaten_at: "2024-01-01T12:00:00Z",
       created_at: "2024-01-01T12:00:00Z",
@@ -499,7 +497,6 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       id: 100,
       user_id: 1,
       meal_type: "dinner",
-      title: "Dinner",
       notes: null,
       eaten_at: "2024-01-01T18:00:00Z",
       created_at: "2024-01-01T18:00:00Z",
@@ -522,7 +519,6 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       id: 100,
       user_id: 1,
       meal_type: "snack",
-      title: "Snack",
       notes: null,
       eaten_at: "2024-01-01T15:00:00Z",
       created_at: "2024-01-01T15:00:00Z",
@@ -546,7 +542,6 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       id: 100,
       user_id: 1,
       meal_type: "snack",
-      title: "Snack",
       notes: null,
       eaten_at: "2024-01-01T15:00:00Z",
       created_at: "2024-01-01T15:00:00Z",
@@ -569,7 +564,6 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       id: 100,
       user_id: 1,
       meal_type: "lunch",
-      title: "Lunch",
       notes: null,
       eaten_at: "2024-01-01T12:00:00Z",
       created_at: "2024-01-01T12:00:00Z",
@@ -603,7 +597,6 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       id: 100,
       user_id: 1,
       meal_type: "dinner",
-      title: "Dinner",
       notes: null,
       eaten_at: "2024-01-01T18:00:00Z",
       created_at: "2024-01-01T18:00:00Z",
@@ -629,7 +622,6 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       id: 100,
       user_id: 1,
       meal_type: "breakfast",
-      title: "Breakfast",
       notes: null,
       eaten_at: "2024-01-01T08:00:00Z",
       created_at: "2024-01-01T08:00:00Z",
@@ -652,7 +644,6 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
       id: 100,
       user_id: 1,
       meal_type: "breakfast",
-      title: "Breakfast",
       notes: null,
       eaten_at: "2024-01-01T08:00:00Z",
       created_at: "2024-01-01T08:00:00Z",
@@ -686,7 +677,6 @@ describe("mapApiDiaryEntryDetailToEntry", () => {
         id: 100,
         user_id: 1,
         meal_type: mealType,
-        title: "Meal",
         notes: null,
         eaten_at: "2024-01-01T12:00:00Z",
         created_at: "2024-01-01T12:00:00Z",
@@ -729,7 +719,6 @@ describe("mapEntryToCreateRequest", () => {
     const result = mapEntryToCreateRequest(entry);
 
     expect(result.meal_type).toBe("breakfast");
-    expect(result.title).toBe("Test notes");
     expect(result.notes).toBe("Test notes");
     expect(result.eaten_at).toBe("2024-01-01T08:00:00.000Z");
     expect(result.location).toEqual({
@@ -739,7 +728,7 @@ describe("mapEntryToCreateRequest", () => {
     });
   });
 
-  it("uses meal type as title when notes is empty", () => {
+  it("does not set notes when notes is empty", () => {
     const entry: Omit<Entry, "id" | "createdAt" | "updatedAt"> = {
       userId: "1",
       timestamp: new Date("2024-01-01T08:00:00Z"),
@@ -752,7 +741,6 @@ describe("mapEntryToCreateRequest", () => {
 
     const result = mapEntryToCreateRequest(entry);
 
-    expect(result.title).toBe("lunch");
     expect(result.notes).toBeUndefined();
   });
 
@@ -810,12 +798,11 @@ describe("mapEntryToUpdateRequest", () => {
     const result = mapEntryToUpdateRequest(updates);
 
     expect(result.meal_type).toBe("lunch");
-    expect(result.title).toBe("Updated notes");
     expect(result.notes).toBe("Updated notes");
     expect(result.eaten_at).toBe("2024-01-01T12:00:00.000Z");
   });
 
-  it("uses meal type as title when notes is empty string", () => {
+  it("sets notes to empty string when notes is empty string", () => {
     const updates: Partial<Omit<Entry, "id" | "createdAt">> = {
       notes: "",
       meal: {
@@ -826,7 +813,6 @@ describe("mapEntryToUpdateRequest", () => {
 
     const result = mapEntryToUpdateRequest(updates);
 
-    expect(result.title).toBe("dinner");
     expect(result.notes).toBe("");
   });
 
@@ -934,7 +920,6 @@ describe("mapApiDiaryEntryDetailToEntry - new fields", () => {
       id: 100,
       user_id: 1,
       meal_type: "breakfast",
-      title: "Breakfast",
       notes: null,
       eaten_at: "2024-01-01T08:00:00Z",
       created_at: "2024-01-01T08:00:00Z",
@@ -957,7 +942,6 @@ describe("mapApiDiaryEntryDetailToEntry - new fields", () => {
       id: 100,
       user_id: 1,
       meal_type: "lunch",
-      title: "Lunch",
       notes: null,
       eaten_at: "2024-01-01T12:00:00Z",
       created_at: "2024-01-01T12:00:00Z",
@@ -980,7 +964,6 @@ describe("mapApiDiaryEntryDetailToEntry - new fields", () => {
       id: 100,
       user_id: 1,
       meal_type: "dinner",
-      title: "Dinner",
       notes: null,
       eaten_at: "2024-01-01T18:00:00Z",
       created_at: "2024-01-01T18:00:00Z",
@@ -1022,7 +1005,6 @@ describe("mapApiDiaryEntryDetailToEntry - new fields", () => {
       id: 100,
       user_id: 1,
       meal_type: "snack",
-      title: "Snack",
       notes: null,
       eaten_at: "2024-01-01T15:00:00Z",
       created_at: "2024-01-01T15:00:00Z",
@@ -1045,7 +1027,6 @@ describe("mapApiDiaryEntryDetailToEntry - new fields", () => {
       id: 100,
       user_id: 1,
       meal_type: "dessert",
-      title: "Dessert",
       notes: null,
       eaten_at: "2024-01-01T20:00:00Z",
       created_at: "2024-01-01T20:00:00Z",
@@ -1068,7 +1049,6 @@ describe("mapApiDiaryEntryDetailToEntry - new fields", () => {
       id: 100,
       user_id: 1,
       meal_type: "breakfast",
-      title: "Breakfast",
       notes: null,
       eaten_at: "2024-01-01T08:00:00Z",
       created_at: "2024-01-01T08:00:00Z",
@@ -1091,7 +1071,6 @@ describe("mapApiDiaryEntryDetailToEntry - new fields", () => {
       id: 100,
       user_id: 1,
       meal_type: "breakfast",
-      title: "Breakfast",
       notes: null,
       eaten_at: "2024-01-01T08:00:00Z",
       created_at: "2024-01-01T08:00:00Z",
@@ -1114,7 +1093,6 @@ describe("mapApiDiaryEntryDetailToEntry - new fields", () => {
       id: 100,
       user_id: 1,
       meal_type: "breakfast",
-      title: "Breakfast",
       notes: null,
       eaten_at: "2024-01-01T08:00:00Z",
       created_at: "2024-01-01T08:00:00Z",
@@ -1137,7 +1115,6 @@ describe("mapApiDiaryEntryDetailToEntry - new fields", () => {
       id: 100,
       user_id: 1,
       meal_type: "lunch",
-      title: "Lunch",
       notes: null,
       eaten_at: "2024-01-01T12:00:00Z",
       created_at: "2024-01-01T12:00:00Z",

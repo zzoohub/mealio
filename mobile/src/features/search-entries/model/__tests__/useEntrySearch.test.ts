@@ -77,7 +77,6 @@ const createMockApiEntry = (overrides?: Partial<ApiDiaryEntry>): ApiDiaryEntry =
   id: 1,
   user_id: 1,
   meal_type: "breakfast",
-  title: "Breakfast",
   notes: "Test notes",
   eaten_at: "2024-01-15T08:00:00Z",
   created_at: "2024-01-15T08:00:00Z",
@@ -1141,7 +1140,7 @@ describe("useEntrySearch", () => {
       mockEntryApiList
         .mockImplementationOnce(() => firstCallPromise)
         .mockResolvedValueOnce(
-          mockApiResponse([createMockApiEntry({ id: 2, title: "Second Response" })])
+          mockApiResponse([createMockApiEntry({ id: 2 })])
         );
 
       const { result } = renderHook(() => useEntrySearch());
@@ -1170,7 +1169,7 @@ describe("useEntrySearch", () => {
       // Now resolve the first (stale) call
       await act(async () => {
         resolveFirstCall!(
-          mockApiResponse([createMockApiEntry({ id: 1, title: "First Response (Stale)" })])
+          mockApiResponse([createMockApiEntry({ id: 1 })])
         );
       });
 
@@ -1181,8 +1180,8 @@ describe("useEntrySearch", () => {
 
     it("discards stale loadMore response when loadData fires during in-flight loadMore", async () => {
       const page1Data = [createMockApiEntry({ id: 1 })];
-      const page2Data = [createMockApiEntry({ id: 2, title: "Page 2 (Stale)" })];
-      const freshData = [createMockApiEntry({ id: 3, title: "Fresh Data" })];
+      const page2Data = [createMockApiEntry({ id: 2 })];
+      const freshData = [createMockApiEntry({ id: 3 })];
 
       // Initial load succeeds
       mockEntryApiList.mockResolvedValueOnce(mockApiResponse(page1Data, 1, 2));
@@ -1239,8 +1238,8 @@ describe("useEntrySearch", () => {
 
     it("discards stale loadMore response when filters change before loadMore completes", async () => {
       const page1Data = [createMockApiEntry({ id: 1 })];
-      const page2Data = [createMockApiEntry({ id: 2, title: "Page 2 (Stale)" })];
-      const freshData = [createMockApiEntry({ id: 3, title: "Fresh Data" })];
+      const page2Data = [createMockApiEntry({ id: 2 })];
+      const freshData = [createMockApiEntry({ id: 3 })];
 
       mockEntryApiList.mockResolvedValueOnce(mockApiResponse(page1Data, 1, 2));
 
@@ -1292,9 +1291,9 @@ describe("useEntrySearch", () => {
 
     it("handles multiple rapid filter changes with only latest response applied", async () => {
       const responses = [
-        mockApiResponse([createMockApiEntry({ id: 1, title: "First" })]),
-        mockApiResponse([createMockApiEntry({ id: 2, title: "Second" })]),
-        mockApiResponse([createMockApiEntry({ id: 3, title: "Third (Latest)" })]),
+        mockApiResponse([createMockApiEntry({ id: 1 })]),
+        mockApiResponse([createMockApiEntry({ id: 2 })]),
+        mockApiResponse([createMockApiEntry({ id: 3 })]),
       ];
 
       let resolvers: Array<(value: any) => void> = [];

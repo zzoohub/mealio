@@ -118,7 +118,6 @@ export interface ApiDiaryEntry {
   id: number;
   user_id: number;
   meal_type: ApiMealType;
-  title: string;
   notes: string | null;
   eaten_at: string;
   created_at: string;
@@ -185,7 +184,6 @@ export interface ApiDiaryEntryDetail {
   id: number;
   user_id: number;
   meal_type: ApiMealType;
-  title: string;
   notes: string | null;
   eaten_at: string;
   created_at: string;
@@ -200,7 +198,6 @@ export interface ApiDiaryEntryDetail {
 
 export interface ApiCreateEntryRequest {
   meal_type: ApiMealType;
-  title: string;
   notes?: string;
   eaten_at?: string;
   location?: ApiCreateLocationInput;
@@ -215,7 +212,6 @@ export interface ApiCreateLocationInput {
 
 export interface ApiUpdateEntryRequest {
   meal_type?: ApiMealType;
-  title?: string;
   notes?: string;
   eaten_at?: string;
   rating?: number;

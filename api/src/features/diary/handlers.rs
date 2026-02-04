@@ -64,7 +64,6 @@ pub async fn create_entry(
         &db,
         auth.user_id,
         &req.meal_type,
-        &req.title,
         req.notes.as_deref(),
         req.eaten_at,
     )
@@ -154,7 +153,6 @@ pub async fn update_entry(
         id,
         auth.user_id,
         req.meal_type.as_ref(),
-        req.title.as_deref(),
         req.notes.as_deref(),
         req.eaten_at,
         req.rating,

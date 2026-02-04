@@ -6,7 +6,8 @@
  */
 
 import React, { memo, useCallback, useState } from "react";
-import { View, Pressable, Dimensions, ActivityIndicator } from "react-native";
+import { View, Dimensions, ActivityIndicator } from "react-native";
+import { Pressable } from "react-native-gesture-handler";
 import PagerView from "react-native-pager-view";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";

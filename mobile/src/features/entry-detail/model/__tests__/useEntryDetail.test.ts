@@ -157,8 +157,6 @@ describe("useEntryDetail", () => {
       if (updates.rating !== undefined) req.rating = updates.rating;
       if (updates.wouldEatAgain !== undefined) req.would_eat_again = updates.wouldEatAgain;
       if (updates.notes !== undefined) {
-        const title = updates.notes || updates.meal?.mealType;
-        if (title) req.title = title;
         req.notes = updates.notes;
       }
       if (updates.meal?.mealType) req.meal_type = updates.meal.mealType;

@@ -35,7 +35,6 @@ pub struct DiaryEntry {
     pub id: i64,
     pub user_id: i64,
     pub meal_type: MealType,
-    pub title: String,
     pub notes: Option<String>,
     pub eaten_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
@@ -59,7 +58,6 @@ pub struct DiaryEntryDetail {
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreateEntryRequest {
     pub meal_type: MealType,
-    pub title: String,
     pub notes: Option<String>,
     pub eaten_at: Option<DateTime<Utc>>,
     pub location: Option<CreateLocationInput>,
@@ -76,7 +74,6 @@ pub struct CreateLocationInput {
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdateEntryRequest {
     pub meal_type: Option<MealType>,
-    pub title: Option<String>,
     pub notes: Option<String>,
     pub eaten_at: Option<DateTime<Utc>>,
     pub rating: Option<i16>,
@@ -149,7 +146,6 @@ impl DiaryEntry {
              AND ($3::date IS NULL OR (d.eaten_at AT TIME ZONE COALESCE($6, 'UTC'))::date <= $3)
              AND ($4::meal_type IS NULL OR d.meal_type = $4)
              AND ($5::text IS NULL
-                  OR d.title ILIKE '%' || $5 || '%'
                   OR d.notes ILIKE '%' || $5 || '%'
                   OR EXISTS (SELECT 1 FROM entry_locations el WHERE el.entry_id = d.id AND (el.name ILIKE '%' || $5 || '%' OR el.address ILIKE '%' || $5 || '%'))
                   OR EXISTS (SELECT 1 FROM entry_ingredients ei JOIN ingredients i ON i.id = ei.ingredient_id WHERE ei.entry_id = d.id AND i.name ILIKE '%' || $5 || '%')
@@ -170,7 +166,7 @@ impl DiaryEntry {
 
         let entries = sqlx::query_as::<_, DiaryEntry>(
             &format!(
-            "SELECT d.id, d.user_id, d.meal_type, d.title, d.notes, d.eaten_at, d.created_at, d.updated_at,
+            "SELECT d.id, d.user_id, d.meal_type, d.notes, d.eaten_at, d.created_at, d.updated_at,
                     (SELECT ep.url FROM entry_photos ep
                      WHERE ep.entry_id = d.id
                      ORDER BY ep.is_primary DESC, ep.sort_order, ep.created_at
@@ -185,7 +181,6 @@ impl DiaryEntry {
              AND ($3::date IS NULL OR (d.eaten_at AT TIME ZONE COALESCE($8, 'UTC'))::date <= $3)
              AND ($4::meal_type IS NULL OR d.meal_type = $4)
              AND ($5::text IS NULL
-                  OR d.title ILIKE '%' || $5 || '%'
                   OR d.notes ILIKE '%' || $5 || '%'
                   OR EXISTS (SELECT 1 FROM entry_locations el WHERE el.entry_id = d.id AND (el.name ILIKE '%' || $5 || '%' OR el.address ILIKE '%' || $5 || '%'))
                   OR EXISTS (SELECT 1 FROM entry_ingredients ei JOIN ingredients i ON i.id = ei.ingredient_id WHERE ei.entry_id = d.id AND i.name ILIKE '%' || $5 || '%')
@@ -211,7 +206,7 @@ impl DiaryEntry {
 
     pub async fn find_by_id(db: &PgPool, id: i64, user_id: i64) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as::<_, DiaryEntry>(
-            "SELECT d.id, d.user_id, d.meal_type, d.title, d.notes, d.eaten_at, d.created_at, d.updated_at,
+            "SELECT d.id, d.user_id, d.meal_type, d.notes, d.eaten_at, d.created_at, d.updated_at,
                     (SELECT ep.url FROM entry_photos ep
                      WHERE ep.entry_id = d.id
                      ORDER BY ep.is_primary DESC, ep.sort_order, ep.created_at
@@ -232,21 +227,19 @@ impl DiaryEntry {
         db: &PgPool,
         user_id: i64,
         meal_type: &MealType,
-        title: &str,
         notes: Option<&str>,
         eaten_at: Option<DateTime<Utc>>,
     ) -> Result<Self, sqlx::Error> {
         sqlx::query_as::<_, DiaryEntry>(
-            "INSERT INTO diary_entries (user_id, meal_type, title, notes, eaten_at)
-             VALUES ($1, $2, $3, $4, COALESCE($5, now()))
-             RETURNING id, user_id, meal_type, title, notes, eaten_at, created_at, updated_at,
+            "INSERT INTO diary_entries (user_id, meal_type, notes, eaten_at)
+             VALUES ($1, $2, $3, COALESCE($4, now()))
+             RETURNING id, user_id, meal_type, notes, eaten_at, created_at, updated_at,
                        NULL::text AS primary_photo_url,
                        ARRAY[]::text[] AS photo_urls,
                        rating, would_eat_again",
         )
         .bind(user_id)
         .bind(meal_type)
-        .bind(title)
         .bind(notes)
         .bind(eaten_at)
         .fetch_one(db)
@@ -258,7 +251,6 @@ impl DiaryEntry {
         id: i64,
         user_id: i64,
         meal_type: Option<&MealType>,
-        title: Option<&str>,
         notes: Option<&str>,
         eaten_at: Option<DateTime<Utc>>,
         rating: Option<i16>,
@@ -267,13 +259,12 @@ impl DiaryEntry {
         sqlx::query_as::<_, DiaryEntry>(
             "UPDATE diary_entries
              SET meal_type = COALESCE($3, meal_type),
-                 title = COALESCE($4, title),
-                 notes = COALESCE($5, notes),
-                 eaten_at = COALESCE($6, eaten_at),
-                 rating = COALESCE($7, rating),
-                 would_eat_again = COALESCE($8, would_eat_again)
+                 notes = COALESCE($4, notes),
+                 eaten_at = COALESCE($5, eaten_at),
+                 rating = COALESCE($6, rating),
+                 would_eat_again = COALESCE($7, would_eat_again)
              WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
-             RETURNING id, user_id, meal_type, title, notes, eaten_at, created_at, updated_at,
+             RETURNING id, user_id, meal_type, notes, eaten_at, created_at, updated_at,
                        (SELECT ep.url FROM entry_photos ep
                         WHERE ep.entry_id = id
                         ORDER BY ep.is_primary DESC, ep.sort_order, ep.created_at
@@ -286,7 +277,6 @@ impl DiaryEntry {
         .bind(id)
         .bind(user_id)
         .bind(meal_type)
-        .bind(title)
         .bind(notes)
         .bind(eaten_at)
         .bind(rating)

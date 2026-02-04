@@ -53,15 +53,9 @@ export default function Camera({ initialPhotos, targetDate }: CameraProps) {
 
   const handleSaveEntry = useCallback(
     async (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">, photoUris?: string[]) => {
-      const entryId = await saveEntry(entry, photoUris);
-      if (entryId) {
-        router.push(`/diary/${entryId}`);
-      } else {
-        router.push("/diary");
-      }
-      return entryId;
+      return saveEntry(entry, photoUris);
     },
-    [saveEntry, router],
+    [saveEntry],
   );
 
   const handleNavigateToEntry = useCallback(

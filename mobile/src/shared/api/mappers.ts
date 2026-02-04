@@ -160,7 +160,6 @@ export function mapEntryToCreateRequest(
 ): ApiCreateEntryRequest {
   const req: ApiCreateEntryRequest = {
     meal_type: enumToApiMealType(entry.meal.mealType),
-    title: entry.notes || entry.meal.mealType,
   };
 
   if (entry.notes) {
@@ -191,8 +190,6 @@ export function mapEntryToUpdateRequest(
     req.meal_type = enumToApiMealType(updates.meal.mealType);
   }
   if (updates.notes !== undefined) {
-    const title = updates.notes || updates.meal?.mealType;
-    if (title) req.title = title;
     req.notes = updates.notes;
   }
   if (updates.timestamp) {
