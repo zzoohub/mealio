@@ -85,6 +85,22 @@ export function EntryNotesSection({
     setLocalNotes(notes || '');
   }, [notes]);
 
+  // Flush unsaved notes on unmount (handles back-navigation while keyboard is open)
+  const localNotesRef = useRef(localNotes);
+  localNotesRef.current = localNotes;
+  const notesPropRef = useRef(notes);
+  notesPropRef.current = notes;
+  const onNotesChangeRef = useRef(onNotesChange);
+  onNotesChangeRef.current = onNotesChange;
+
+  useEffect(() => {
+    return () => {
+      if (localNotesRef.current !== (notesPropRef.current || '')) {
+        onNotesChangeRef.current?.(localNotesRef.current);
+      }
+    };
+  }, []);
+
   const hasNotes = localNotes.trim().length > 0;
 
   const handlePress = () => {

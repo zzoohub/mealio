@@ -243,10 +243,11 @@ describe("useEntrySearchPage", () => {
   // =============================================================================
 
   describe("Sorting", () => {
-    it("sorts by date-desc (newest first)", () => {
+    it("preserves server-side sort order (no client re-sort)", () => {
+      // Entries are returned already sorted by the API (server-side sorting)
       const entries = [
-        createMockEntry({ id: "1", timestamp: new Date("2024-01-15T08:00:00Z") }),
         createMockEntry({ id: "2", timestamp: new Date("2024-01-20T08:00:00Z") }),
+        createMockEntry({ id: "1", timestamp: new Date("2024-01-15T08:00:00Z") }),
         createMockEntry({ id: "3", timestamp: new Date("2024-01-10T08:00:00Z") }),
       ];
 
@@ -257,13 +258,74 @@ describe("useEntrySearchPage", () => {
 
       const { result } = renderHook(() => useEntrySearchPage());
 
-      act(() => {
-        result.current.setSelectedMealTypes([]); // Ensure no client filtering
-      });
-
+      // Without multi-select meal type filter, entries should pass through in server order
       expect(result.current.filteredEntries[0].id).toBe("2"); // Jan 20
       expect(result.current.filteredEntries[1].id).toBe("1"); // Jan 15
       expect(result.current.filteredEntries[2].id).toBe("3"); // Jan 10
+    });
+
+    it("passes sortOption to useEntrySearch", () => {
+      const { result } = renderHook(() => useEntrySearchPage());
+
+      act(() => {
+        result.current.showSortSheet();
+      });
+
+      const callback = mockActionSheetIOS.mock.calls[0][1];
+
+      act(() => {
+        callback(2); // Select "Highest Rated"
+      });
+
+      expect(mockUseEntrySearch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sortOption: "rating-desc",
+        })
+      );
+    });
+
+    it("changing sortOption triggers new data fetch via params", () => {
+      const { result } = renderHook(() => useEntrySearchPage());
+
+      const initialCallCount = mockUseEntrySearch.mock.calls.length;
+
+      act(() => {
+        result.current.showSortSheet();
+      });
+
+      const callback = mockActionSheetIOS.mock.calls[0][1];
+
+      act(() => {
+        callback(1); // Select "Oldest First"
+      });
+
+      // useEntrySearch should have been called with updated sortOption
+      expect(mockUseEntrySearch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sortOption: "date-asc",
+        })
+      );
+    });
+
+    it("filteredEntries does not re-sort when no multi-select filter", () => {
+      // Server returns entries in specific order (already sorted server-side)
+      const entries = [
+        createMockEntry({ id: "3", timestamp: new Date("2024-01-10T08:00:00Z"), rating: 5 }),
+        createMockEntry({ id: "1", timestamp: new Date("2024-01-15T08:00:00Z"), rating: 3 }),
+        createMockEntry({ id: "2", timestamp: new Date("2024-01-20T08:00:00Z"), rating: 1 }),
+      ];
+
+      mockUseEntrySearch.mockReturnValue({
+        ...mockUseEntrySearchReturn,
+        entries,
+      });
+
+      const { result } = renderHook(() => useEntrySearchPage());
+
+      // Should maintain exact server order (no client-side re-sorting)
+      expect(result.current.filteredEntries[0].id).toBe("3");
+      expect(result.current.filteredEntries[1].id).toBe("1");
+      expect(result.current.filteredEntries[2].id).toBe("2");
     });
 
     it("sorts by date-asc (oldest first) - logic test", () => {
@@ -396,21 +458,17 @@ describe("useEntrySearchPage", () => {
       expect(result.current.sortOption).toBe(initialSortOption);
     });
 
-    it("shows sort alert on Android", () => {
-      // Note: This test is difficult to mock properly due to Platform.OS being checked at runtime
-      // The implementation checks Platform.OS and uses ActionSheetIOS on iOS, Alert.alert on Android
-      // Since we mock Platform.OS as "ios" in beforeEach, this test verifies iOS behavior instead
-      // In a real scenario, Platform.OS would be set properly per platform
-
-      // Verify iOS behavior (as mocked)
+    it("verifies iOS uses ActionSheetIOS", () => {
+      // Since Platform.OS is mocked as "ios", verify the iOS code path is taken
       const { result } = renderHook(() => useEntrySearchPage());
 
       act(() => {
         result.current.showSortSheet();
       });
 
-      // Should have called iOS ActionSheet
+      // Should have called iOS ActionSheet (not Alert)
       expect(mockActionSheetIOS).toHaveBeenCalled();
+      expect(mockAlert).not.toHaveBeenCalled();
     });
 
     it("updates currentSortLabel when sort option changes", () => {
@@ -630,6 +688,88 @@ describe("useEntrySearchPage", () => {
   });
 
   // =============================================================================
+  // Would Eat Again Filter Tests
+  // =============================================================================
+
+  describe("Would eat again filter", () => {
+    it("initializes wouldEatAgain as false", () => {
+      const { result } = renderHook(() => useEntrySearchPage());
+
+      expect(result.current.wouldEatAgain).toBe(false);
+    });
+
+    it("toggleWouldEatAgain toggles from false to true", () => {
+      const { result } = renderHook(() => useEntrySearchPage());
+
+      expect(result.current.wouldEatAgain).toBe(false);
+
+      act(() => {
+        result.current.toggleWouldEatAgain();
+      });
+
+      expect(result.current.wouldEatAgain).toBe(true);
+    });
+
+    it("toggleWouldEatAgain toggles from true to false", () => {
+      const { result } = renderHook(() => useEntrySearchPage());
+
+      act(() => {
+        result.current.toggleWouldEatAgain();
+      });
+
+      expect(result.current.wouldEatAgain).toBe(true);
+
+      act(() => {
+        result.current.toggleWouldEatAgain();
+      });
+
+      expect(result.current.wouldEatAgain).toBe(false);
+    });
+
+    it("passes wouldEatAgain=true to useEntrySearch when true", () => {
+      const { result } = renderHook(() => useEntrySearchPage());
+
+      act(() => {
+        result.current.toggleWouldEatAgain();
+      });
+
+      expect(mockUseEntrySearch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wouldEatAgain: true,
+        })
+      );
+    });
+
+    it("passes wouldEatAgain=undefined to useEntrySearch when false", () => {
+      const { result } = renderHook(() => useEntrySearchPage());
+
+      expect(result.current.wouldEatAgain).toBe(false);
+
+      expect(mockUseEntrySearch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wouldEatAgain: undefined,
+        })
+      );
+    });
+
+    it("passes wouldEatAgain along with other filters", () => {
+      const { result } = renderHook(() => useEntrySearchPage());
+
+      act(() => {
+        result.current.setSelectedMealTypes([MealType.BREAKFAST]);
+        result.current.toggleWouldEatAgain();
+      });
+
+      expect(mockUseEntrySearch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mealType: "breakfast",
+          wouldEatAgain: true,
+        })
+      );
+    });
+  });
+
+  // =============================================================================
   // Clear All Filters Tests
   // =============================================================================
 
@@ -658,6 +798,32 @@ describe("useEntrySearchPage", () => {
       expect(mockClearDateRange).toHaveBeenCalled();
       expect(result.current.selectedMealTypes).toEqual([]);
       expect(result.current.datePreset).toBeNull();
+    });
+
+    it("handleClearAllFilters also resets wouldEatAgain", () => {
+      const mockSetSearchQuery = jest.fn();
+      const mockClearDateRange = jest.fn();
+      mockUseEntrySearch.mockReturnValue({
+        ...mockUseEntrySearchReturn,
+        setSearchQuery: mockSetSearchQuery,
+        clearDateRange: mockClearDateRange,
+      });
+
+      const { result } = renderHook(() => useEntrySearchPage());
+
+      act(() => {
+        result.current.toggleWouldEatAgain();
+        result.current.setSelectedMealTypes([MealType.BREAKFAST]);
+      });
+
+      expect(result.current.wouldEatAgain).toBe(true);
+
+      act(() => {
+        result.current.handleClearAllFilters();
+      });
+
+      expect(result.current.wouldEatAgain).toBe(false);
+      expect(result.current.selectedMealTypes).toEqual([]);
     });
   });
 

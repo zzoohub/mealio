@@ -915,6 +915,214 @@ describe("useEntrySearch", () => {
   });
 
   // =============================================================================
+  // Server-Side Sorting and Filtering Tests
+  // =============================================================================
+
+  describe("Server-side sorting and filtering", () => {
+    beforeEach(() => {
+      mockUseIsAuthenticated.mockReturnValue(true);
+      mockEntryApiList.mockResolvedValue(mockApiResponse([]));
+    });
+
+    it("passes order_by param for date-desc sort", async () => {
+      renderHook(() => useEntrySearch({ sortOption: "date-desc" }));
+
+      await waitFor(() => {
+        expect(mockEntryApiList).toHaveBeenCalledWith(
+          expect.objectContaining({
+            order_by: "eaten_at_desc",
+          })
+        );
+      });
+    });
+
+    it("passes order_by param for date-asc sort", async () => {
+      renderHook(() => useEntrySearch({ sortOption: "date-asc" }));
+
+      await waitFor(() => {
+        expect(mockEntryApiList).toHaveBeenCalledWith(
+          expect.objectContaining({
+            order_by: "eaten_at_asc",
+          })
+        );
+      });
+    });
+
+    it("passes order_by param for rating-desc sort", async () => {
+      renderHook(() => useEntrySearch({ sortOption: "rating-desc" }));
+
+      await waitFor(() => {
+        expect(mockEntryApiList).toHaveBeenCalledWith(
+          expect.objectContaining({
+            order_by: "rating_desc",
+          })
+        );
+      });
+    });
+
+    it("passes would_eat_again=true to API when wouldEatAgain is true", async () => {
+      renderHook(() => useEntrySearch({ wouldEatAgain: true }));
+
+      await waitFor(() => {
+        expect(mockEntryApiList).toHaveBeenCalledWith(
+          expect.objectContaining({
+            would_eat_again: true,
+          })
+        );
+      });
+    });
+
+    it("passes would_eat_again=false to API when wouldEatAgain is false", async () => {
+      renderHook(() => useEntrySearch({ wouldEatAgain: false }));
+
+      await waitFor(() => {
+        expect(mockEntryApiList).toHaveBeenCalledWith(
+          expect.objectContaining({
+            would_eat_again: false,
+          })
+        );
+      });
+    });
+
+    it("does not pass would_eat_again param when wouldEatAgain is undefined", async () => {
+      renderHook(() => useEntrySearch({ wouldEatAgain: undefined }));
+
+      await waitFor(() => {
+        const lastCall = mockEntryApiList.mock.calls[mockEntryApiList.mock.calls.length - 1][0];
+        expect(lastCall).not.toHaveProperty("would_eat_again");
+      });
+    });
+
+    it("combines sortOption and wouldEatAgain params", async () => {
+      renderHook(() => useEntrySearch({
+        sortOption: "rating-desc",
+        wouldEatAgain: true,
+      }));
+
+      await waitFor(() => {
+        expect(mockEntryApiList).toHaveBeenCalledWith(
+          expect.objectContaining({
+            order_by: "rating_desc",
+            would_eat_again: true,
+          })
+        );
+      });
+    });
+
+    it("refetches when sortOption changes", async () => {
+      const { rerender } = renderHook(
+        ({ sortOption }) => useEntrySearch({ sortOption }),
+        { initialProps: { sortOption: "date-desc" as const } }
+      );
+
+      await waitFor(() => {
+        expect(mockEntryApiList).toHaveBeenCalledWith(
+          expect.objectContaining({
+            order_by: "eaten_at_desc",
+          })
+        );
+      });
+
+      const callCountBefore = mockEntryApiList.mock.calls.length;
+
+      rerender({ sortOption: "date-asc" as const });
+
+      await waitFor(() => {
+        expect(mockEntryApiList.mock.calls.length).toBeGreaterThan(callCountBefore);
+        expect(mockEntryApiList).toHaveBeenCalledWith(
+          expect.objectContaining({
+            order_by: "eaten_at_asc",
+          })
+        );
+      });
+    });
+
+    it("refetches when wouldEatAgain changes", async () => {
+      const { rerender } = renderHook(
+        ({ wouldEatAgain }) => useEntrySearch({ wouldEatAgain }),
+        { initialProps: { wouldEatAgain: false } }
+      );
+
+      await waitFor(() => {
+        expect(mockEntryApiList).toHaveBeenCalledWith(
+          expect.objectContaining({
+            would_eat_again: false,
+          })
+        );
+      });
+
+      const callCountBefore = mockEntryApiList.mock.calls.length;
+
+      rerender({ wouldEatAgain: true });
+
+      await waitFor(() => {
+        expect(mockEntryApiList.mock.calls.length).toBeGreaterThan(callCountBefore);
+        expect(mockEntryApiList).toHaveBeenCalledWith(
+          expect.objectContaining({
+            would_eat_again: true,
+          })
+        );
+      });
+    });
+
+    it("passes sortOption to loadMore calls", async () => {
+      const page1Data = [createMockApiEntry({ id: 1 })];
+      const page2Data = [createMockApiEntry({ id: 2 })];
+
+      mockEntryApiList
+        .mockResolvedValueOnce(mockApiResponse(page1Data, 1, 2))
+        .mockResolvedValueOnce(mockApiResponse(page2Data, 2, 2));
+
+      const { result } = renderHook(() => useEntrySearch({ sortOption: "rating-desc" }));
+
+      await waitFor(() => {
+        expect(result.current.hasMore).toBe(true);
+      });
+
+      act(() => {
+        result.current.loadMore();
+      });
+
+      await waitFor(() => {
+        expect(mockEntryApiList).toHaveBeenCalledWith(
+          expect.objectContaining({
+            page: 2,
+            order_by: "rating_desc",
+          })
+        );
+      });
+    });
+
+    it("passes wouldEatAgain to loadMore calls", async () => {
+      const page1Data = [createMockApiEntry({ id: 1 })];
+      const page2Data = [createMockApiEntry({ id: 2 })];
+
+      mockEntryApiList
+        .mockResolvedValueOnce(mockApiResponse(page1Data, 1, 2))
+        .mockResolvedValueOnce(mockApiResponse(page2Data, 2, 2));
+
+      const { result } = renderHook(() => useEntrySearch({ wouldEatAgain: true }));
+
+      await waitFor(() => {
+        expect(result.current.hasMore).toBe(true);
+      });
+
+      act(() => {
+        result.current.loadMore();
+      });
+
+      await waitFor(() => {
+        expect(mockEntryApiList).toHaveBeenCalledWith(
+          expect.objectContaining({
+            page: 2,
+            would_eat_again: true,
+          })
+        );
+      });
+    });
+  });
+
+  // =============================================================================
   // Refetch Tests
   // =============================================================================
   // Debounce Tests

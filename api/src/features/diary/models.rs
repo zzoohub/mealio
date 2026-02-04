@@ -4,6 +4,32 @@ use sqlx::PgPool;
 
 use crate::shared::types::MealType;
 
+#[derive(Debug, Clone, Deserialize, utoipa::ToSchema)]
+pub enum DiaryOrderBy {
+    #[serde(rename = "eaten_at_desc")]
+    EatenAtDesc,
+    #[serde(rename = "eaten_at_asc")]
+    EatenAtAsc,
+    #[serde(rename = "rating_desc")]
+    RatingDesc,
+}
+
+impl DiaryOrderBy {
+    pub fn to_sql(&self) -> &'static str {
+        match self {
+            DiaryOrderBy::EatenAtDesc => "d.eaten_at DESC",
+            DiaryOrderBy::EatenAtAsc => "d.eaten_at ASC",
+            DiaryOrderBy::RatingDesc => "d.rating DESC NULLS LAST, d.eaten_at DESC",
+        }
+    }
+}
+
+impl Default for DiaryOrderBy {
+    fn default() -> Self {
+        DiaryOrderBy::EatenAtDesc
+    }
+}
+
 #[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct DiaryEntry {
     pub id: i64,
@@ -66,6 +92,8 @@ pub struct DiaryQueryParams {
     pub meal_type: Option<MealType>,
     pub q: Option<String>,
     pub tz: Option<String>,
+    pub order_by: Option<DiaryOrderBy>,
+    pub would_eat_again: Option<bool>,
 }
 
 #[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
@@ -125,7 +153,8 @@ impl DiaryEntry {
                   OR d.notes ILIKE '%' || $5 || '%'
                   OR EXISTS (SELECT 1 FROM entry_locations el WHERE el.entry_id = d.id AND (el.name ILIKE '%' || $5 || '%' OR el.address ILIKE '%' || $5 || '%'))
                   OR EXISTS (SELECT 1 FROM entry_ingredients ei JOIN ingredients i ON i.id = ei.ingredient_id WHERE ei.entry_id = d.id AND i.name ILIKE '%' || $5 || '%')
-             )",
+             )
+             AND ($7::bool IS NULL OR d.would_eat_again = $7)",
         )
         .bind(user_id)
         .bind(params.start_date)
@@ -133,10 +162,14 @@ impl DiaryEntry {
         .bind(&params.meal_type)
         .bind(&params.q)
         .bind(&tz)
+        .bind(params.would_eat_again)
         .fetch_one(db)
         .await?;
 
+        let order_by = params.order_by.clone().unwrap_or_default();
+
         let entries = sqlx::query_as::<_, DiaryEntry>(
+            &format!(
             "SELECT d.id, d.user_id, d.meal_type, d.title, d.notes, d.eaten_at, d.created_at, d.updated_at,
                     (SELECT ep.url FROM entry_photos ep
                      WHERE ep.entry_id = d.id
@@ -157,8 +190,9 @@ impl DiaryEntry {
                   OR EXISTS (SELECT 1 FROM entry_locations el WHERE el.entry_id = d.id AND (el.name ILIKE '%' || $5 || '%' OR el.address ILIKE '%' || $5 || '%'))
                   OR EXISTS (SELECT 1 FROM entry_ingredients ei JOIN ingredients i ON i.id = ei.ingredient_id WHERE ei.entry_id = d.id AND i.name ILIKE '%' || $5 || '%')
              )
-             ORDER BY d.eaten_at DESC
-             LIMIT $6 OFFSET $7",
+             AND ($9::bool IS NULL OR d.would_eat_again = $9)
+             ORDER BY {}
+             LIMIT $6 OFFSET $7", order_by.to_sql()),
         )
         .bind(user_id)
         .bind(params.start_date)
@@ -168,6 +202,7 @@ impl DiaryEntry {
         .bind(per_page)
         .bind(offset)
         .bind(&tz)
+        .bind(params.would_eat_again)
         .fetch_all(db)
         .await?;
 

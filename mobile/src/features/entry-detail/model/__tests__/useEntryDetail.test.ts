@@ -406,7 +406,7 @@ describe("useEntryDetail", () => {
   });
 
   describe("updateNotes", () => {
-    it("defers notes submission for API entries (does not call mutate immediately)", () => {
+    it("calls updateEntryMutation.mutate immediately when isApiEntry is true", () => {
       (useIsAuthenticated as jest.Mock).mockReturnValue(true);
       (useEntryDetailQuery as jest.Mock).mockReturnValue({
         data: {
@@ -428,122 +428,11 @@ describe("useEntryDetail", () => {
         result.current.updateNotes("New notes");
       });
 
-      expect(mockUpdateMutation.mutate).not.toHaveBeenCalled();
-      expect(entryStorageUtils.updateEntry).not.toHaveBeenCalled();
-    });
-
-    it("preserves pending notes across refetches (re-renders)", () => {
-      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
-      const queryData = {
-        data: {
-          id: "654",
-          userId: "1",
-          timestamp: new Date(),
-          notes: "Old notes",
-          meal: { photoUri: "", mealType: MealType.SNACK },
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        isLoading: false,
-        error: null,
-      };
-      (useEntryDetailQuery as jest.Mock).mockReturnValue(queryData);
-
-      const { result, rerender } = renderHook(() => useEntryDetail({ entryId: "654" }));
-
-      act(() => {
-        result.current.updateNotes("New notes");
-      });
-
-      // Simulate a refetch by re-rendering (e.g. from another mutation's onSettled)
-      rerender({});
-
-      expect(result.current.entry?.notes).toBe("New notes");
-    });
-
-    it("flushes deferred notes on unmount when changed", () => {
-      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
-      (useEntryDetailQuery as jest.Mock).mockReturnValue({
-        data: {
-          id: "654",
-          userId: "1",
-          timestamp: new Date(),
-          notes: "Old notes",
-          meal: { photoUri: "", mealType: MealType.SNACK },
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        isLoading: false,
-        error: null,
-      });
-
-      const { result, unmount } = renderHook(() => useEntryDetail({ entryId: "654" }));
-
-      act(() => {
-        result.current.updateNotes("New notes");
-      });
-
-      expect(mockUpdateMutation.mutate).not.toHaveBeenCalled();
-
-      unmount();
-
       expect(mockUpdateMutation.mutate).toHaveBeenCalledWith({
         id: 654,
         body: expect.objectContaining({ notes: "New notes" }),
       });
-    });
-
-    it("does not flush on unmount when notes unchanged", () => {
-      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
-      (useEntryDetailQuery as jest.Mock).mockReturnValue({
-        data: {
-          id: "654",
-          userId: "1",
-          timestamp: new Date(),
-          notes: "Old notes",
-          meal: { photoUri: "", mealType: MealType.SNACK },
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        isLoading: false,
-        error: null,
-      });
-
-      const { unmount } = renderHook(() => useEntryDetail({ entryId: "654" }));
-
-      unmount();
-
-      expect(mockUpdateMutation.mutate).not.toHaveBeenCalled();
-    });
-
-    it("does not flush on unmount when notes edited back to original", () => {
-      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
-      (useEntryDetailQuery as jest.Mock).mockReturnValue({
-        data: {
-          id: "654",
-          userId: "1",
-          timestamp: new Date(),
-          notes: "Old notes",
-          meal: { photoUri: "", mealType: MealType.SNACK },
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        isLoading: false,
-        error: null,
-      });
-
-      const { result, unmount } = renderHook(() => useEntryDetail({ entryId: "654" }));
-
-      act(() => {
-        result.current.updateNotes("New notes");
-      });
-      act(() => {
-        result.current.updateNotes("Old notes");
-      });
-
-      unmount();
-
-      expect(mockUpdateMutation.mutate).not.toHaveBeenCalled();
+      expect(entryStorageUtils.updateEntry).not.toHaveBeenCalled();
     });
 
     it("calls updateGuestEntry when isApiEntry is false", async () => {

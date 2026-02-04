@@ -373,6 +373,8 @@ export interface ApiDiaryQueryParams {
   meal_type?: ApiMealType;
   q?: string;
   tz?: string;
+  order_by?: "eaten_at_desc" | "eaten_at_asc" | "rating_desc";
+  would_eat_again?: boolean;
 }
 
 export interface ApiStatsParams {

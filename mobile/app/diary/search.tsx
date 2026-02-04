@@ -63,6 +63,8 @@ export default function DiarySearchScreen() {
     setDateRangePreset,
     clearDateRange,
     showSortSheet,
+    wouldEatAgain,
+    toggleWouldEatAgain,
     handleEntryPress,
     handleClearAllFilters,
     loadMore,
@@ -162,6 +164,18 @@ export default function DiarySearchScreen() {
         </View>
 
         <Pressable
+          onPress={toggleWouldEatAgain}
+          style={styles.iconButton}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons
+            name={wouldEatAgain ? "bookmark" : "bookmark-outline"}
+            size={20}
+            color={wouldEatAgain ? colors.interactive.primary : colors.text.primary}
+          />
+        </Pressable>
+
+        <Pressable
           onPress={showSortSheet}
           style={styles.iconButton}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -188,11 +202,13 @@ export default function DiarySearchScreen() {
           mealTypes={selectedMealTypes}
           datePreset={datePreset}
           customDateLabel={customDateLabel}
+          wouldEatAgain={wouldEatAgain}
           onRemoveSearch={clearSearch}
           onRemoveMealType={removeMealType}
           onRemoveDate={() => {
             handleDatePresetChange(null);
           }}
+          onRemoveWouldEatAgain={toggleWouldEatAgain}
           onClearAll={handleClearAllFilters}
         />
       </View>

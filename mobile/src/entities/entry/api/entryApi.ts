@@ -17,6 +17,8 @@ function buildQuery(params: ApiDiaryQueryParams): string {
   if (params.meal_type) searchParams.set("meal_type", params.meal_type);
   if (params.q) searchParams.set("q", params.q);
   if (params.tz) searchParams.set("tz", params.tz);
+  if (params.order_by) searchParams.set("order_by", params.order_by);
+  if (params.would_eat_again !== undefined) searchParams.set("would_eat_again", String(params.would_eat_again));
   const qs = searchParams.toString();
   return qs ? `?${qs}` : "";
 }

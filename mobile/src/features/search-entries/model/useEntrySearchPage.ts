@@ -55,6 +55,10 @@ export interface UseEntrySearchPageReturn {
   sortOptions: readonly SortOptionConfig[];
   showSortSheet: () => void;
 
+  // Would eat again filter
+  wouldEatAgain: boolean;
+  toggleWouldEatAgain: () => void;
+
   // Actions
   handleEntryPress: (entry: Entry) => void;
   handleClearAllFilters: () => void;
@@ -83,6 +87,7 @@ export function useEntrySearchPage(): UseEntrySearchPageReturn {
   const [selectedMealTypes, setSelectedMealTypes] = useState<MealType[]>([]);
   const [datePreset, setDatePreset] = useState<DatePreset>(null);
   const [sortOption, setSortOption] = useState<SortOption>("date-desc");
+  const [wouldEatAgain, setWouldEatAgain] = useState(false);
 
   // Derive API meal type param: pass to API when exactly 1 meal type selected
   const apiMealType: ApiMealType | undefined = useMemo(() => {
@@ -97,8 +102,9 @@ export function useEntrySearchPage(): UseEntrySearchPageReturn {
     () => ({
       mealType: apiMealType,
       sortOption,
+      wouldEatAgain: wouldEatAgain || undefined,
     }),
-    [apiMealType, sortOption]
+    [apiMealType, sortOption, wouldEatAgain]
   );
 
   // Use the base entry search hook for data fetching
@@ -121,30 +127,15 @@ export function useEntrySearchPage(): UseEntrySearchPageReturn {
   // =============================================================================
 
   const filteredEntries = useMemo(() => {
-    let result = [...entries];
-
     // Client-side meal type filter for multi-select (>1 type)
     // When exactly 1 type is selected, it's already filtered server-side
+    // Sorting is handled server-side via order_by param
     if (selectedMealTypes.length > 1) {
-      result = result.filter((entry) => selectedMealTypes.includes(entry.meal.mealType));
+      return entries.filter((entry) => selectedMealTypes.includes(entry.meal.mealType));
     }
 
-    // Sort
-    result.sort((a, b) => {
-      switch (sortOption) {
-        case "date-desc":
-          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-        case "date-asc":
-          return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-        case "rating-desc":
-          return (b.rating || 0) - (a.rating || 0);
-        default:
-          return 0;
-      }
-    });
-
-    return result;
-  }, [entries, selectedMealTypes, sortOption]);
+    return entries;
+  }, [entries, selectedMealTypes]);
 
   // =============================================================================
   // DERIVED VALUES
@@ -227,6 +218,10 @@ export function useEntrySearchPage(): UseEntrySearchPageReturn {
     }
   }, [SORT_OPTIONS, common.cancel, common.sort]);
 
+  const toggleWouldEatAgain = useCallback(() => {
+    setWouldEatAgain((prev) => !prev);
+  }, []);
+
   const removeMealType = useCallback((mealType: MealType) => {
     setSelectedMealTypes((prev) => prev.filter((t) => t !== mealType));
   }, []);
@@ -239,6 +234,7 @@ export function useEntrySearchPage(): UseEntrySearchPageReturn {
     setSearchQuery("");
     setSelectedMealTypes([]);
     setDatePreset(null);
+    setWouldEatAgain(false);
     clearDateRange();
   }, [setSearchQuery, clearDateRange]);
 
@@ -282,6 +278,10 @@ export function useEntrySearchPage(): UseEntrySearchPageReturn {
     currentSortLabel,
     sortOptions: SORT_OPTIONS,
     showSortSheet,
+
+    // Would eat again filter
+    wouldEatAgain,
+    toggleWouldEatAgain,
 
     // Actions
     handleEntryPress,

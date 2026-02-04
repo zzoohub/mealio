@@ -27,6 +27,7 @@ export interface CalendarRangeState {
 export interface UseEntrySearchParams {
   mealType?: ApiMealType;
   sortOption?: "date-desc" | "date-asc" | "rating-desc";
+  wouldEatAgain?: boolean;
 }
 
 export interface UseEntrySearchReturn {
@@ -93,6 +94,12 @@ const mealTypeMap: Record<string, MealType> = {
   dessert: MealType.DESSERT,
   drink: MealType.DRINK,
   other: MealType.OTHER,
+};
+
+const SORT_TO_ORDER_BY: Record<string, "eaten_at_desc" | "eaten_at_asc" | "rating_desc"> = {
+  "date-desc": "eaten_at_desc",
+  "date-asc": "eaten_at_asc",
+  "rating-desc": "rating_desc",
 };
 
 function apiEntryToEntry(apiEntry: ApiDiaryEntry): Entry {
@@ -228,6 +235,8 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
           if (datePeriod.startDate) apiParams.start_date = formatDateToString(datePeriod.startDate);
           if (datePeriod.endDate) apiParams.end_date = formatDateToString(datePeriod.endDate);
           if (params?.mealType) apiParams.meal_type = params.mealType;
+          if (params?.sortOption) apiParams.order_by = SORT_TO_ORDER_BY[params.sortOption];
+          if (params?.wouldEatAgain !== undefined) apiParams.would_eat_again = params.wouldEatAgain;
 
           const response = await entryApi.list(apiParams);
           const mapped = response.data.map(apiEntryToEntry);
@@ -254,7 +263,7 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
     };
 
     loadData();
-  }, [debouncedQuery, datePeriod.startDate, datePeriod.endDate, isAuthenticated, deviceTz, params?.mealType]);
+  }, [debouncedQuery, datePeriod.startDate, datePeriod.endDate, isAuthenticated, deviceTz, params?.mealType, params?.sortOption, params?.wouldEatAgain]);
 
   // =============================================================================
   // CALENDAR FUNCTIONS
@@ -321,6 +330,8 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
         if (datePeriod.startDate) apiParams.start_date = formatDateToString(datePeriod.startDate);
         if (datePeriod.endDate) apiParams.end_date = formatDateToString(datePeriod.endDate);
         if (params?.mealType) apiParams.meal_type = params.mealType;
+        if (params?.sortOption) apiParams.order_by = SORT_TO_ORDER_BY[params.sortOption];
+        if (params?.wouldEatAgain !== undefined) apiParams.would_eat_again = params.wouldEatAgain;
 
         const response = await entryApi.list(apiParams);
         const mapped = response.data.map(apiEntryToEntry);
@@ -353,7 +364,7 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, hasMore, debouncedQuery, datePeriod.startDate, datePeriod.endDate, page, isAuthenticated, deviceTz, params?.mealType]);
+  }, [isLoadingMore, hasMore, debouncedQuery, datePeriod.startDate, datePeriod.endDate, page, isAuthenticated, deviceTz, params?.mealType, params?.sortOption, params?.wouldEatAgain]);
 
   const refetch = useCallback(async () => {
     setPage(1);

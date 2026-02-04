@@ -18,7 +18,7 @@ import { useCommonI18n, useDiaryI18n } from '@/shared/lib/i18n';
 // =============================================================================
 
 export interface ActiveFilter {
-  type: 'mealType' | 'date' | 'search';
+  type: 'mealType' | 'date' | 'search' | 'wouldEatAgain';
   value: string;
   label: string;
 }
@@ -28,9 +28,11 @@ export interface ActiveFiltersProps {
   mealTypes: MealType[];
   datePreset: DatePreset;
   customDateLabel?: string | undefined;
+  wouldEatAgain?: boolean | undefined;
   onRemoveSearch?: (() => void) | undefined;
   onRemoveMealType?: ((mealType: MealType) => void) | undefined;
   onRemoveDate?: (() => void) | undefined;
+  onRemoveWouldEatAgain?: (() => void) | undefined;
   onClearAll?: (() => void) | undefined;
 }
 
@@ -43,9 +45,11 @@ export function ActiveFilters({
   mealTypes,
   datePreset,
   customDateLabel,
+  wouldEatAgain,
   onRemoveSearch,
   onRemoveMealType,
   onRemoveDate,
+  onRemoveWouldEatAgain,
   onClearAll,
 }: ActiveFiltersProps) {
   const { colors } = useTheme();
@@ -98,6 +102,14 @@ export function ActiveFilters({
     });
   }
 
+  if (wouldEatAgain) {
+    filters.push({
+      type: 'wouldEatAgain',
+      value: 'true',
+      label: diary.wouldEatAgain,
+    });
+  }
+
   // Don't render if no filters active
   if (filters.length === 0) {
     return null;
@@ -113,6 +125,9 @@ export function ActiveFilters({
         break;
       case 'date':
         onRemoveDate?.();
+        break;
+      case 'wouldEatAgain':
+        onRemoveWouldEatAgain?.();
         break;
     }
   };
