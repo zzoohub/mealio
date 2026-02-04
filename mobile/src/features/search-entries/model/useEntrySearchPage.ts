@@ -4,8 +4,10 @@ import { useRouter } from "expo-router";
 import type { Entry } from "@/entities/entry";
 import { MealType } from "@/entities/meal";
 import { useEntrySearch } from "./useEntrySearch";
+import type { UseEntrySearchParams } from "./useEntrySearch";
 import type { DatePreset } from "../ui/DateQuickFilters";
 import { useDiaryI18n, useCommonI18n } from "@/shared/lib/i18n";
+import type { ApiMealType } from "@/shared/api";
 
 // =============================================================================
 // TYPES (Interface-First Design)
@@ -43,7 +45,7 @@ export interface UseEntrySearchPageReturn {
   calendarRange: { startDate: Date | null; endDate: Date | null; markedDates: Record<string, any> };
   customDateLabel: string | undefined;
   handleDatePresetChange: (preset: DatePreset) => void;
-  handleDayPress: (day: { dateString: string }) => void;
+  setCustomDateRange: (startDate: Date, endDate: Date) => void;
   setDateRangePreset: (days: number) => void;
   clearDateRange: () => void;
 
@@ -77,6 +79,28 @@ export function useEntrySearchPage(): UseEntrySearchPageReturn {
     { value: "rating-desc", label: diary.sortHighestRated },
   ] as const, [diary.sortNewest, diary.sortOldest, diary.sortHighestRated]);
 
+  // Local filter state
+  const [selectedMealTypes, setSelectedMealTypes] = useState<MealType[]>([]);
+  const [datePreset, setDatePreset] = useState<DatePreset>(null);
+  const [sortOption, setSortOption] = useState<SortOption>("date-desc");
+
+  // Derive API meal type param: pass to API when exactly 1 meal type selected
+  const apiMealType: ApiMealType | undefined = useMemo(() => {
+    if (selectedMealTypes.length === 1) {
+      return selectedMealTypes[0] as ApiMealType;
+    }
+    return undefined;
+  }, [selectedMealTypes]);
+
+  // Build params for useEntrySearch
+  const searchParams: UseEntrySearchParams = useMemo(
+    () => ({
+      mealType: apiMealType,
+      sortOption,
+    }),
+    [apiMealType, sortOption]
+  );
+
   // Use the base entry search hook for data fetching
   const {
     entries,
@@ -86,16 +110,11 @@ export function useEntrySearchPage(): UseEntrySearchPageReturn {
     setSearchQuery,
     dateRange,
     calendarRange,
-    handleDayPress,
+    setCustomDateRange,
     setDateRangePreset,
     clearDateRange,
     loadMore,
-  } = useEntrySearch();
-
-  // Local filter state
-  const [selectedMealTypes, setSelectedMealTypes] = useState<MealType[]>([]);
-  const [datePreset, setDatePreset] = useState<DatePreset>(null);
-  const [sortOption, setSortOption] = useState<SortOption>("date-desc");
+  } = useEntrySearch(searchParams);
 
   // =============================================================================
   // FILTERING & SORTING
@@ -104,8 +123,9 @@ export function useEntrySearchPage(): UseEntrySearchPageReturn {
   const filteredEntries = useMemo(() => {
     let result = [...entries];
 
-    // Filter by meal type
-    if (selectedMealTypes.length > 0) {
+    // Client-side meal type filter for multi-select (>1 type)
+    // When exactly 1 type is selected, it's already filtered server-side
+    if (selectedMealTypes.length > 1) {
       result = result.filter((entry) => selectedMealTypes.includes(entry.meal.mealType));
     }
 
@@ -253,7 +273,7 @@ export function useEntrySearchPage(): UseEntrySearchPageReturn {
     calendarRange,
     customDateLabel,
     handleDatePresetChange,
-    handleDayPress,
+    setCustomDateRange,
     setDateRangePreset,
     clearDateRange,
 

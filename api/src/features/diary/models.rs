@@ -115,12 +115,17 @@ impl DiaryEntry {
         });
 
         let count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM diary_entries
-             WHERE user_id = $1 AND deleted_at IS NULL
-             AND ($2::date IS NULL OR (eaten_at AT TIME ZONE COALESCE($6, 'UTC'))::date >= $2)
-             AND ($3::date IS NULL OR (eaten_at AT TIME ZONE COALESCE($6, 'UTC'))::date <= $3)
-             AND ($4::meal_type IS NULL OR meal_type = $4)
-             AND ($5::text IS NULL OR title ILIKE '%' || $5 || '%')",
+            "SELECT COUNT(*) FROM diary_entries d
+             WHERE d.user_id = $1 AND d.deleted_at IS NULL
+             AND ($2::date IS NULL OR (d.eaten_at AT TIME ZONE COALESCE($6, 'UTC'))::date >= $2)
+             AND ($3::date IS NULL OR (d.eaten_at AT TIME ZONE COALESCE($6, 'UTC'))::date <= $3)
+             AND ($4::meal_type IS NULL OR d.meal_type = $4)
+             AND ($5::text IS NULL
+                  OR d.title ILIKE '%' || $5 || '%'
+                  OR d.notes ILIKE '%' || $5 || '%'
+                  OR EXISTS (SELECT 1 FROM entry_locations el WHERE el.entry_id = d.id AND (el.name ILIKE '%' || $5 || '%' OR el.address ILIKE '%' || $5 || '%'))
+                  OR EXISTS (SELECT 1 FROM entry_ingredients ei JOIN ingredients i ON i.id = ei.ingredient_id WHERE ei.entry_id = d.id AND i.name ILIKE '%' || $5 || '%')
+             )",
         )
         .bind(user_id)
         .bind(params.start_date)
@@ -146,7 +151,12 @@ impl DiaryEntry {
              AND ($2::date IS NULL OR (d.eaten_at AT TIME ZONE COALESCE($8, 'UTC'))::date >= $2)
              AND ($3::date IS NULL OR (d.eaten_at AT TIME ZONE COALESCE($8, 'UTC'))::date <= $3)
              AND ($4::meal_type IS NULL OR d.meal_type = $4)
-             AND ($5::text IS NULL OR d.title ILIKE '%' || $5 || '%')
+             AND ($5::text IS NULL
+                  OR d.title ILIKE '%' || $5 || '%'
+                  OR d.notes ILIKE '%' || $5 || '%'
+                  OR EXISTS (SELECT 1 FROM entry_locations el WHERE el.entry_id = d.id AND (el.name ILIKE '%' || $5 || '%' OR el.address ILIKE '%' || $5 || '%'))
+                  OR EXISTS (SELECT 1 FROM entry_ingredients ei JOIN ingredients i ON i.id = ei.ingredient_id WHERE ei.entry_id = d.id AND i.name ILIKE '%' || $5 || '%')
+             )
              ORDER BY d.eaten_at DESC
              LIMIT $6 OFFSET $7",
         )

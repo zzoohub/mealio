@@ -1,8 +1,13 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Entry, EntryFilter, SortMethod } from "@/entities/entry";
 import { entryStorageUtils } from "@/entities/entry";
 import { entrySortingUtils, SortedSection } from "./useEntrySorting";
 import { getCachedData } from "@/shared/lib/performance";
+import { useIsAuthenticated } from "@/shared/lib/auth";
+import { entryApi } from "@/entities/entry/api/entryApi";
+import { formatDateToString } from "@/shared/lib/utils";
+import { MealType } from "@/entities/meal";
+import type { ApiDiaryEntry, ApiMealType } from "@/shared/api";
 
 // =============================================================================
 // TYPES (Interface-First Design)
@@ -17,6 +22,11 @@ export interface CalendarRangeState {
   startDate: Date | null;
   endDate: Date | null;
   markedDates: Record<string, any>;
+}
+
+export interface UseEntrySearchParams {
+  mealType?: ApiMealType;
+  sortOption?: "date-desc" | "date-asc" | "rating-desc";
 }
 
 export interface UseEntrySearchReturn {
@@ -42,7 +52,7 @@ export interface UseEntrySearchReturn {
   dateRange: DateRange;
   calendarRange: CalendarRangeState;
   formatDateRange: () => string;
-  handleDayPress: (day: { dateString: string }) => void;
+  setCustomDateRange: (startDate: Date, endDate: Date) => void;
   setDateRangePreset: (days: number) => void;
   clearDateRange: () => void;
 
@@ -57,6 +67,9 @@ export interface UseEntrySearchReturn {
 // =============================================================================
 
 const ITEMS_PER_PAGE = 20;
+const MAX_SEARCH_QUERY_LENGTH = 200;
+const MAX_DATE_RANGE_DAYS = 366;
+const SEARCH_DEBOUNCE_MS = 300;
 
 // =============================================================================
 // TYPES FOR DATE PERIOD
@@ -69,10 +82,44 @@ interface DatePeriod {
 }
 
 // =============================================================================
+// HELPERS
+// =============================================================================
+
+const mealTypeMap: Record<string, MealType> = {
+  breakfast: MealType.BREAKFAST,
+  lunch: MealType.LUNCH,
+  dinner: MealType.DINNER,
+  snack: MealType.SNACK,
+  dessert: MealType.DESSERT,
+  drink: MealType.DRINK,
+  other: MealType.OTHER,
+};
+
+function apiEntryToEntry(apiEntry: ApiDiaryEntry): Entry {
+  return {
+    id: String(apiEntry.id),
+    userId: String(apiEntry.user_id),
+    timestamp: new Date(apiEntry.eaten_at),
+    notes: apiEntry.notes ?? "",
+    meal: {
+      photoUri: apiEntry.primary_photo_url ?? "",
+      photoUris: apiEntry.photo_urls?.length ? apiEntry.photo_urls : undefined,
+      mealType: mealTypeMap[apiEntry.meal_type] ?? MealType.OTHER,
+    },
+    rating: apiEntry.rating ?? undefined,
+    wouldEatAgain: apiEntry.would_eat_again ?? undefined,
+    createdAt: new Date(apiEntry.created_at),
+    updatedAt: new Date(apiEntry.updated_at),
+  };
+}
+
+// =============================================================================
 // HOOK IMPLEMENTATION
 // =============================================================================
 
-export function useEntrySearch(): UseEntrySearchReturn {
+export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchReturn {
+  const isAuthenticated = useIsAuthenticated();
+
   // Date period state (was in analytics store)
   const [datePeriod, setDatePeriod] = useState<DatePeriod>({ type: "day" });
   const [sortMethod, setSortMethod] = useState<SortMethod>("date-desc");
@@ -92,7 +139,20 @@ export function useEntrySearch(): UseEntrySearchReturn {
   const [page, setPage] = useState(1);
 
   // Search/Filter
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQueryRaw] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const setSearchQuery = useCallback((query: string) => {
+    const trimmed = query.slice(0, MAX_SEARCH_QUERY_LENGTH);
+    setSearchQueryRaw(trimmed);
+    clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => setDebouncedQuery(trimmed), SEARCH_DEBOUNCE_MS);
+  }, []);
+
+  // Clear debounce timer on unmount
+  useEffect(() => {
+    return () => clearTimeout(debounceTimerRef.current);
+  }, []);
 
   // Calendar state
   const [calendarRange, setCalendarRange] = useState<CalendarRangeState>({
@@ -103,6 +163,9 @@ export function useEntrySearch(): UseEntrySearchReturn {
 
   // Sort options
   const sortOptions = useMemo(() => entrySortingUtils.getSortOptions(), []);
+
+  // Device timezone for API date filtering
+  const deviceTz = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
 
   // Derived date range
   const dateRange: DateRange = useMemo(
@@ -154,18 +217,34 @@ export function useEntrySearch(): UseEntrySearchReturn {
         setPage(1);
         setHasMore(true);
 
-        const filter: EntryFilter = {};
-        if (searchQuery) filter.searchQuery = searchQuery;
-        if (datePeriod.startDate) filter.startDate = datePeriod.startDate;
-        if (datePeriod.endDate) filter.endDate = datePeriod.endDate;
+        if (isAuthenticated) {
+          // Authenticated: use API
+          const apiParams: Record<string, any> = {
+            page: 1,
+            per_page: ITEMS_PER_PAGE,
+            tz: deviceTz,
+          };
+          if (debouncedQuery) apiParams.q = debouncedQuery;
+          if (datePeriod.startDate) apiParams.start_date = formatDateToString(datePeriod.startDate);
+          if (datePeriod.endDate) apiParams.end_date = formatDateToString(datePeriod.endDate);
+          if (params?.mealType) apiParams.meal_type = params.mealType;
 
-        const loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
+          const response = await entryApi.list(apiParams);
+          const mapped = response.data.map(apiEntryToEntry);
+          setEntries(mapped);
+          setHasMore(response.meta.page < response.meta.total_pages);
+        } else {
+          // Guest: use local storage
+          const filter: EntryFilter = {};
+          if (debouncedQuery) filter.searchQuery = debouncedQuery;
+          if (datePeriod.startDate) filter.startDate = datePeriod.startDate;
+          if (datePeriod.endDate) filter.endDate = datePeriod.endDate;
 
-        const endIndex = ITEMS_PER_PAGE;
-        const paginatedEntries = loadedEntries.slice(0, endIndex);
-
-        setEntries(paginatedEntries);
-        setHasMore(endIndex < loadedEntries.length);
+          const loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
+          const paginatedEntries = loadedEntries.slice(0, ITEMS_PER_PAGE);
+          setEntries(paginatedEntries);
+          setHasMore(ITEMS_PER_PAGE < loadedEntries.length);
+        }
       } catch (err) {
         console.error("Error loading entries:", err);
         setError(err instanceof Error ? err : new Error("Failed to load entries"));
@@ -175,79 +254,16 @@ export function useEntrySearch(): UseEntrySearchReturn {
     };
 
     loadData();
-  }, [searchQuery, datePeriod.startDate, datePeriod.endDate]);
+  }, [debouncedQuery, datePeriod.startDate, datePeriod.endDate, isAuthenticated, deviceTz, params?.mealType]);
 
   // =============================================================================
   // CALENDAR FUNCTIONS
   // =============================================================================
 
-  const updateCalendarRange = useCallback(
-    (start: Date | null, end: Date | null, colors: { primary: string; text: string }) => {
-      const markedDates: Record<string, any> = {};
-
-      if (start && !end) {
-        const dateString = start.toISOString().split("T")[0];
-        if (dateString) {
-          markedDates[dateString] = {
-            startingDay: true,
-            color: colors.primary,
-            textColor: "white",
-          };
-        }
-      } else if (start && end) {
-        const startString = start.toISOString().split("T")[0];
-        const endString = end.toISOString().split("T")[0];
-
-        if (startString && endString && startString === endString) {
-          markedDates[startString] = {
-            startingDay: true,
-            endingDay: true,
-            color: colors.primary,
-            textColor: "white",
-          };
-        } else if (startString && endString) {
-          markedDates[startString] = {
-            startingDay: true,
-            color: colors.primary,
-            textColor: "white",
-          };
-          markedDates[endString] = {
-            endingDay: true,
-            color: colors.primary,
-            textColor: "white",
-          };
-
-          const currentDate = new Date(start);
-          currentDate.setDate(currentDate.getDate() + 1);
-
-          while (currentDate < end) {
-            const dateString = currentDate.toISOString().split("T")[0];
-            if (dateString) {
-              markedDates[dateString] = {
-                color: colors.primary + "40",
-                textColor: colors.text,
-              };
-            }
-            currentDate.setDate(currentDate.getDate() + 1);
-          }
-        }
-      }
-
-      setCalendarRange({ startDate: start, endDate: end, markedDates });
-
-      if (start && end) {
-        setDatePeriod({ type: "custom", startDate: start, endDate: end });
-      } else if (start && !end) {
-        setDatePeriod({ type: "custom", startDate: start });
-      }
-    },
-    [setDatePeriod]
-  );
-
   const clearDateRange = useCallback(() => {
     setCalendarRange({ startDate: null, endDate: null, markedDates: {} });
     setDatePeriod({ type: "day" });
-  }, [setDatePeriod]);
+  }, []);
 
   const formatDateRange = useCallback(() => {
     if (datePeriod.startDate && datePeriod.endDate) {
@@ -269,40 +285,18 @@ export function useEntrySearch(): UseEntrySearchReturn {
       const startDate = new Date();
       startDate.setDate(endDate.getDate() - days + 1);
 
-      // We need colors here - this will be passed from component
-      // For now, use a placeholder that component will override
+      setCalendarRange({ startDate, endDate, markedDates: {} });
       setDatePeriod({ type: "custom", startDate, endDate });
     },
-    [setDatePeriod]
+    []
   );
 
-  const handleDayPress = useCallback(
-    (day: { dateString: string }) => {
-      const selectedDate = new Date(day.dateString);
-      const { startDate, endDate } = calendarRange;
-
-      // This needs colors from theme - component will call updateCalendarRange
-      if (!startDate || (startDate && endDate)) {
-        setCalendarRange({
-          startDate: selectedDate,
-          endDate: null,
-          markedDates: {},
-        });
-        setDatePeriod({ type: "custom", startDate: selectedDate });
-      } else if (startDate && !endDate) {
-        if (selectedDate >= startDate) {
-          setDatePeriod({ type: "custom", startDate, endDate: selectedDate });
-        } else {
-          setCalendarRange({
-            startDate: selectedDate,
-            endDate: null,
-            markedDates: {},
-          });
-          setDatePeriod({ type: "custom", startDate: selectedDate });
-        }
-      }
+  const setCustomDateRange = useCallback(
+    (startDate: Date, endDate: Date) => {
+      setCalendarRange({ startDate, endDate, markedDates: {} });
+      setDatePeriod({ type: "custom", startDate, endDate });
     },
-    [calendarRange, setDatePeriod]
+    []
   );
 
   // =============================================================================
@@ -315,29 +309,51 @@ export function useEntrySearch(): UseEntrySearchReturn {
     try {
       setIsLoadingMore(true);
 
-      const filter: EntryFilter = {};
-      if (searchQuery) filter.searchQuery = searchQuery;
-      if (datePeriod.startDate) filter.startDate = datePeriod.startDate;
-      if (datePeriod.endDate) filter.endDate = datePeriod.endDate;
+      if (isAuthenticated) {
+        // Authenticated: fetch next page from API
+        const nextPage = page + 1;
+        const apiParams: Record<string, any> = {
+          page: nextPage,
+          per_page: ITEMS_PER_PAGE,
+          tz: deviceTz,
+        };
+        if (debouncedQuery) apiParams.q = debouncedQuery;
+        if (datePeriod.startDate) apiParams.start_date = formatDateToString(datePeriod.startDate);
+        if (datePeriod.endDate) apiParams.end_date = formatDateToString(datePeriod.endDate);
+        if (params?.mealType) apiParams.meal_type = params.mealType;
 
-      const loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
+        const response = await entryApi.list(apiParams);
+        const mapped = response.data.map(apiEntryToEntry);
 
-      const startIndex = page * ITEMS_PER_PAGE;
-      const endIndex = startIndex + ITEMS_PER_PAGE;
-      const newEntries = loadedEntries.slice(startIndex, endIndex);
+        if (mapped.length > 0) {
+          setEntries((prev) => [...prev, ...mapped]);
+          setPage(nextPage);
+        }
+        setHasMore(response.meta.page < response.meta.total_pages);
+      } else {
+        // Guest: paginate from local storage
+        const filter: EntryFilter = {};
+        if (debouncedQuery) filter.searchQuery = debouncedQuery;
+        if (datePeriod.startDate) filter.startDate = datePeriod.startDate;
+        if (datePeriod.endDate) filter.endDate = datePeriod.endDate;
 
-      if (newEntries.length > 0) {
-        setEntries((prev) => [...prev, ...newEntries]);
-        setPage((prev) => prev + 1);
+        const loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
+        const startIndex = page * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        const newEntries = loadedEntries.slice(startIndex, endIndex);
+
+        if (newEntries.length > 0) {
+          setEntries((prev) => [...prev, ...newEntries]);
+          setPage((prev) => prev + 1);
+        }
+        setHasMore(endIndex < loadedEntries.length);
       }
-
-      setHasMore(endIndex < loadedEntries.length);
     } catch (err) {
       console.error("Error loading more entries:", err);
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, hasMore, searchQuery, datePeriod.startDate, datePeriod.endDate, page]);
+  }, [isLoadingMore, hasMore, debouncedQuery, datePeriod.startDate, datePeriod.endDate, page, isAuthenticated, deviceTz, params?.mealType]);
 
   const refetch = useCallback(async () => {
     setPage(1);
@@ -378,7 +394,7 @@ export function useEntrySearch(): UseEntrySearchReturn {
     dateRange,
     calendarRange,
     formatDateRange,
-    handleDayPress,
+    setCustomDateRange,
     setDateRangePreset,
     clearDateRange,
 

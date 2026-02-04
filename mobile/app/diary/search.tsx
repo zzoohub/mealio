@@ -59,7 +59,7 @@ export default function DiarySearchScreen() {
     calendarRange,
     customDateLabel,
     handleDatePresetChange,
-    handleDayPress,
+    setCustomDateRange,
     setDateRangePreset,
     clearDateRange,
     showSortSheet,
@@ -73,8 +73,12 @@ export default function DiarySearchScreen() {
   const handleOpenDateRangeModal = useCallback(() => {
     bottomSheet(({ close }) => (
       <EntryDateRangeModal
-        calendarRange={calendarRange}
-        onDayPress={handleDayPress}
+        initialStartDate={calendarRange.startDate}
+        initialEndDate={calendarRange.endDate}
+        onApply={(startDate, endDate) => {
+          setCustomDateRange(startDate, endDate);
+          handleDatePresetChange("custom");
+        }}
         onPresetSelect={(days) => {
           setDateRangePreset(days);
           handleDatePresetChange("custom");
@@ -86,7 +90,7 @@ export default function DiarySearchScreen() {
         onClose={close}
       />
     ));
-  }, [bottomSheet, calendarRange, handleDayPress, setDateRangePreset, handleDatePresetChange, clearDateRange]);
+  }, [bottomSheet, calendarRange.startDate, calendarRange.endDate, setCustomDateRange, setDateRangePreset, handleDatePresetChange, clearDateRange]);
 
   // =============================================================================
   // RENDER HELPERS

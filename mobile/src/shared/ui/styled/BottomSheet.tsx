@@ -173,6 +173,13 @@ export function BottomSheet({
           ]}
         >
           {children}
+          {/* Covers the gap visible during spring overshoot */}
+          <View
+            style={[
+              s.overshootFill,
+              { backgroundColor: colors.bg.secondary },
+            ]}
+          />
         </Animated.View>
       </View>
     </Modal>
@@ -194,5 +201,13 @@ const styles = createStyles(() => ({
     borderTopRightRadius: tokens.radius.xl,
     maxHeight: '90%',
     minHeight: 100,
+    overflow: 'visible',
+  },
+  overshootFill: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: -SCREEN_HEIGHT,
+    height: SCREEN_HEIGHT,
   },
 }));
