@@ -23,6 +23,10 @@ const MAX_PHOTOS = 10;
 export interface UseCameraOptions {
   onSaveEntry: (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">, photoUris?: string[]) => Promise<string | undefined>;
   onNavigateToEntry?: (entryId: string) => void;
+  /** Pre-loaded photo URIs (e.g. from album picker on past dates) */
+  initialPhotos?: string[];
+  /** Target date for the entry (defaults to now) */
+  targetDate?: Date;
 }
 
 export interface UseCameraReturn {
@@ -55,8 +59,8 @@ export interface UseCameraReturn {
 // HELPERS
 // =============================================================================
 
-export function detectMealType(): MealType {
-  const hour = new Date().getHours();
+export function detectMealType(date?: Date): MealType {
+  const hour = (date ?? new Date()).getHours();
   if (hour < 10) return MealType.BREAKFAST;
   if (hour < 14) return MealType.LUNCH;
   if (hour < 17) return MealType.SNACK;
@@ -68,7 +72,7 @@ export function detectMealType(): MealType {
 // =============================================================================
 
 export function useCamera(options: UseCameraOptions): UseCameraReturn {
-  const { onSaveEntry, onNavigateToEntry } = options;
+  const { onSaveEntry, onNavigateToEntry, initialPhotos, targetDate } = options;
   const t = useCameraI18n();
   const { toast } = useOverlayHelpers();
   const { getLocation } = useDeviceLocation();
@@ -83,7 +87,7 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
   const [flashMode, setFlashMode] = useState<FlashMode>("off");
   const [isCapturing, setIsCapturing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
+  const [capturedPhotos, setCapturedPhotos] = useState<string[]>(initialPhotos ?? []);
 
   // Computed values
   const canCapture = capturedPhotos.length < MAX_PHOTOS;
@@ -161,12 +165,12 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
 
       const entry: Omit<Entry, "id" | "createdAt" | "updatedAt"> = {
         userId: "",
-        timestamp: new Date(),
+        timestamp: targetDate ?? new Date(),
         notes: "",
         location,
         meal: {
           photoUri: capturedPhotos[0]!,
-          mealType: detectMealType(),
+          mealType: detectMealType(targetDate),
         },
       };
 
@@ -194,7 +198,7 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
     } finally {
       setIsSaving(false);
     }
-  }, [capturedPhotos, isSaving, onSaveEntry, onNavigateToEntry, getLocation, toast, t]);
+  }, [capturedPhotos, isSaving, onSaveEntry, onNavigateToEntry, getLocation, toast, t, targetDate]);
 
   const toggleFlash = useCallback(() => {
     const modes: FlashMode[] = ["off", "on", "auto"];

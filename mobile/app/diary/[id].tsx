@@ -15,6 +15,8 @@ import {
   EntryDeleteButton,
 } from "@/features/entry-detail";
 import { PhotoCarousel } from "@/shared/ui/styled";
+import { useIsAuthenticated } from "@/shared/lib/auth";
+import { CAMERA_SETTINGS } from "@/shared/config";
 
 // =============================================================================
 // CONSTANTS
@@ -32,10 +34,14 @@ export default function DiaryEntryScreen() {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
 
+  const isAuthenticated = useIsAuthenticated();
+
   const {
     entry,
     isLoading,
     isDeleting,
+    isAddingPhotos,
+    updateTimestamp,
     updateMealType,
     updateNotes,
     updateRating,
@@ -43,6 +49,7 @@ export default function DiaryEntryScreen() {
     updateIngredients,
     updateNutrition,
     deleteEntry,
+    addPhotos,
     goBack,
     openPhotoViewer,
   } = useEntryDetail({
@@ -71,8 +78,14 @@ export default function DiaryEntryScreen() {
         {/* Photo Carousel */}
         <PhotoCarousel
           photoUris={entry?.meal.photoUris ?? (entry?.meal.photoUri ? [entry.meal.photoUri] : [])}
-          loading={isLoading && !entry}
+          loading={(isLoading && !entry) || isAddingPhotos}
           onPhotoPress={entry?.meal.photoUri ? () => openPhotoViewer() : undefined}
+          onAddPhotoPress={
+            entry && isAuthenticated && !isNaN(Number(id)) &&
+            (entry.meal.photoUris?.length ?? (entry.meal.photoUri ? 1 : 0)) < CAMERA_SETTINGS.MAX_PHOTOS_PER_POST
+              ? addPhotos
+              : undefined
+          }
         />
 
         {/* AI Comment Banner */}
@@ -85,6 +98,7 @@ export default function DiaryEntryScreen() {
             timestamp={entry.timestamp instanceof Date ? entry.timestamp : new Date(entry.timestamp)}
             location={entry.location}
             onMealTypeChange={updateMealType}
+            onTimestampChange={updateTimestamp}
             disabled={isDisabled}
           />
         )}

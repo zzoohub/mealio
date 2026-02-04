@@ -142,6 +142,10 @@ export interface DiaryTranslations {
   location: string;
   openInMaps: string;
   addNutrition: string;
+  changeDateTime: string;
+  maxPhotosReached: string;
+  maxPhotosMessage: string;
+  addPhotoFailed: string;
 }
 
 // Settings translations

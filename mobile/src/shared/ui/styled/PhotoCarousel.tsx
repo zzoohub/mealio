@@ -24,6 +24,8 @@ export interface PhotoCarouselProps {
   loading?: boolean;
   /** Callback when a photo is pressed (for fullscreen view or navigation) */
   onPhotoPress?: ((index: number) => void) | undefined;
+  /** Callback when the "+" add-photo page is pressed */
+  onAddPhotoPress?: (() => void) | undefined;
   /** Test ID for testing */
   testID?: string;
 }
@@ -72,6 +74,7 @@ export const PhotoCarousel = memo(function PhotoCarousel({
   photoUris,
   loading = false,
   onPhotoPress,
+  onAddPhotoPress,
   testID,
 }: PhotoCarouselProps) {
   const s = useStyles(styles);
@@ -83,6 +86,8 @@ export const PhotoCarousel = memo(function PhotoCarousel({
     },
     [],
   );
+
+  const totalPages = photoUris.length + (onAddPhotoPress ? 1 : 0);
 
   // Placeholder when loading or no images
   if (loading || photoUris.length === 0) {
@@ -107,8 +112,8 @@ export const PhotoCarousel = memo(function PhotoCarousel({
     );
   }
 
-  // Single photo — no pager needed, just a tappable image
-  if (photoUris.length === 1) {
+  // Single photo without add button — no pager needed, just a tappable image
+  if (photoUris.length === 1 && !onAddPhotoPress) {
     return (
       <View style={s.container} testID={testID}>
         <Pressable
@@ -127,6 +132,46 @@ export const PhotoCarousel = memo(function PhotoCarousel({
     );
   }
 
+  // Build pages array — PagerView's native module crashes on falsy children
+  const pages = photoUris.map((uri, index) => (
+    <Pressable
+      key={`${uri}-${index}`}
+      collapsable={false}
+      onPress={() => onPhotoPress?.(index)}
+      disabled={!onPhotoPress}
+      style={s.slide}
+    >
+      <Image
+        source={{ uri }}
+        style={s.image}
+        contentFit="cover"
+        accessibilityLabel={`Meal photo ${index + 1}`}
+      />
+    </Pressable>
+  ));
+
+  if (onAddPhotoPress) {
+    pages.push(
+      <Pressable
+        key="add-photo"
+        collapsable={false}
+        onPress={onAddPhotoPress}
+        style={s.slide}
+        testID="add-photo-page"
+        accessibilityLabel="Add photo"
+        accessibilityRole="button"
+      >
+        <View style={s.placeholder}>
+          <Ionicons
+            name="add-circle-outline"
+            size={tokens.size.icon.xl}
+            color={s.placeholderIcon.color as string}
+          />
+        </View>
+      </Pressable>,
+    );
+  }
+
   return (
     <View style={s.container} testID={testID}>
       <PagerView
@@ -135,24 +180,9 @@ export const PhotoCarousel = memo(function PhotoCarousel({
         onPageSelected={handlePageSelected}
         overdrag
       >
-        {photoUris.map((uri, index) => (
-          <Pressable
-            key={`${uri}-${index}`}
-            collapsable={false}
-            onPress={() => onPhotoPress?.(index)}
-            disabled={!onPhotoPress}
-            style={s.slide}
-          >
-            <Image
-              source={{ uri }}
-              style={s.image}
-              contentFit="cover"
-              accessibilityLabel={`Meal photo ${index + 1}`}
-            />
-          </Pressable>
-        ))}
+        {pages}
       </PagerView>
-      <PageIndicator count={photoUris.length} activeIndex={activeIndex} />
+      <PageIndicator count={totalPages} activeIndex={activeIndex} />
     </View>
   );
 });

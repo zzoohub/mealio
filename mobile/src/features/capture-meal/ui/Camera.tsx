@@ -15,10 +15,21 @@ import { CameraBottomControls } from "./CameraBottomControls";
 import { PhotoStrip } from "./PhotoStrip";
 
 // =============================================================================
+// TYPES
+// =============================================================================
+
+export interface CameraProps {
+  /** Pre-loaded photo URIs from album picker */
+  initialPhotos?: string;
+  /** Target date ISO string for the entry */
+  targetDate?: string;
+}
+
+// =============================================================================
 // MAIN COMPONENT
 // =============================================================================
 
-export default function Camera() {
+export default function Camera({ initialPhotos, targetDate }: CameraProps) {
   const s = useStyles(cameraStyles);
   const [permission, requestPermission] = useCameraPermissions();
   const router = useRouter();
@@ -27,10 +38,27 @@ export default function Camera() {
 
   const { saveEntry } = useEntryData();
 
+  // Parse and validate props from route params (treated as untrusted input)
+  const ALLOWED_SCHEMES = ["file://", "ph://", "content://", "asset-library://"];
+  const parsedInitialPhotos = initialPhotos
+    ? initialPhotos
+        .split(",")
+        .filter(Boolean)
+        .filter((uri) => ALLOWED_SCHEMES.some((s) => uri.startsWith(s)))
+        .slice(0, 10)
+    : undefined;
+  const parsedDate = targetDate ? new Date(targetDate) : undefined;
+  const parsedTargetDate =
+    parsedDate && !isNaN(parsedDate.getTime()) && parsedDate <= new Date() ? parsedDate : undefined;
+
   const handleSaveEntry = useCallback(
     async (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">, photoUris?: string[]) => {
       const entryId = await saveEntry(entry, photoUris);
-      router.push("/diary");
+      if (entryId) {
+        router.push(`/diary/${entryId}`);
+      } else {
+        router.push("/diary");
+      }
       return entryId;
     },
     [saveEntry, router],
@@ -56,7 +84,12 @@ export default function Camera() {
     toggleFlash,
     handleDone,
     getFlashIcon,
-  } = useCamera({ onSaveEntry: handleSaveEntry, onNavigateToEntry: handleNavigateToEntry });
+  } = useCamera({
+    onSaveEntry: handleSaveEntry,
+    onNavigateToEntry: handleNavigateToEntry,
+    initialPhotos: parsedInitialPhotos,
+    targetDate: parsedTargetDate,
+  });
 
   // Loading state
   if (!permission) {

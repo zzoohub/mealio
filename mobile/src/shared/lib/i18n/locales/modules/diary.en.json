@@ -46,5 +46,9 @@
   "mealTypeAccessibility": "Meal type: {{type}}, tap to change",
   "location": "Location",
   "openInMaps": "Open in Maps",
-  "addNutrition": "Add nutrition info"
+  "addNutrition": "Add nutrition info",
+  "changeDateTime": "Change date & time",
+  "maxPhotosReached": "Maximum Photos",
+  "maxPhotosMessage": "You can add up to {{max}} photos per entry.",
+  "addPhotoFailed": "Failed to add photos. Please try again."
 }

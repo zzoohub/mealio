@@ -16,8 +16,9 @@
  * ```
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, ActionSheetIOS, Platform, Alert } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles } from '@/shared/ui/theme';
@@ -38,6 +39,8 @@ export interface EntryContextBarProps {
   location?: Location | null | undefined;
   /** Callback when meal type changes */
   onMealTypeChange?: ((mealType: MealType) => void) | undefined;
+  /** Callback when timestamp changes */
+  onTimestampChange?: ((timestamp: Date) => void) | undefined;
   /** Whether editing is disabled */
   disabled?: boolean | undefined;
   /** Test ID for testing */
@@ -101,6 +104,7 @@ export function EntryContextBar({
   timestamp,
   location,
   onMealTypeChange,
+  onTimestampChange,
   disabled = false,
   testID,
 }: EntryContextBarProps) {
@@ -108,6 +112,11 @@ export function EntryContextBar({
   const locationLabel = getLocationLabel(location);
   const common = useCommonI18n();
   const diary = useDiaryI18n();
+
+  // DateTimePicker state
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  // Android needs sequential date → time picking
+  const [androidPickerMode, setAndroidPickerMode] = useState<'date' | 'time'>('date');
 
   const getMealTypeLabel = (mt: string): string => {
     switch (mt.toLowerCase()) {
@@ -161,58 +170,150 @@ export function EntryContextBar({
     }
   };
 
+  const handleTimestampPress = () => {
+    if (disabled || !onTimestampChange) return;
+    if (Platform.OS === 'android') {
+      setAndroidPickerMode('date');
+    }
+    setShowDatePicker(true);
+  };
+
+  const handleDateTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (event.type === 'dismissed') {
+      setShowDatePicker(false);
+      return;
+    }
+
+    const now = new Date();
+
+    if (Platform.OS === 'android') {
+      if (androidPickerMode === 'date' && selectedDate) {
+        // Store the selected date, then show time picker
+        setAndroidPickerMode('time');
+        // Merge selected date with current time
+        const merged = new Date(selectedDate);
+        merged.setHours(timestamp.getHours(), timestamp.getMinutes());
+        if (merged <= now) {
+          onTimestampChange?.(merged);
+        }
+      } else {
+        // Time selected — final step
+        setShowDatePicker(false);
+        if (selectedDate && selectedDate <= now) {
+          onTimestampChange?.(selectedDate);
+        }
+      }
+    } else {
+      // iOS: inline spinner updates continuously
+      if (selectedDate && selectedDate <= now) {
+        onTimestampChange?.(selectedDate);
+      }
+    }
+  };
+
+  const handleDismissIOSPicker = () => {
+    setShowDatePicker(false);
+  };
+
   return (
-    <View
-      style={s.container}
-      testID={testID}
-      accessibilityLabel={`${getMealTypeLabel(mealType)} at ${formatTime(timestamp)}${locationLabel ? `, at ${locationLabel}` : ''}`}
-    >
-      {/* Meal Type - Tappable */}
-      <Pressable
-        style={s.mealTypeButton}
-        onPress={handleMealTypePress}
-        disabled={disabled || !onMealTypeChange}
-        accessibilityLabel={diary.mealTypeAccessibility(getMealTypeLabel(mealType))}
-        accessibilityRole="button"
+    <View testID={testID}>
+      <View
+        style={s.container}
+        accessibilityLabel={`${getMealTypeLabel(mealType)} at ${formatTime(timestamp)}${locationLabel ? `, at ${locationLabel}` : ''}`}
       >
-        <Ionicons
-          name={getMealTypeIcon(mealType) as any}
-          size={14}
-          color={s.iconColor.color as string}
-        />
-        <Text style={s.label}>{getMealTypeLabel(mealType)}</Text>
-        {onMealTypeChange && (
+        {/* Meal Type - Tappable */}
+        <Pressable
+          style={s.mealTypeButton}
+          onPress={handleMealTypePress}
+          disabled={disabled || !onMealTypeChange}
+          accessibilityLabel={diary.mealTypeAccessibility(getMealTypeLabel(mealType))}
+          accessibilityRole="button"
+        >
           <Ionicons
-            name="chevron-down"
-            size={12}
+            name={getMealTypeIcon(mealType) as any}
+            size={14}
             color={s.iconColor.color as string}
           />
-        )}
-      </Pressable>
-
-      {/* Divider */}
-      <View style={s.divider} />
-
-      {/* Time */}
-      <View style={s.item}>
-        <Text style={s.label}>{formatTime(timestamp)}</Text>
-      </View>
-
-      {/* Location (if available) */}
-      {locationLabel && (
-        <>
-          <View style={s.divider} />
-          <View style={[s.item, s.locationItem]}>
+          <Text style={s.label}>{getMealTypeLabel(mealType)}</Text>
+          {onMealTypeChange && (
             <Ionicons
-              name="location-outline"
-              size={14}
+              name="chevron-down"
+              size={12}
               color={s.iconColor.color as string}
             />
-            <Text style={s.label} numberOfLines={1}>
-              {locationLabel}
-            </Text>
+          )}
+        </Pressable>
+
+        {/* Divider */}
+        <View style={s.divider} />
+
+        {/* Time - Tappable when onTimestampChange provided */}
+        {onTimestampChange ? (
+          <Pressable
+            style={s.mealTypeButton}
+            onPress={handleTimestampPress}
+            disabled={disabled}
+            accessibilityLabel={diary.changeDateTime}
+            accessibilityRole="button"
+          >
+            <Text style={s.label}>{formatTime(timestamp)}</Text>
+            <Ionicons
+              name="chevron-down"
+              size={12}
+              color={s.iconColor.color as string}
+            />
+          </Pressable>
+        ) : (
+          <View style={s.item}>
+            <Text style={s.label}>{formatTime(timestamp)}</Text>
           </View>
-        </>
+        )}
+
+        {/* Location (if available) */}
+        {locationLabel && (
+          <>
+            <View style={s.divider} />
+            <View style={[s.item, s.locationItem]}>
+              <Ionicons
+                name="location-outline"
+                size={14}
+                color={s.iconColor.color as string}
+              />
+              <Text style={s.label} numberOfLines={1}>
+                {locationLabel}
+              </Text>
+            </View>
+          </>
+        )}
+      </View>
+
+      {/* iOS: Inline DateTimePicker with dismiss button */}
+      {showDatePicker && Platform.OS === 'ios' && (
+        <View style={s.pickerContainer}>
+          <View style={s.pickerHeader}>
+            <Pressable onPress={handleDismissIOSPicker}>
+              <Text style={s.pickerDoneText}>{common.done}</Text>
+            </Pressable>
+          </View>
+          <DateTimePicker
+            value={timestamp}
+            mode="datetime"
+            display="spinner"
+            onChange={handleDateTimeChange}
+            maximumDate={new Date()}
+          />
+        </View>
+      )}
+
+      {/* Android: Sequential date then time dialogs */}
+      {showDatePicker && Platform.OS === 'android' && (
+        <DateTimePicker
+          value={timestamp}
+          mode={androidPickerMode}
+          display="default"
+          onChange={handleDateTimeChange}
+          maximumDate={new Date()}
+        />
       )}
     </View>
   );
@@ -263,5 +364,20 @@ const styles = createStyles((colors) => ({
   },
   iconColor: {
     color: colors.text.tertiary,
+  },
+  pickerContainer: {
+    borderBottomWidth: tokens.borderWidth.default,
+    borderBottomColor: colors.border.default,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: tokens.spacing.component.md,
+    paddingTop: tokens.spacing.component.sm,
+  },
+  pickerDoneText: {
+    fontSize: tokens.typography.fontSize.body,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    color: colors.interactive.primary,
   },
 }));

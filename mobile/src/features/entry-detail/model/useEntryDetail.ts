@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Entry } from "@/entities/entry";
 import { MealType, type NutritionInfo } from "@/entities/meal";
 import {
@@ -10,10 +12,12 @@ import {
   useSyncIngredientsMutation,
   useUpsertNutritionMutation,
   useDeleteEntryMutation,
+  photoApi,
 } from "@/entities/entry";
-import { mapEntryToUpdateRequest, mapNutritionInfoToUpsertRequest } from "@/shared/api";
+import { mapEntryToUpdateRequest, mapNutritionInfoToUpsertRequest, uploadPhoto } from "@/shared/api";
 import { useIsAuthenticated } from "@/shared/lib/auth";
 import { useDiaryI18n, useCommonI18n, useErrorI18n } from "@/shared/lib/i18n";
+import { CAMERA_SETTINGS, queryKeys } from "@/shared/config";
 
 // =============================================================================
 // TYPES (Interface-First Design)
@@ -26,9 +30,11 @@ export interface UseEntryDetailReturn {
   // States
   isLoading: boolean;
   isDeleting: boolean;
+  isAddingPhotos: boolean;
   error: Error | null;
 
   // Actions
+  updateTimestamp: (timestamp: Date) => void;
   updateMealType: (mealType: MealType) => void;
   updateNotes: (notes: string) => void;
   updateRating: (rating: number) => void;
@@ -36,6 +42,7 @@ export interface UseEntryDetailReturn {
   updateIngredients: (ingredients: string[]) => void;
   updateNutrition: (nutrition: NutritionInfo) => void;
   deleteEntry: () => void;
+  addPhotos: () => void;
 
   // Navigation
   goBack: () => void;
@@ -77,10 +84,14 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
   // GUEST (MMKV) STATE
   // =============================================================================
 
+  const queryClient = useQueryClient();
+
   const [guestEntry, setGuestEntry] = useState<Entry | null>(null);
   const [guestLoading, setGuestLoading] = useState(!isApiEntry);
   const [guestError, setGuestError] = useState<Error | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isAddingPhotos, setIsAddingPhotos] = useState(false);
+  const isAddingPhotosRef = useRef(false);
 
   useEffect(() => {
     if (isApiEntry || !entryId) {
@@ -146,6 +157,22 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
   // =============================================================================
   // ACTIONS
   // =============================================================================
+
+  const updateTimestamp = useCallback(
+    (timestamp: Date) => {
+      if (timestamp > new Date()) return;
+
+      if (isApiEntry) {
+        updateEntryMutation.mutate({
+          id: numericId,
+          body: mapEntryToUpdateRequest({ timestamp }),
+        });
+      } else {
+        updateGuestEntry({ timestamp });
+      }
+    },
+    [isApiEntry, numericId, updateEntryMutation, updateGuestEntry]
+  );
 
   const updateMealType = useCallback(
     (mealType: MealType) => {
@@ -240,6 +267,66 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
     [isApiEntry, numericId, upsertNutritionMutation, updateGuestEntry]
   );
 
+  const addPhotos = useCallback(async () => {
+    if (isAddingPhotosRef.current) return;
+    const current = entryRef.current;
+    if (!current || !isApiEntry) return;
+
+    const currentPhotoCount = current.meal.photoUris?.length ?? (current.meal.photoUri ? 1 : 0);
+    const remaining = CAMERA_SETTINGS.MAX_PHOTOS_PER_POST - currentPhotoCount;
+
+    if (remaining <= 0) {
+      Alert.alert(
+        diary.maxPhotosReached,
+        diary.maxPhotosMessage(CAMERA_SETTINGS.MAX_PHOTOS_PER_POST),
+        [{ text: common.ok }],
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      selectionLimit: remaining,
+      quality: CAMERA_SETTINGS.DEFAULT_QUALITY,
+    });
+
+    if (result.canceled || result.assets.length === 0) return;
+
+    // Filter out oversized files
+    const validAssets = result.assets.filter(
+      (asset) => !asset.fileSize || asset.fileSize <= CAMERA_SETTINGS.MAX_FILE_SIZE,
+    );
+    if (validAssets.length === 0) return;
+
+    isAddingPhotosRef.current = true;
+    setIsAddingPhotos(true);
+    try {
+      const uploadedUrls = await Promise.all(
+        validAssets.map((asset) => uploadPhoto(asset.uri)),
+      );
+
+      await Promise.all(
+        uploadedUrls.map((url, i) =>
+          photoApi.createPhoto(numericId, {
+            url,
+            is_primary: false,
+            sort_order: currentPhotoCount + i,
+          }),
+        ),
+      );
+
+      await queryClient.invalidateQueries({ queryKey: queryKeys.diary.detail(numericId) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.diary.all() });
+    } catch (err) {
+      console.error("Failed to add photos:", err);
+      Alert.alert(common.error, diary.addPhotoFailed);
+    } finally {
+      isAddingPhotosRef.current = false;
+      setIsAddingPhotos(false);
+    }
+  }, [isApiEntry, numericId, queryClient, diary, common.ok, common.error]);
+
   const deleteEntry = useCallback(() => {
     Alert.alert(
       diary.deleteEntryTitle,
@@ -296,9 +383,11 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
     // States
     isLoading,
     isDeleting,
+    isAddingPhotos,
     error,
 
     // Actions
+    updateTimestamp,
     updateMealType,
     updateNotes,
     updateRating,
@@ -306,6 +395,7 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
     updateIngredients,
     updateNutrition,
     deleteEntry,
+    addPhotos,
 
     // Navigation
     goBack,

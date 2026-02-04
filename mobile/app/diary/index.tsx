@@ -81,10 +81,16 @@ export default function DiaryPage() {
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      // TODO: Navigate to processing flow with selected photos
-      router.push("/");
+      const photoUris = result.assets.map((a) => a.uri).join(",");
+      router.push({
+        pathname: "/",
+        params: {
+          initialPhotos: photoUris,
+          targetDate: selectedDate.toISOString(),
+        },
+      });
     }
-  }, [router]);
+  }, [router, selectedDate]);
 
   // =============================================================================
   // RENDER
