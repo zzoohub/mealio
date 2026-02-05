@@ -32,11 +32,10 @@ cargo build --release               # Release build
 Swagger UI available at `http://localhost:3000/swagger-ui` when running.
 
 ## Infrastructure
-- Database: AWS RDS PostgreSQL via Cloudflare Hyperdrive
-- API: Cloudflare Workers
-- Queue: Cloudflare Queues
+- Database: GCP Cloud SQL
+- API: GCP Cloud Run
+- Queue: GCP Cloud Run
 - Object Storage: Cloudflare R2
-- Cache: Cloudflare KV
 - Email: Cloudflare Email Routing
 - Error tracking: Sentry
 - Analytics: PostHog
