@@ -122,6 +122,18 @@ app → widgets → features → entities → shared (never import upward)
 - **Lists**: FlashList (`@shopify/flash-list`) over FlatList
 - **Images**: `expo-image` (not React Native `Image`)
 
+### Query Keys Management
+Colocate a key factory in each entity/feature `api/` folder. Keys go generic → specific.
+```ts
+export const entryKeys = {
+  all: ['entries'] as const,  // invalidate everything
+  lists: () => [...entryKeys.all, 'list'] as const,    // all lists
+  list: (filters) => [...entryKeys.lists(), filters] as const, // specific list
+  details: () => [...entryKeys.all, 'detail'] as const,  // all details
+  detail: (id) => [...entryKeys.details(), id] as const,   // single detail
+}
+```
+
 ### Path Aliases
 ```
 @/*          → ./src/*

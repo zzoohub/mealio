@@ -364,17 +364,29 @@ export function useRequireAuth() {
 ## TanStack Query (Client Components)
 
 ```tsx
-// features/products/hooks/useProducts.ts
+// features/products/api/queryKeys.ts
+export const productKeys = {
+  all: ['products'] as const,                                        // invalidate everything
+  lists: () => [...productKeys.all, 'list'] as const,                // all lists
+  list: (filters: Filters) => [...productKeys.lists(), filters] as const, // specific list
+  details: () => [...productKeys.all, 'detail'] as const,            // all details
+  detail: (id: string) => [...productKeys.details(), id] as const,   // single detail
+}
+```
+
+```tsx
+// features/products/api/useProducts.ts
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { productKeys } from './queryKeys';
 
 export function useProducts(filters: Filters) {
   return useQuery({
-    queryKey: ['products', filters],
+    queryKey: productKeys.list(filters),
     queryFn: () => fetchProducts(filters),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000,   // 10 minutes garbage collection
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }
 
@@ -384,7 +396,7 @@ export function useCreateProduct() {
   return useMutation({
     mutationFn: createProduct,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
     },
   });
 }
