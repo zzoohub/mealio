@@ -300,7 +300,7 @@ const DAY_WIDTH = (SCREEN_WIDTH - TOTAL_GAP) / 7;
 
 const styles = StyleSheet.create({
   container: {
-    height: 60,
+    height: 64,
     overflow: "hidden",
   },
   pager: {
