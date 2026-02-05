@@ -108,6 +108,9 @@ export interface CommonTranslations {
   user: string;
   signedIn: string;
   sortBy: string;
+  uploading: string;
+  uploadFailed: string;
+  uploadFailedMessage: string;
 }
 
 // Error translations

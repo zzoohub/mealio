@@ -13,6 +13,10 @@ jest.mock("@/entities/entry", () => ({
   },
   useEntryListQuery: jest.fn(),
   useGuestEntryStore: jest.fn(() => 0),
+  useUploadQueueStore: jest.fn((selector) => {
+    const state = { queue: new Map(), retry: jest.fn() };
+    return selector(state);
+  }),
 }));
 jest.mock("@/shared/lib/utils", () => {
   return {
@@ -61,7 +65,7 @@ jest.mock("@/shared/lib/i18n", () => ({
 import { renderHook, act, waitFor } from "@testing-library/react-native";
 import { useEntryFeedPage } from "../useEntryFeedPage";
 import { useIsAuthenticated } from "@/shared/lib/auth";
-import { useEntryListQuery } from "@/entities/entry";
+import { useEntryListQuery, useUploadQueueStore } from "@/entities/entry";
 import { useWeekThumbnailsQuery } from "../useWeekThumbnailsQuery";
 import { useMonthThumbnailsQuery } from "../useMonthThumbnailsQuery";
 
@@ -69,6 +73,14 @@ const mockUseIsAuthenticated = useIsAuthenticated as jest.Mock;
 const mockUseEntryListQuery = useEntryListQuery as jest.Mock;
 const mockUseWeekThumbnailsQuery = useWeekThumbnailsQuery as jest.Mock;
 const mockUseMonthThumbnailsQuery = useMonthThumbnailsQuery as jest.Mock;
+const mockUseUploadQueueStore = useUploadQueueStore as unknown as jest.Mock;
+
+function resetUploadQueueMock() {
+  mockUseUploadQueueStore.mockImplementation((selector: (s: any) => any) => {
+    const state = { queue: new Map(), retry: jest.fn() };
+    return selector(state);
+  });
+}
 
 // =============================================================================
 // useEntryFeedPage — calendar thumbnails merge tests
@@ -77,6 +89,7 @@ const mockUseMonthThumbnailsQuery = useMonthThumbnailsQuery as jest.Mock;
 describe("useEntryFeedPage - calendar thumbnails merge", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetUploadQueueMock();
     mockUseIsAuthenticated.mockReturnValue(true);
     mockUseEntryListQuery.mockReturnValue({
       data: { data: [] },
@@ -551,6 +564,7 @@ describe("useEntryFeedPage - calendar thumbnails merge", () => {
 describe("useEntryFeedPage - general functionality", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetUploadQueueMock();
     mockUseIsAuthenticated.mockReturnValue(true);
     mockUseEntryListQuery.mockReturnValue({
       data: { data: [] },
@@ -814,6 +828,7 @@ describe("useEntryFeedPage - guest mode", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    resetUploadQueueMock();
     mockUseIsAuthenticated.mockReturnValue(false);
     mockUseEntryListQuery.mockReturnValue({
       data: { data: [] },

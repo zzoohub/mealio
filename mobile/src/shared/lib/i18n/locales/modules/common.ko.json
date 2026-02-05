@@ -32,5 +32,8 @@
   "apply": "적용",
   "user": "사용자",
   "signedIn": "로그인됨",
-  "sortBy": "정렬 기준"
+  "sortBy": "정렬 기준",
+  "uploading": "업로드 중...",
+  "uploadFailed": "업로드 실패",
+  "uploadFailedMessage": "업로드에 실패했습니다. 연결 상태를 확인해 주세요."
 }

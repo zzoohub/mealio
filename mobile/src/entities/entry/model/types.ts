@@ -30,6 +30,8 @@ export interface Entry {
   wouldEatAgain?: boolean;
   createdAt: Date;
   updatedAt: Date;
+  /** Optimistic upload status (only present for pending uploads) */
+  _uploadStatus?: "pending" | "uploading" | "failed";
 }
 
 // =============================================================================

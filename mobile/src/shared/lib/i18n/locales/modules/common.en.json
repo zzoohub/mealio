@@ -32,5 +32,8 @@
   "apply": "Apply",
   "user": "User",
   "signedIn": "Signed in",
-  "sortBy": "Sort By"
+  "sortBy": "Sort By",
+  "uploading": "Uploading...",
+  "uploadFailed": "Upload failed",
+  "uploadFailedMessage": "Upload failed. Check your connection."
 }

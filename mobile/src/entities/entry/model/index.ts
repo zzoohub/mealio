@@ -7,3 +7,7 @@ export type { UseEntryDataReturn } from './useEntryData';
 export { useOverviewQuery, useNutritionStatsQuery } from './useStatisticsQueries';
 export { useMigration } from './useMigration';
 export type { UseMigrationReturn } from './useMigration';
+export { useUploadQueueStore } from './uploadQueueStore';
+export type { PendingUpload, UploadStatus } from './uploadQueueStore';
+export { useUploadProcessor } from './useUploadProcessor';
+export type { UseUploadProcessorOptions } from './useUploadProcessor';

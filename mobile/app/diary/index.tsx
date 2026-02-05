@@ -7,7 +7,8 @@ import { Ionicons } from "@expo/vector-icons";
 import type { DateData } from "react-native-calendars";
 import * as ImagePicker from "expo-image-picker";
 import type { Entry } from "@/entities/entry";
-import { useEntryData } from "@/entities/entry";
+import { useEntryData, useUploadQueueStore } from "@/entities/entry";
+import { useIsAuthenticated } from "@/shared/lib/auth";
 import { useEntryFeedPage, WeekDaySelector, EntryFeedItem, CalendarSheetContent } from "@/features/entry-feed";
 import { detectMealType } from "@/features/capture-meal";
 import { isSameDay } from "@/shared/lib/utils";
@@ -30,6 +31,9 @@ export default function DiaryPage() {
   const { saveEntry } = useEntryData();
   const { getLocation } = useDeviceLocation();
   const [isSaving, setIsSaving] = useState(false);
+  const isAuthenticated = useIsAuthenticated();
+  const enqueue = useUploadQueueStore((s) => s.enqueue);
+  const retryUpload = useUploadQueueStore((s) => s.retry);
 
   // Use the extracted hook for all state and logic
   const {
@@ -57,9 +61,14 @@ export default function DiaryPage() {
 
   const handleEntryPress = useCallback(
     (entry: Entry) => {
+      if (entry._uploadStatus === "failed") {
+        retryUpload(entry.id);
+        return;
+      }
+      if (entry._uploadStatus) return; // pending/uploading — no-op
       router.push(`/diary/${entry.id}`);
     },
-    [router],
+    [router, retryUpload],
   );
 
   const handleOpenCalendar = useCallback(() => {
@@ -103,10 +112,9 @@ export default function DiaryPage() {
         return;
       }
 
-      setIsSaving(true);
-      try {
+      if (isAuthenticated) {
         const location = await getLocation();
-        const entryId = await saveEntry(
+        enqueue(
           {
             userId: "",
             timestamp: selectedDate,
@@ -119,30 +127,55 @@ export default function DiaryPage() {
           },
           photoUris,
         );
-
         toast({
           title: cameraI18n.capture.success,
           message: cameraI18n.capture.successMessage,
           type: "success",
           position: "top",
-          showArrow: true,
-          duration: 4000,
-          onPress: entryId ? () => router.push(`/diary/${entryId}`) : undefined,
-        });
-      } catch (error) {
-        console.error("Failed to save entry:", error);
-        toast({
-          title: cameraI18n.capture.error,
-          message: cameraI18n.capture.errorMessage,
-          type: "error",
-          position: "top",
           duration: 4000,
         });
-      } finally {
-        setIsSaving(false);
+      } else {
+        setIsSaving(true);
+        try {
+          const location = await getLocation();
+          const entryId = await saveEntry(
+            {
+              userId: "",
+              timestamp: selectedDate,
+              notes: "",
+              location,
+              meal: {
+                photoUri: photoUris[0]!,
+                mealType: detectMealType(selectedDate),
+              },
+            },
+            photoUris,
+          );
+
+          toast({
+            title: cameraI18n.capture.success,
+            message: cameraI18n.capture.successMessage,
+            type: "success",
+            position: "top",
+            showArrow: true,
+            duration: 4000,
+            onPress: entryId ? () => router.push(`/diary/${entryId}`) : undefined,
+          });
+        } catch (error) {
+          console.error("Failed to save entry:", error);
+          toast({
+            title: cameraI18n.capture.error,
+            message: cameraI18n.capture.errorMessage,
+            type: "error",
+            position: "top",
+            duration: 4000,
+          });
+        } finally {
+          setIsSaving(false);
+        }
       }
     }
-  }, [isSaving, isToday, selectedDate, router, getLocation, saveEntry, toast, cameraI18n]);
+  }, [isSaving, isToday, isAuthenticated, selectedDate, router, getLocation, saveEntry, enqueue, toast, cameraI18n]);
 
   // =============================================================================
   // RENDER

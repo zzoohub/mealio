@@ -3,6 +3,11 @@ module.exports = {
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/basic-setup.ts'],
   moduleNameMapper: {
+    '^@/lib/(.*)$': '<rootDir>/src/shared/lib/$1',
+    '^@/constants/(.*)$': '<rootDir>/src/shared/config/$1',
+    '^@/types/(.*)$': '<rootDir>/src/shared/types/$1',
+    '^@/providers/(.*)$': '<rootDir>/src/app/providers/$1',
+    '^@/assets/(.*)$': '<rootDir>/assets/$1',
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   testMatch: [

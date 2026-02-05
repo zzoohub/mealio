@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import type { Entry } from "@/entities/entry";
 import { useIsAuthenticated } from "@/shared/lib/auth";
-import { entryStorageUtils, useEntryListQuery, useGuestEntryStore } from "@/entities/entry";
+import { entryStorageUtils, useEntryListQuery, useGuestEntryStore, useUploadQueueStore } from "@/entities/entry";
 import { getWeekDays, isSameDay, formatDateToString } from "@/shared/lib/utils";
 import { getCurrentLanguage } from "@/shared/lib/i18n";
 import { MealType } from "@/entities/meal";
@@ -41,6 +41,7 @@ export interface UseEntryFeedPageReturn {
   // Utilities
   dateHasEntries: (date: Date) => boolean;
   isSameDay: (date1: Date, date2: Date) => boolean;
+  retryUpload: (tempId: string) => void;
 }
 
 // =============================================================================
@@ -126,7 +127,7 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
 
   const apiEntries = useMemo(() => {
     if (!isAuthenticated || !diaryQuery.data) return [];
-    return diaryQuery.data.data.map(apiEntryToEntry).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return diaryQuery.data.data.map(apiEntryToEntry).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   }, [isAuthenticated, diaryQuery.data]);
 
   // Handle visible week change from WeekDaySelector swipe
@@ -213,7 +214,7 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
       setError(null);
       try {
         const entriesForDate = await entryStorageUtils.getEntriesForDate(selectedDate);
-        entriesForDate.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        entriesForDate.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
         setGuestEntries(entriesForDate);
       } catch (err) {
         console.error("Error loading entries for date:", err);
@@ -249,7 +250,7 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
           setDateThumbnails(thumbnailMap);
 
           const entriesForDate = await entryStorageUtils.getEntriesForDate(selectedDate);
-          entriesForDate.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+          entriesForDate.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
           setGuestEntries(entriesForDate);
         } catch (err) {
           console.error("Error reloading guest entries:", err);
@@ -260,8 +261,43 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
     }, [isAuthenticated, selectedDate]),
   );
 
+  // Upload queue: merge pending uploads into entries for authenticated mode
+  const uploadQueue = useUploadQueueStore((s) => s.queue);
+  const retryUpload = useUploadQueueStore((s) => s.retry);
+
+  const pendingEntries = useMemo((): Entry[] => {
+    if (!isAuthenticated) return [];
+    const dateStr = formatDateToString(selectedDate);
+    // Deduplicate: skip pending entries whose real counterpart already exists in API data
+    const apiTimestamps = new Set(apiEntries.map((e) => Math.floor(e.timestamp.getTime() / 1000)));
+    const items: Entry[] = [];
+    for (const item of uploadQueue.values()) {
+      if (formatDateToString(item.entry.timestamp) === dateStr) {
+        // If the API already has an entry at the same second, the upload completed — skip
+        if (apiTimestamps.has(Math.floor(item.entry.timestamp.getTime() / 1000))) continue;
+        items.push({
+          id: item.tempId,
+          userId: item.entry.userId,
+          timestamp: item.entry.timestamp,
+          notes: item.entry.notes,
+          location: item.entry.location,
+          meal: {
+            ...item.entry.meal,
+            photoUri: item.photoUris[0] ?? "",
+            photoUris: item.photoUris,
+          },
+          createdAt: item.createdAt,
+          updatedAt: item.createdAt,
+          _uploadStatus: item.status,
+        });
+      }
+    }
+    return items.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  }, [isAuthenticated, uploadQueue, selectedDate, apiEntries]);
+
   // Unified entries and loading state
-  const entries = isAuthenticated ? apiEntries : guestEntries;
+  const baseEntries = isAuthenticated ? apiEntries : guestEntries;
+  const entries = isAuthenticated ? [...pendingEntries, ...baseEntries] : baseEntries;
   const isLoading = isAuthenticated ? diaryQuery.isLoading : isGuestLoading;
 
   // =============================================================================
@@ -369,5 +405,6 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
     handleCalendarMonthChange,
     dateHasEntries,
     isSameDay,
+    retryUpload,
   };
 }

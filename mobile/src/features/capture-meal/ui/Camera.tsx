@@ -5,8 +5,9 @@ import { useRouter } from "expo-router";
 import { useCameraI18n, useNavigationI18n } from "@/shared/lib/i18n";
 import { createStyles, useStyles } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
-import { useEntryData } from "@/entities/entry";
+import { useEntryData, useUploadQueueStore } from "@/entities/entry";
 import type { Entry } from "@/entities/entry";
+import { useIsAuthenticated } from "@/shared/lib/auth";
 import { useCamera } from "../model/useCamera";
 import { CameraPermissionScreen } from "./CameraPermissionScreen";
 import { CameraTopControls } from "./CameraTopControls";
@@ -37,6 +38,8 @@ export default function Camera({ initialPhotos, targetDate }: CameraProps) {
   const nav = useNavigationI18n();
 
   const { saveEntry, isAtGuestLimit } = useEntryData();
+  const isAuthenticated = useIsAuthenticated();
+  const enqueue = useUploadQueueStore((s) => s.enqueue);
 
   // Parse and validate props from route params (treated as untrusted input)
   const ALLOWED_SCHEMES = ["file://", "ph://", "content://", "asset-library://"];
@@ -53,9 +56,13 @@ export default function Camera({ initialPhotos, targetDate }: CameraProps) {
 
   const handleSaveEntry = useCallback(
     async (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">, photoUris?: string[]) => {
+      if (isAuthenticated && photoUris?.length) {
+        enqueue(entry, photoUris);
+        return undefined; // Background upload — no server ID yet
+      }
       return saveEntry(entry, photoUris);
     },
-    [saveEntry],
+    [isAuthenticated, enqueue, saveEntry],
   );
 
   const handleNavigateToEntry = useCallback(

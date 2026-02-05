@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import type { Entry } from "@/entities/entry";
@@ -80,11 +80,28 @@ export const EntryFeedItem = memo(function EntryFeedItem({ entry, onPress }: Ent
 
   const photoUris = entry.meal.photoUris ?? (entry.meal.photoUri ? [entry.meal.photoUri] : []);
 
+  const isUploading = entry._uploadStatus === "pending" || entry._uploadStatus === "uploading";
+  const isFailed = entry._uploadStatus === "failed";
+
   return (
     <View style={styles.container}>
       {/* Photo Carousel — outside Pressable so PagerView receives swipe gestures */}
       <View>
-        <PhotoCarousel photoUris={photoUris} onPhotoPress={onPress ? () => handlePress() : undefined} />
+        <PhotoCarousel photoUris={photoUris} onPhotoPress={!entry._uploadStatus && onPress ? () => handlePress() : undefined} />
+
+        {/* Upload Status Overlay */}
+        {isUploading && (
+          <View style={styles.uploadOverlay}>
+            <ActivityIndicator size="small" color="white" />
+            <Text style={styles.uploadOverlayText}>{common.uploading}</Text>
+          </View>
+        )}
+        {isFailed && (
+          <Pressable style={styles.uploadOverlay} onPress={handlePress}>
+            <Ionicons name="cloud-offline-outline" size={24} color="white" />
+            <Text style={styles.uploadOverlayText}>{common.uploadFailed}</Text>
+          </Pressable>
+        )}
 
         {/* Bookmark - Top Right */}
         {entry.wouldEatAgain && (
@@ -144,6 +161,18 @@ export const EntryFeedItem = memo(function EntryFeedItem({ entry, onPress }: Ent
 const styles = StyleSheet.create({
   container: {
     marginBottom: tokens.spacing.layout.md,
+  },
+  uploadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: tokens.spacing.component.sm,
+  },
+  uploadOverlayText: {
+    color: "white",
+    fontSize: tokens.typography.fontSize.bodySmall,
+    fontWeight: tokens.typography.fontWeight.semibold,
   },
   bookmarkContainer: {
     position: "absolute",

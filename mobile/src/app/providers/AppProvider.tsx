@@ -1,17 +1,18 @@
-import { ReactNode, useCallback, useEffect } from "react";
+import { ReactNode, useCallback, useEffect, useMemo } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { I18nextProvider } from "react-i18next";
 import i18n from "@/shared/lib/i18n/config";
-import { changeLanguage } from "@/shared/lib/i18n";
+import { changeLanguage, useCommonI18n } from "@/shared/lib/i18n";
 import { useAuthStore } from "@/features/auth/model/authStore";
 import { useSettingsStore, flushSettingsStorage } from "@/features/settings/model/settingsStore";
 import { ErrorBoundary } from "./error";
-import { OverlayProvider } from "./overlay";
+import { OverlayProvider, useOverlayHelpers } from "./overlay";
 import { queryClient } from "./query";
 import { preloadCriticalModules, markPerformance, measurePerformance } from "@/shared/lib/performance";
 import { ThemeProvider, type ThemePreference } from "@/shared/ui/theme";
+import { useUploadProcessor } from "@/entities/entry";
 
 function AppInitializer() {
   const loadUserFromStorage = useAuthStore(state => state.loadUserFromStorage);
@@ -63,6 +64,27 @@ function AppInitializer() {
   return null;
 }
 
+function UploadProcessorMount() {
+  const { toast } = useOverlayHelpers();
+  const common = useCommonI18n();
+
+  const onFailed = useCallback(() => {
+    toast({
+      title: common.uploadFailed,
+      message: common.uploadFailedMessage,
+      type: "error",
+      position: "top",
+      duration: 4000,
+    });
+  }, [toast, common.uploadFailed, common.uploadFailedMessage]);
+
+  const options = useMemo(() => ({ onFailed }), [onFailed]);
+
+  useUploadProcessor(options);
+
+  return null;
+}
+
 export default function AppProvider({ children }: { children: ReactNode }) {
   const themePreference = useSettingsStore(state => state.display.theme);
   const updateDisplay = useSettingsStore(state => state.updateDisplay);
@@ -95,6 +117,7 @@ export default function AppProvider({ children }: { children: ReactNode }) {
             >
               <OverlayProvider>
                 <AppInitializer />
+                <UploadProcessorMount />
                 {children}
               </OverlayProvider>
             </ThemeProvider>
