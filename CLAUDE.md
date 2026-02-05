@@ -32,7 +32,7 @@ cargo build --release               # Release build
 Swagger UI available at `http://localhost:3000/swagger-ui` when running.
 
 ## Infrastructure
-- Database: GCP Cloud SQL
+- Database: Neon
 - API: GCP Cloud Run
 - Queue: GCP Cloud Run
 - Object Storage: Cloudflare R2
