@@ -63,9 +63,18 @@ describe("detectMealType", () => {
     expect(detectMealType()).toBe("breakfast");
   });
 
-  it("returns LUNCH between 10:00 and 13:59 (no argument, uses system time)", () => {
+  it("returns SNACK between 10:00 and 10:59 (no argument, uses system time)", () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date(2024, 0, 1, 10, 0, 0));
+    expect(detectMealType()).toBe("snack");
+
+    jest.setSystemTime(new Date(2024, 0, 1, 10, 59, 59));
+    expect(detectMealType()).toBe("snack");
+  });
+
+  it("returns LUNCH between 11:00 and 13:59 (no argument, uses system time)", () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2024, 0, 1, 11, 0, 0));
     expect(detectMealType()).toBe("lunch");
 
     jest.setSystemTime(new Date(2024, 0, 1, 13, 59, 59));
@@ -103,8 +112,16 @@ describe("detectMealType", () => {
     jest.setSystemTime(new Date(2024, 0, 1, 9, 59, 0));
     expect(detectMealType()).toBe("breakfast");
 
-    // 10:00 → lunch
+    // 10:00 → snack
     jest.setSystemTime(new Date(2024, 0, 1, 10, 0, 0));
+    expect(detectMealType()).toBe("snack");
+
+    // 10:59 → snack
+    jest.setSystemTime(new Date(2024, 0, 1, 10, 59, 0));
+    expect(detectMealType()).toBe("snack");
+
+    // 11:00 → lunch
+    jest.setSystemTime(new Date(2024, 0, 1, 11, 0, 0));
     expect(detectMealType()).toBe("lunch");
 
     // 13:59 → lunch
@@ -130,7 +147,12 @@ describe("detectMealType", () => {
     expect(detectMealType(customDate)).toBe("breakfast");
   });
 
-  it("returns LUNCH between 10:00 and 13:59 with custom date", () => {
+  it("returns SNACK between 10:00 and 10:59 with custom date", () => {
+    expect(detectMealType(new Date(2026, 1, 5, 10, 0, 0))).toBe("snack");
+    expect(detectMealType(new Date(2026, 1, 5, 10, 59, 0))).toBe("snack");
+  });
+
+  it("returns LUNCH between 11:00 and 13:59 with custom date", () => {
     const customDate = new Date(2026, 1, 5, 12, 0, 0);
     expect(detectMealType(customDate)).toBe("lunch");
   });
@@ -149,8 +171,14 @@ describe("detectMealType", () => {
     // 9:59 → breakfast
     expect(detectMealType(new Date(2026, 1, 5, 9, 59, 0))).toBe("breakfast");
 
-    // 10:00 → lunch
-    expect(detectMealType(new Date(2026, 1, 5, 10, 0, 0))).toBe("lunch");
+    // 10:00 → snack
+    expect(detectMealType(new Date(2026, 1, 5, 10, 0, 0))).toBe("snack");
+
+    // 10:59 → snack
+    expect(detectMealType(new Date(2026, 1, 5, 10, 59, 0))).toBe("snack");
+
+    // 11:00 → lunch
+    expect(detectMealType(new Date(2026, 1, 5, 11, 0, 0))).toBe("lunch");
 
     // 13:59 → lunch
     expect(detectMealType(new Date(2026, 1, 5, 13, 59, 0))).toBe("lunch");
@@ -380,6 +408,7 @@ describe("useCamera hook", () => {
     it("detects correct mealType for different targetDate times", async () => {
       const testCases = [
         { time: new Date(2026, 0, 10, 9, 0, 0), expected: "breakfast" },
+        { time: new Date(2026, 0, 10, 10, 30, 0), expected: "snack" },
         { time: new Date(2026, 0, 10, 12, 0, 0), expected: "lunch" },
         { time: new Date(2026, 0, 10, 15, 0, 0), expected: "snack" },
         { time: new Date(2026, 0, 10, 19, 0, 0), expected: "dinner" },

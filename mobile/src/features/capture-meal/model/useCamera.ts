@@ -62,6 +62,7 @@ export interface UseCameraReturn {
 export function detectMealType(date?: Date): MealType {
   const hour = (date ?? new Date()).getHours();
   if (hour < 10) return MealType.BREAKFAST;
+  if (hour < 11) return MealType.SNACK;
   if (hour < 14) return MealType.LUNCH;
   if (hour < 17) return MealType.SNACK;
   return MealType.DINNER;
