@@ -12,6 +12,7 @@ jest.mock("@/entities/entry", () => ({
     getEntriesForDate: jest.fn(),
   },
   useEntryListQuery: jest.fn(),
+  useGuestEntryStore: jest.fn(() => 0),
 }));
 jest.mock("@/shared/lib/utils", () => {
   return {

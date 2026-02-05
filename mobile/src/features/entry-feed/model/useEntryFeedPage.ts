@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import type { Entry } from "@/entities/entry";
 import { useIsAuthenticated } from "@/shared/lib/auth";
-import { entryStorageUtils, useEntryListQuery } from "@/entities/entry";
+import { entryStorageUtils, useEntryListQuery, useGuestEntryStore } from "@/entities/entry";
 import { getWeekDays, isSameDay, formatDateToString } from "@/shared/lib/utils";
 import { getCurrentLanguage } from "@/shared/lib/i18n";
 import { MealType } from "@/entities/meal";
@@ -79,6 +79,7 @@ function apiEntryToEntry(apiEntry: ApiDiaryEntry): Entry {
 
 export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
   const isAuthenticated = useIsAuthenticated();
+  const guestVersion = useGuestEntryStore((s) => s.version);
 
   // State
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -157,7 +158,7 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
     };
 
     loadAllEntries();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, guestVersion]);
 
   // Auth mode: build dateThumbnails from week query response
   useEffect(() => {
@@ -224,7 +225,7 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
     };
 
     loadEntriesForDate();
-  }, [selectedDate, isAuthenticated]);
+  }, [selectedDate, isAuthenticated, guestVersion]);
 
   // Guest mode: refresh data when screen regains focus (e.g. after deleting an entry in detail)
   const isInitialFocus = useRef(true);

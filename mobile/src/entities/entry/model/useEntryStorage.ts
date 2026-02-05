@@ -3,6 +3,7 @@ import type { Entry, EntryFilter } from "./types";
 import type { NutritionInfo } from "@/entities/meal";
 import { storage } from "@/shared/lib/storage";
 import { GUEST_LIMITS, ERROR_MESSAGES } from "@/shared/config";
+import { useGuestEntryStore } from "./guestEntryStore";
 
 const ENTRIES_STORAGE_KEY = "@diary_entries";
 
@@ -70,6 +71,7 @@ export const entryStorageUtils = {
       const updatedEntries = [newEntry, ...existingEntries];
 
       await storage.set(ENTRIES_STORAGE_KEY, updatedEntries);
+      useGuestEntryStore.getState().bump();
       return newEntry;
     } catch (error) {
       if (error instanceof GuestEntryLimitError) {
@@ -106,6 +108,7 @@ export const entryStorageUtils = {
 
       entries[entryIndex] = updatedEntry;
       await storage.set(ENTRIES_STORAGE_KEY, entries);
+      useGuestEntryStore.getState().bump();
 
       return updatedEntry;
     } catch (error) {
@@ -220,6 +223,7 @@ export const entryStorageUtils = {
       const entries = await entryStorageUtils.getAllEntries();
       const filteredEntries = entries.filter((e) => e.id !== entryId);
       await storage.set(ENTRIES_STORAGE_KEY, filteredEntries);
+      useGuestEntryStore.getState().bump();
     } catch (error) {
       console.error("Error deleting entry:", error);
       throw new Error("Failed to delete entry");
@@ -229,6 +233,7 @@ export const entryStorageUtils = {
   clearAllEntries: async (): Promise<void> => {
     try {
       await storage.remove(ENTRIES_STORAGE_KEY);
+      useGuestEntryStore.getState().bump();
     } catch (error) {
       console.error("Error clearing entries:", error);
       throw new Error("Failed to clear entries");

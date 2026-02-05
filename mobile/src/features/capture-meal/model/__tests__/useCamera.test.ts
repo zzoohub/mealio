@@ -18,7 +18,14 @@ jest.mock("react-native-reanimated", () => ({
 }));
 jest.mock("@/shared/lib/i18n", () => ({
   useCameraI18n: () => ({
-    capture: { success: "", successMessage: "", error: "", errorMessage: "" },
+    capture: {
+      success: "",
+      successMessage: "",
+      error: "",
+      errorMessage: "",
+      guestLimitTitle: "Entry Limit Reached",
+      guestLimitMessage: "You've reached the maximum of 10 entries. Sign in to save unlimited entries!",
+    },
     tapToEdit: "",
   }),
 }));
@@ -755,6 +762,410 @@ describe("useCamera hook", () => {
       expect(Haptics.notificationAsync).toHaveBeenCalledWith(
         Haptics.NotificationFeedbackType.Warning
       );
+    });
+  });
+
+  describe("isAtGuestLimit blocking feature", () => {
+    it("capturePhoto shows warning toast and returns early when isAtGuestLimit is true", async () => {
+      const { result } = renderHook(() =>
+        useCamera({
+          onSaveEntry: mockOnSaveEntry,
+          isAtGuestLimit: true,
+        })
+      );
+
+      await act(async () => {
+        await result.current.capturePhoto();
+      });
+
+      // Should show guest limit toast
+      expect(mockToast).toHaveBeenCalledWith({
+        title: "Entry Limit Reached",
+        message: "You've reached the maximum of 10 entries. Sign in to save unlimited entries!",
+        type: "warning",
+        position: "top",
+        duration: 4000,
+      });
+
+      // Should trigger haptic warning feedback
+      expect(Haptics.notificationAsync).toHaveBeenCalledWith(
+        Haptics.NotificationFeedbackType.Warning
+      );
+
+      // Should not attempt to capture photo
+      expect(result.current.capturedPhotos).toEqual([]);
+      expect(result.current.isCapturing).toBe(false);
+    });
+
+    it("pickFromGallery shows warning toast and returns early when isAtGuestLimit is true", async () => {
+      (ImagePicker.launchImageLibraryAsync as jest.Mock).mockResolvedValue({
+        canceled: false,
+        assets: [{ uri: "gallery1.jpg" }],
+      });
+
+      const { result } = renderHook(() =>
+        useCamera({
+          onSaveEntry: mockOnSaveEntry,
+          isAtGuestLimit: true,
+        })
+      );
+
+      await act(async () => {
+        await result.current.pickFromGallery();
+      });
+
+      // Should show guest limit toast
+      expect(mockToast).toHaveBeenCalledWith({
+        title: "Entry Limit Reached",
+        message: "You've reached the maximum of 10 entries. Sign in to save unlimited entries!",
+        type: "warning",
+        position: "top",
+        duration: 4000,
+      });
+
+      // Should trigger haptic warning feedback
+      expect(Haptics.notificationAsync).toHaveBeenCalledWith(
+        Haptics.NotificationFeedbackType.Warning
+      );
+
+      // Should not launch image picker
+      expect(ImagePicker.launchImageLibraryAsync).not.toHaveBeenCalled();
+
+      // Should not add any photos
+      expect(result.current.capturedPhotos).toEqual([]);
+    });
+
+    it("handleDone shows warning toast and returns early when isAtGuestLimit is true", async () => {
+      const initialPhotos = ["photo1.jpg"];
+
+      const { result } = renderHook(() =>
+        useCamera({
+          onSaveEntry: mockOnSaveEntry,
+          initialPhotos,
+          isAtGuestLimit: true,
+        })
+      );
+
+      await act(async () => {
+        await result.current.handleDone();
+      });
+
+      // Should show guest limit toast
+      expect(mockToast).toHaveBeenCalledWith({
+        title: "Entry Limit Reached",
+        message: "You've reached the maximum of 10 entries. Sign in to save unlimited entries!",
+        type: "warning",
+        position: "top",
+        duration: 4000,
+      });
+
+      // Should trigger haptic warning feedback
+      expect(Haptics.notificationAsync).toHaveBeenCalledWith(
+        Haptics.NotificationFeedbackType.Warning
+      );
+
+      // Should not attempt to save entry
+      expect(mockOnSaveEntry).not.toHaveBeenCalled();
+
+      // Should not clear photos
+      expect(result.current.capturedPhotos).toEqual(initialPhotos);
+      expect(result.current.isSaving).toBe(false);
+    });
+
+    it("capturePhoto works normally when isAtGuestLimit is false", async () => {
+      const mockPhoto = { uri: "captured.jpg" };
+      const mockTakePicture = jest.fn().mockResolvedValue(mockPhoto);
+
+      const { result } = renderHook(() =>
+        useCamera({
+          onSaveEntry: mockOnSaveEntry,
+          isAtGuestLimit: false,
+        })
+      );
+
+      // Mock the camera ref
+      (result.current.cameraRef as any).current = {
+        takePictureAsync: mockTakePicture,
+      };
+
+      await act(async () => {
+        await result.current.capturePhoto();
+      });
+
+      // Should capture the photo
+      expect(mockTakePicture).toHaveBeenCalledWith({
+        quality: 0.8,
+        base64: false,
+      });
+
+      // Should add photo to state
+      expect(result.current.capturedPhotos).toEqual(["captured.jpg"]);
+
+      // Should trigger success haptic feedback
+      expect(Haptics.notificationAsync).toHaveBeenCalledWith(
+        Haptics.NotificationFeedbackType.Success
+      );
+
+      // Should NOT show guest limit toast
+      expect(mockToast).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "warning",
+        })
+      );
+    });
+
+    it("capturePhoto works normally when isAtGuestLimit is undefined", async () => {
+      const mockPhoto = { uri: "captured.jpg" };
+      const mockTakePicture = jest.fn().mockResolvedValue(mockPhoto);
+
+      const { result } = renderHook(() =>
+        useCamera({
+          onSaveEntry: mockOnSaveEntry,
+          // isAtGuestLimit is undefined
+        })
+      );
+
+      // Mock the camera ref
+      (result.current.cameraRef as any).current = {
+        takePictureAsync: mockTakePicture,
+      };
+
+      await act(async () => {
+        await result.current.capturePhoto();
+      });
+
+      // Should capture the photo
+      expect(mockTakePicture).toHaveBeenCalledWith({
+        quality: 0.8,
+        base64: false,
+      });
+
+      // Should add photo to state
+      expect(result.current.capturedPhotos).toEqual(["captured.jpg"]);
+
+      // Should NOT show guest limit toast
+      expect(mockToast).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "warning",
+        })
+      );
+    });
+
+    it("pickFromGallery works normally when isAtGuestLimit is false", async () => {
+      (ImagePicker.launchImageLibraryAsync as jest.Mock).mockResolvedValue({
+        canceled: false,
+        assets: [{ uri: "gallery1.jpg" }],
+      });
+
+      const { result } = renderHook(() =>
+        useCamera({
+          onSaveEntry: mockOnSaveEntry,
+          isAtGuestLimit: false,
+        })
+      );
+
+      await act(async () => {
+        await result.current.pickFromGallery();
+      });
+
+      // Should launch image picker
+      expect(ImagePicker.launchImageLibraryAsync).toHaveBeenCalled();
+
+      // Should add photo to state
+      expect(result.current.capturedPhotos).toEqual(["gallery1.jpg"]);
+
+      // Should NOT show guest limit toast
+      expect(mockToast).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "warning",
+        })
+      );
+    });
+
+    it("handleDone works normally when isAtGuestLimit is false", async () => {
+      const initialPhotos = ["photo1.jpg"];
+      mockOnSaveEntry.mockResolvedValue("entry-123");
+
+      const { result } = renderHook(() =>
+        useCamera({
+          onSaveEntry: mockOnSaveEntry,
+          initialPhotos,
+          isAtGuestLimit: false,
+        })
+      );
+
+      await act(async () => {
+        await result.current.handleDone();
+      });
+
+      // Should save the entry
+      expect(mockOnSaveEntry).toHaveBeenCalled();
+
+      // Should show success toast, not warning toast
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "success",
+        })
+      );
+
+      expect(mockToast).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "warning",
+        })
+      );
+
+      // Should clear photos
+      expect(result.current.capturedPhotos).toEqual([]);
+    });
+
+    it("verifies haptic warning feedback is triggered exactly once when blocked", async () => {
+      const { result } = renderHook(() =>
+        useCamera({
+          onSaveEntry: mockOnSaveEntry,
+          isAtGuestLimit: true,
+        })
+      );
+
+      await act(async () => {
+        await result.current.capturePhoto();
+      });
+
+      // Should trigger haptic warning feedback exactly once
+      expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
+      expect(Haptics.notificationAsync).toHaveBeenCalledWith(
+        Haptics.NotificationFeedbackType.Warning
+      );
+
+      // Clear mocks for next test
+      jest.clearAllMocks();
+
+      // Test pickFromGallery
+      await act(async () => {
+        await result.current.pickFromGallery();
+      });
+
+      expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
+      expect(Haptics.notificationAsync).toHaveBeenCalledWith(
+        Haptics.NotificationFeedbackType.Warning
+      );
+
+      // Clear mocks for next test
+      jest.clearAllMocks();
+
+      // Test handleDone with photos
+      const { result: result2 } = renderHook(() =>
+        useCamera({
+          onSaveEntry: mockOnSaveEntry,
+          initialPhotos: ["photo1.jpg"],
+          isAtGuestLimit: true,
+        })
+      );
+
+      await act(async () => {
+        await result2.current.handleDone();
+      });
+
+      expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
+      expect(Haptics.notificationAsync).toHaveBeenCalledWith(
+        Haptics.NotificationFeedbackType.Warning
+      );
+    });
+
+    it("does not interfere with other guard conditions", async () => {
+      // Test that isAtGuestLimit is checked BEFORE canCapture
+      const initialPhotos = Array.from({ length: 10 }, (_, i) => `photo${i}.jpg`);
+
+      const { result } = renderHook(() =>
+        useCamera({
+          onSaveEntry: mockOnSaveEntry,
+          initialPhotos,
+          isAtGuestLimit: true,
+        })
+      );
+
+      expect(result.current.canCapture).toBe(false); // At MAX_PHOTOS
+
+      await act(async () => {
+        await result.current.capturePhoto();
+      });
+
+      // Should show guest limit toast, not MAX_PHOTOS warning
+      expect(mockToast).toHaveBeenCalledWith({
+        title: "Entry Limit Reached",
+        message: "You've reached the maximum of 10 entries. Sign in to save unlimited entries!",
+        type: "warning",
+        position: "top",
+        duration: 4000,
+      });
+
+      // Haptics should be called once for guest limit, not for MAX_PHOTOS
+      expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
+    });
+
+    it("capturePhoto error handler does not interfere with guest limit check", async () => {
+      const mockTakePicture = jest.fn().mockRejectedValue(new Error("Camera error"));
+
+      const { result } = renderHook(() =>
+        useCamera({
+          onSaveEntry: mockOnSaveEntry,
+          isAtGuestLimit: false,
+        })
+      );
+
+      // Mock the camera ref
+      (result.current.cameraRef as any).current = {
+        takePictureAsync: mockTakePicture,
+      };
+
+      await act(async () => {
+        await result.current.capturePhoto();
+      });
+
+      // Error should be handled normally
+      expect(Haptics.notificationAsync).toHaveBeenCalledWith(
+        Haptics.NotificationFeedbackType.Error
+      );
+
+      // No photos should be added
+      expect(result.current.capturedPhotos).toEqual([]);
+
+      // Should NOT show guest limit toast
+      expect(mockToast).not.toHaveBeenCalled();
+    });
+
+    it("handleDone error handler does not interfere with guest limit check", async () => {
+      const initialPhotos = ["photo1.jpg"];
+      mockOnSaveEntry.mockRejectedValue(new Error("Save error"));
+
+      const { result } = renderHook(() =>
+        useCamera({
+          onSaveEntry: mockOnSaveEntry,
+          initialPhotos,
+          isAtGuestLimit: false,
+        })
+      );
+
+      await act(async () => {
+        await result.current.handleDone();
+      });
+
+      // Error toast should be shown, not guest limit toast
+      expect(mockToast).toHaveBeenCalledWith({
+        title: "",
+        message: "",
+        type: "error",
+        position: "top",
+        duration: 4000,
+      });
+
+      expect(mockToast).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "warning",
+        })
+      );
+
+      // Photos should NOT be cleared on error
+      expect(result.current.capturedPhotos).toEqual(initialPhotos);
     });
   });
 });

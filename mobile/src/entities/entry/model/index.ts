@@ -1,4 +1,5 @@
 export * from './types';
+export { useGuestEntryStore } from './guestEntryStore';
 export { useEntryStorage, entryStorageUtils, GuestEntryLimitError } from './useEntryStorage';
 export { useEntryListQuery, useEntryDetailQuery, useCreateEntryMutation, useUpdateEntryMutation, useDeleteEntryMutation, useSyncIngredientsMutation, useUpsertNutritionMutation } from './useEntryQueries';
 export { useEntryData } from './useEntryData';

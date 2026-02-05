@@ -27,6 +27,8 @@ export interface UseCameraOptions {
   initialPhotos?: string[];
   /** Target date for the entry (defaults to now) */
   targetDate?: Date;
+  /** Whether the guest user has reached the entry limit */
+  isAtGuestLimit?: boolean;
 }
 
 export interface UseCameraReturn {
@@ -73,7 +75,7 @@ export function detectMealType(date?: Date): MealType {
 // =============================================================================
 
 export function useCamera(options: UseCameraOptions): UseCameraReturn {
-  const { onSaveEntry, onNavigateToEntry, initialPhotos, targetDate } = options;
+  const { onSaveEntry, onNavigateToEntry, initialPhotos, targetDate, isAtGuestLimit } = options;
   const t = useCameraI18n();
   const { toast } = useOverlayHelpers();
   const { getLocation } = useDeviceLocation();
@@ -95,7 +97,22 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
   const remainingPhotos = MAX_PHOTOS - capturedPhotos.length;
   const hasPhotos = capturedPhotos.length > 0;
 
+  const showGuestLimitToast = useCallback(() => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    toast({
+      title: t.capture.guestLimitTitle,
+      message: t.capture.guestLimitMessage,
+      type: "warning",
+      position: "top",
+      duration: 4000,
+    });
+  }, [toast, t]);
+
   const capturePhoto = useCallback(async () => {
+    if (isAtGuestLimit) {
+      showGuestLimitToast();
+      return;
+    }
     if (!cameraRef.current || isCapturing) return;
     if (!canCapture) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -130,9 +147,13 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
     } finally {
       setIsCapturing(false);
     }
-  }, [isCapturing, canCapture, captureButtonPressed]);
+  }, [isAtGuestLimit, showGuestLimitToast, isCapturing, canCapture, captureButtonPressed]);
 
   const pickFromGallery = useCallback(async () => {
+    if (isAtGuestLimit) {
+      showGuestLimitToast();
+      return;
+    }
     if (remainingPhotos <= 0) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
@@ -150,7 +171,7 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
       setCapturedPhotos((prev) => [...prev, ...newUris]);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-  }, [remainingPhotos]);
+  }, [isAtGuestLimit, showGuestLimitToast, remainingPhotos]);
 
   const removePhoto = useCallback((index: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -158,6 +179,10 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
   }, []);
 
   const handleDone = useCallback(async () => {
+    if (isAtGuestLimit) {
+      showGuestLimitToast();
+      return;
+    }
     if (capturedPhotos.length === 0 || isSaving) return;
 
     setIsSaving(true);
@@ -200,7 +225,7 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
     } finally {
       setIsSaving(false);
     }
-  }, [capturedPhotos, isSaving, onSaveEntry, onNavigateToEntry, getLocation, toast, t, targetDate]);
+  }, [isAtGuestLimit, showGuestLimitToast, capturedPhotos, isSaving, onSaveEntry, onNavigateToEntry, getLocation, toast, t, targetDate]);
 
   const toggleFlash = useCallback(() => {
     const modes: FlashMode[] = ["off", "on", "auto"];

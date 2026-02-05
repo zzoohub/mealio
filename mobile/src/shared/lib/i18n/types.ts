@@ -50,6 +50,8 @@ export interface CameraTranslations {
     viewTimeline: string;
     error: string;
     errorMessage: string;
+    guestLimitTitle: string;
+    guestLimitMessage: string;
   };
 }
 

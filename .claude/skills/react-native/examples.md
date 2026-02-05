@@ -339,3 +339,28 @@ function ProductList() {
   );
 }
 ```
+
+---
+
+## TanStack Query
+
+```ts
+// entities/entry/api/queryKeys.ts
+export const entryKeys = {
+  all: ['entries'] as const,                                       // invalidate everything
+  lists: () => [...entryKeys.all, 'list'] as const,                // all lists
+  list: (filters) => [...entryKeys.lists(), filters] as const,     // specific list
+  details: () => [...entryKeys.all, 'detail'] as const,            // all details
+  detail: (id) => [...entryKeys.details(), id] as const,           // single detail
+}
+```
+
+```ts
+// entities/entry/api/useEntries.ts
+export function useEntries(filters: Filters) {
+  return useQuery({
+    queryKey: entryKeys.list(filters),
+    queryFn: () => fetchEntries(filters),
+  });
+}
+```

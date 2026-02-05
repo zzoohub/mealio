@@ -130,6 +130,8 @@ export const useCameraI18n = () => {
         viewTimeline: t("capture.viewTimeline"),
         error: t("capture.error"),
         errorMessage: t("capture.errorMessage"),
+        guestLimitTitle: t("capture.guestLimitTitle"),
+        guestLimitMessage: t("capture.guestLimitMessage"),
       },
     }),
     [t],

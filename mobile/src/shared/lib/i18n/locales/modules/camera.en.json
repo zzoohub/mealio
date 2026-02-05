@@ -26,6 +26,8 @@
     "successMessage": "Your meal has been automatically saved and analyzed.",
     "viewTimeline": "View Timeline",
     "error": "Error",
-    "errorMessage": "Failed to capture photo. Please try again."
+    "errorMessage": "Failed to capture photo. Please try again.",
+    "guestLimitTitle": "Entry Limit Reached",
+    "guestLimitMessage": "You've reached the maximum of 10 entries. Sign in to save unlimited entries!"
   }
 }

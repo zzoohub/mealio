@@ -36,7 +36,7 @@ export default function Camera({ initialPhotos, targetDate }: CameraProps) {
   const t = useCameraI18n();
   const nav = useNavigationI18n();
 
-  const { saveEntry } = useEntryData();
+  const { saveEntry, isAtGuestLimit } = useEntryData();
 
   // Parse and validate props from route params (treated as untrusted input)
   const ALLOWED_SCHEMES = ["file://", "ph://", "content://", "asset-library://"];
@@ -83,6 +83,7 @@ export default function Camera({ initialPhotos, targetDate }: CameraProps) {
     onNavigateToEntry: handleNavigateToEntry,
     initialPhotos: parsedInitialPhotos,
     targetDate: parsedTargetDate,
+    isAtGuestLimit,
   });
 
   // Loading state
@@ -126,7 +127,7 @@ export default function Camera({ initialPhotos, targetDate }: CameraProps) {
         onCapture={capturePhoto}
         isCapturing={isCapturing}
         pressedState={captureButtonPressed}
-        disabled={isCapturing}
+        disabled={isCapturing || isAtGuestLimit}
       />
 
       {/* Bottom Controls - Changes based on photo state */}
