@@ -17,7 +17,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
 thiserror = "2"
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 bigdecimal = { version = "0.4", features = ["serde"] }
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
