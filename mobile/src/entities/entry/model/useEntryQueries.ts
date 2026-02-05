@@ -100,9 +100,9 @@ export function useUpdateEntryMutation() {
         queryClient.setQueryData(queryKeys.diary.detail(id), context.previous);
       }
     },
-    onSettled: (_data, _error, { id }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.diary.detail(id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.diary.list() });
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.diary.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all() });
     },
   });
 }

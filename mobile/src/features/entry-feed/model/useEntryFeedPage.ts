@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import type { Entry } from "@/entities/entry";
 import { useIsAuthenticated } from "@/shared/lib/auth";
 import { entryStorageUtils, useEntryListQuery } from "@/entities/entry";
@@ -173,18 +174,28 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
   }, [isAuthenticated, weekQuery.data]);
 
   // Auth mode: build calendarThumbnails from month query response
-  // Merge into existing map so previously loaded months are preserved
+  // Clear the queried range first, then merge fresh data so deleted entries are removed
   useEffect(() => {
-    if (!isAuthenticated || !monthQuery.data) return;
+    if (!isAuthenticated || !monthQuery.data || !calendarMonthRange) return;
     setCalendarThumbnails(prev => {
-      const merged = new Map(prev);
+      const next = new Map(prev);
+
+      // Remove stale entries in the queried range before merging fresh data
+      const rangeStart = calendarMonthRange.startDate;
+      const rangeEnd = calendarMonthRange.endDate;
+      for (const dateStr of next.keys()) {
+        if (dateStr >= rangeStart && dateStr <= rangeEnd) {
+          next.delete(dateStr);
+        }
+      }
+
       monthQuery.data!.data.forEach(entry => {
         const dateStr = formatDateToString(new Date(entry.eaten_at));
-        merged.set(dateStr, entry.primary_photo_url);
+        next.set(dateStr, entry.primary_photo_url);
       });
-      return merged;
+      return next;
     });
-  }, [isAuthenticated, monthQuery.data]);
+  }, [isAuthenticated, monthQuery.data, calendarMonthRange]);
 
   // Guest mode: calendarThumbnails is the same as dateThumbnails (all entries are loaded)
   useEffect(() => {
@@ -214,6 +225,39 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
 
     loadEntriesForDate();
   }, [selectedDate, isAuthenticated]);
+
+  // Guest mode: refresh data when screen regains focus (e.g. after deleting an entry in detail)
+  const isInitialFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated || isInitialFocus.current) {
+        isInitialFocus.current = false;
+        return;
+      }
+
+      const reload = async () => {
+        try {
+          const loadedEntries = await entryStorageUtils.getAllEntries();
+          const thumbnailMap = new Map<string, string | null>();
+          loadedEntries.forEach(entry => {
+            const dateStr = formatDateToString(entry.timestamp);
+            if (!thumbnailMap.has(dateStr)) {
+              thumbnailMap.set(dateStr, entry.meal.photoUri || null);
+            }
+          });
+          setDateThumbnails(thumbnailMap);
+
+          const entriesForDate = await entryStorageUtils.getEntriesForDate(selectedDate);
+          entriesForDate.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+          setGuestEntries(entriesForDate);
+        } catch (err) {
+          console.error("Error reloading guest entries:", err);
+        }
+      };
+
+      reload();
+    }, [isAuthenticated, selectedDate]),
+  );
 
   // Unified entries and loading state
   const entries = isAuthenticated ? apiEntries : guestEntries;

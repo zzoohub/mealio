@@ -1,5 +1,8 @@
 // Mock native modules and barrels
 jest.mock("react-native", () => ({}));
+jest.mock("@react-navigation/native", () => ({
+  useFocusEffect: jest.fn(),
+}));
 jest.mock("@/shared/lib/auth", () => ({
   useIsAuthenticated: jest.fn(() => true),
 }));
@@ -389,6 +392,94 @@ describe("useEntryFeedPage - calendar thumbnails merge", () => {
         "https://example.com/new-photo.jpg"
       );
     });
+  });
+
+  it("removes stale deleted entries when reloading same month", async () => {
+    const { result } = renderHook(() => useEntryFeedPage("#007AFF"));
+
+    // Load January data with two entries
+    act(() => {
+      mockUseMonthThumbnailsQuery.mockReturnValue({
+        data: {
+          data: [
+            {
+              id: 1,
+              user_id: 1,
+              meal_type: "breakfast",
+              notes: null,
+              eaten_at: "2024-01-15T08:00:00Z",
+              created_at: "2024-01-15T08:00:00Z",
+              updated_at: "2024-01-15T08:00:00Z",
+              primary_photo_url: "https://example.com/photo-15.jpg",
+              photo_urls: ["https://example.com/photo-15.jpg"],
+            },
+            {
+              id: 2,
+              user_id: 1,
+              meal_type: "lunch",
+              notes: null,
+              eaten_at: "2024-01-20T12:00:00Z",
+              created_at: "2024-01-20T12:00:00Z",
+              updated_at: "2024-01-20T12:00:00Z",
+              primary_photo_url: "https://example.com/photo-20.jpg",
+              photo_urls: ["https://example.com/photo-20.jpg"],
+            },
+          ],
+        },
+        isLoading: false,
+      });
+    });
+
+    act(() => {
+      result.current.handleCalendarMonthChange({
+        dateString: "2024-01-01",
+        year: 2024,
+        month: 1,
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.calendarThumbnails.has("2024-01-15")).toBe(true);
+      expect(result.current.calendarThumbnails.has("2024-01-20")).toBe(true);
+    });
+
+    // Reload January with one entry deleted (only 2024-01-15 remains)
+    act(() => {
+      mockUseMonthThumbnailsQuery.mockReturnValue({
+        data: {
+          data: [
+            {
+              id: 1,
+              user_id: 1,
+              meal_type: "breakfast",
+              notes: null,
+              eaten_at: "2024-01-15T08:00:00Z",
+              created_at: "2024-01-15T08:00:00Z",
+              updated_at: "2024-01-15T08:00:00Z",
+              primary_photo_url: "https://example.com/photo-15.jpg",
+              photo_urls: ["https://example.com/photo-15.jpg"],
+            },
+          ],
+        },
+        isLoading: false,
+      });
+    });
+
+    act(() => {
+      result.current.handleCalendarMonthChange({
+        dateString: "2024-01-01",
+        year: 2024,
+        month: 1,
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.calendarThumbnails.has("2024-01-15")).toBe(true);
+      expect(result.current.calendarThumbnails.has("2024-01-20")).toBe(false);
+    });
+
+    // Verify the deleted entry is removed from calendar thumbnails
+    expect(result.current.calendarThumbnails.get("2024-01-20")).toBeUndefined();
   });
 
   it("builds correct month range for handleCalendarMonthChange", () => {
@@ -892,5 +983,150 @@ describe("useEntryFeedPage - guest mode", () => {
 
     // formattedMonthYear should be derived from visibleWeekDays
     expect(result.current.formattedMonthYear).toBeDefined();
+  });
+
+  it("reloads data when screen regains focus in guest mode", async () => {
+    const { useFocusEffect } = require("@react-navigation/native");
+
+    const mockEntriesInitial = [
+      {
+        id: "1",
+        userId: "guest",
+        timestamp: new Date("2024-01-15T08:00:00Z"),
+        notes: "Initial entry",
+        meal: {
+          photoUri: "file:///photo1.jpg",
+          mealType: "breakfast" as any,
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+
+    const mockEntriesAfterFocus = [
+      {
+        id: "1",
+        userId: "guest",
+        timestamp: new Date("2024-01-15T08:00:00Z"),
+        notes: "Initial entry",
+        meal: {
+          photoUri: "file:///photo1.jpg",
+          mealType: "breakfast" as any,
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: "2",
+        userId: "guest",
+        timestamp: new Date("2024-01-15T12:00:00Z"),
+        notes: "New entry after focus",
+        meal: {
+          photoUri: "file:///photo2.jpg",
+          mealType: "lunch" as any,
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+
+    entryStorageUtils.getAllEntries
+      .mockResolvedValueOnce(mockEntriesInitial)
+      .mockResolvedValueOnce(mockEntriesAfterFocus);
+    entryStorageUtils.getEntriesForDate
+      .mockResolvedValueOnce([mockEntriesInitial[0]])
+      .mockResolvedValueOnce(mockEntriesAfterFocus);
+
+    let focusCallback: (() => void) | undefined;
+    useFocusEffect.mockImplementation((callback: () => void) => {
+      focusCallback = callback;
+    });
+
+    const { result } = renderHook(() => useEntryFeedPage("#007AFF"));
+
+    await waitFor(() => {
+      expect(result.current.entries.length).toBe(1);
+    });
+
+    // First focus call (initial mount) - should skip reload due to isInitialFocus guard
+    act(() => {
+      if (focusCallback) {
+        focusCallback();
+      }
+    });
+
+    // Second focus call (actual screen regain) - should reload data
+    act(() => {
+      if (focusCallback) {
+        focusCallback();
+      }
+    });
+
+    await waitFor(() => {
+      expect(result.current.entries.length).toBe(2);
+    });
+
+    // Initial load + reload after second focus = 2 calls
+    expect(entryStorageUtils.getAllEntries).toHaveBeenCalledTimes(2);
+    expect(entryStorageUtils.getEntriesForDate).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not reload data on initial focus in guest mode", async () => {
+    const { useFocusEffect } = require("@react-navigation/native");
+
+    entryStorageUtils.getAllEntries.mockResolvedValue([]);
+    entryStorageUtils.getEntriesForDate.mockResolvedValue([]);
+
+    let focusCallback: (() => void) | undefined;
+    useFocusEffect.mockImplementation((callback: () => void) => {
+      focusCallback = callback;
+    });
+
+    renderHook(() => useEntryFeedPage("#007AFF"));
+
+    // Trigger the focus callback immediately (simulating initial mount)
+    act(() => {
+      if (focusCallback) {
+        focusCallback();
+      }
+    });
+
+    await waitFor(() => {
+      expect(entryStorageUtils.getAllEntries).toHaveBeenCalledTimes(1);
+    });
+
+    // Should only be called once from the initial useEffect, not from focus
+    expect(entryStorageUtils.getAllEntries).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not reload data on focus when authenticated", async () => {
+    const { useFocusEffect } = require("@react-navigation/native");
+    mockUseIsAuthenticated.mockReturnValue(true);
+
+    let focusCallback: (() => void) | undefined;
+    useFocusEffect.mockImplementation((callback: () => void) => {
+      focusCallback = callback;
+    });
+
+    const { entryStorageUtils } = require("@/entities/entry");
+    entryStorageUtils.getAllEntries.mockResolvedValue([]);
+    entryStorageUtils.getEntriesForDate.mockResolvedValue([]);
+
+    renderHook(() => useEntryFeedPage("#007AFF"));
+
+    // Trigger the focus callback
+    act(() => {
+      if (focusCallback) {
+        focusCallback();
+      }
+    });
+
+    await waitFor(() => {
+      expect(entryStorageUtils.getAllEntries).not.toHaveBeenCalled();
+    });
+
+    // Storage utils should not be called at all when authenticated
+    expect(entryStorageUtils.getAllEntries).not.toHaveBeenCalled();
+    expect(entryStorageUtils.getEntriesForDate).not.toHaveBeenCalled();
   });
 });
