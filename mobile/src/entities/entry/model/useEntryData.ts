@@ -136,8 +136,8 @@ export function useEntryData(options: UseEntryDataOptions = {}): UseEntryDataRet
 
         return String(created.id);
       } else {
-        await guestStorage.saveEntry(entry);
-        return undefined;
+        const saved = await guestStorage.saveEntry(entry);
+        return saved.id;
       }
     },
     [isAuthenticated, createMutation, guestStorage, queryClient],

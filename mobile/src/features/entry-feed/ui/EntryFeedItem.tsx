@@ -39,6 +39,12 @@ const getMealTypeIcon = (mealType: MealType): string => {
       return "moon-outline";
     case MealType.SNACK:
       return "nutrition-outline";
+    case MealType.DESSERT:
+      return "ice-cream-outline";
+    case MealType.DRINK:
+      return "cafe-outline";
+    case MealType.OTHER:
+      return "ellipsis-horizontal-circle-outline";
     default:
       return "restaurant-outline";
   }
@@ -58,6 +64,9 @@ export const EntryFeedItem = memo(function EntryFeedItem({ entry, onPress }: Ent
       case MealType.LUNCH: return common.mealTypeLunch;
       case MealType.DINNER: return common.mealTypeDinner;
       case MealType.SNACK: return common.mealTypeSnack;
+      case MealType.DESSERT: return common.mealTypeDessert;
+      case MealType.DRINK: return common.mealTypeDrink;
+      case MealType.OTHER: return common.mealTypeOther;
       default: return common.mealTypeMeal;
     }
   };

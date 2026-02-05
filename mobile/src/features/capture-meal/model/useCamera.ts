@@ -171,6 +171,7 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
         location,
         meal: {
           photoUri: capturedPhotos[0]!,
+          photoUris: capturedPhotos,
           mealType: detectMealType(targetDate),
         },
       };

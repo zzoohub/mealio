@@ -74,6 +74,9 @@ jest.mock('@/entities/meal', () => ({
     LUNCH: 'lunch',
     DINNER: 'dinner',
     SNACK: 'snack',
+    DESSERT: 'dessert',
+    DRINK: 'drink',
+    OTHER: 'other',
   },
 }));
 
@@ -118,6 +121,9 @@ describe('EntryContextBar', () => {
       mealTypeLunch: 'Lunch',
       mealTypeDinner: 'Dinner',
       mealTypeSnack: 'Snack',
+      mealTypeDessert: 'Dessert',
+      mealTypeDrink: 'Drink',
+      mealTypeOther: 'Other',
       mealTypeMeal: 'Meal',
       cancel: 'Cancel',
       done: 'Done',
@@ -236,8 +242,8 @@ describe('EntryContextBar', () => {
 
       expect(ActionSheetIOS.showActionSheetWithOptions).toHaveBeenCalledWith(
         {
-          options: ['Breakfast', 'Lunch', 'Dinner', 'Snack', 'Cancel'],
-          cancelButtonIndex: 4,
+          options: ['Breakfast', 'Lunch', 'Dinner', 'Snack', 'Dessert', 'Drink', 'Other', 'Cancel'],
+          cancelButtonIndex: 7,
           title: 'Select Meal Type',
         },
         expect.any(Function)
@@ -264,6 +270,9 @@ describe('EntryContextBar', () => {
           { text: 'Lunch', onPress: expect.any(Function) },
           { text: 'Dinner', onPress: expect.any(Function) },
           { text: 'Snack', onPress: expect.any(Function) },
+          { text: 'Dessert', onPress: expect.any(Function) },
+          { text: 'Drink', onPress: expect.any(Function) },
+          { text: 'Other', onPress: expect.any(Function) },
           { text: 'Cancel', style: 'cancel' },
         ]
       );
@@ -315,8 +324,8 @@ describe('EntryContextBar', () => {
       (Platform as any).OS = 'ios';
       (ActionSheetIOS.showActionSheetWithOptions as jest.Mock).mockImplementation(
         (options, callback) => {
-          // Simulate pressing cancel (index 4)
-          callback(4);
+          // Simulate pressing cancel (index 7 now with 7 meal types)
+          callback(7);
         }
       );
 
@@ -768,6 +777,39 @@ describe('EntryContextBar', () => {
       expect(getByText('Snack')).toBeTruthy();
     });
 
+    it('displays correct label for DESSERT', () => {
+      const { getByText } = render(
+        <EntryContextBar
+          mealType={MealType.DESSERT}
+          timestamp={mockTimestamp}
+        />
+      );
+
+      expect(getByText('Dessert')).toBeTruthy();
+    });
+
+    it('displays correct label for DRINK', () => {
+      const { getByText } = render(
+        <EntryContextBar
+          mealType={MealType.DRINK}
+          timestamp={mockTimestamp}
+        />
+      );
+
+      expect(getByText('Drink')).toBeTruthy();
+    });
+
+    it('displays correct label for OTHER', () => {
+      const { getByText } = render(
+        <EntryContextBar
+          mealType={MealType.OTHER}
+          timestamp={mockTimestamp}
+        />
+      );
+
+      expect(getByText('Other')).toBeTruthy();
+    });
+
     it('displays "Meal" for unknown meal type', () => {
       const { getByText } = render(
         <EntryContextBar
@@ -777,6 +819,116 @@ describe('EntryContextBar', () => {
       );
 
       expect(getByText('Meal')).toBeTruthy();
+    });
+  });
+
+  // =============================================================================
+  // MEAL TYPE ICON TESTS
+  // =============================================================================
+
+  describe('meal type icons', () => {
+    it('displays correct icon for BREAKFAST', () => {
+      const { UNSAFE_queryAllByType } = render(
+        <EntryContextBar
+          mealType={MealType.BREAKFAST}
+          timestamp={mockTimestamp}
+        />
+      );
+
+      const icons = UNSAFE_queryAllByType('Ionicons' as any);
+      const icon = icons.find((icon: any) => icon.props.name === 'sunny-outline');
+      expect(icon).toBeTruthy();
+    });
+
+    it('displays correct icon for LUNCH', () => {
+      const { UNSAFE_queryAllByType } = render(
+        <EntryContextBar
+          mealType={MealType.LUNCH}
+          timestamp={mockTimestamp}
+        />
+      );
+
+      const icons = UNSAFE_queryAllByType('Ionicons' as any);
+      const icon = icons.find((icon: any) => icon.props.name === 'sunny');
+      expect(icon).toBeTruthy();
+    });
+
+    it('displays correct icon for DINNER', () => {
+      const { UNSAFE_queryAllByType } = render(
+        <EntryContextBar
+          mealType={MealType.DINNER}
+          timestamp={mockTimestamp}
+        />
+      );
+
+      const icons = UNSAFE_queryAllByType('Ionicons' as any);
+      const icon = icons.find((icon: any) => icon.props.name === 'moon-outline');
+      expect(icon).toBeTruthy();
+    });
+
+    it('displays correct icon for SNACK', () => {
+      const { UNSAFE_queryAllByType } = render(
+        <EntryContextBar
+          mealType={MealType.SNACK}
+          timestamp={mockTimestamp}
+        />
+      );
+
+      const icons = UNSAFE_queryAllByType('Ionicons' as any);
+      const icon = icons.find((icon: any) => icon.props.name === 'nutrition-outline');
+      expect(icon).toBeTruthy();
+    });
+
+    it('displays correct icon for DESSERT', () => {
+      const { UNSAFE_queryAllByType } = render(
+        <EntryContextBar
+          mealType={MealType.DESSERT}
+          timestamp={mockTimestamp}
+        />
+      );
+
+      const icons = UNSAFE_queryAllByType('Ionicons' as any);
+      const icon = icons.find((icon: any) => icon.props.name === 'ice-cream-outline');
+      expect(icon).toBeTruthy();
+    });
+
+    it('displays correct icon for DRINK', () => {
+      const { UNSAFE_queryAllByType } = render(
+        <EntryContextBar
+          mealType={MealType.DRINK}
+          timestamp={mockTimestamp}
+        />
+      );
+
+      const icons = UNSAFE_queryAllByType('Ionicons' as any);
+      const icon = icons.find((icon: any) => icon.props.name === 'cafe-outline');
+      expect(icon).toBeTruthy();
+    });
+
+    it('displays correct icon for OTHER', () => {
+      const { UNSAFE_queryAllByType } = render(
+        <EntryContextBar
+          mealType={MealType.OTHER}
+          timestamp={mockTimestamp}
+        />
+      );
+
+      const icons = UNSAFE_queryAllByType('Ionicons' as any);
+      const icon = icons.find((icon: any) => icon.props.name === 'ellipsis-horizontal-circle-outline');
+      expect(icon).toBeTruthy();
+    });
+
+    it('displays fallback icon for unknown meal type', () => {
+      const { UNSAFE_queryAllByType } = render(
+        <EntryContextBar
+          mealType="unknown"
+          timestamp={mockTimestamp}
+        />
+      );
+
+      const icons = UNSAFE_queryAllByType('Ionicons' as any);
+      const icon = icons.find((icon: any) => icon.props.name === 'restaurant-outline');
+      expect(icon).toBeTruthy();
     });
   });
 

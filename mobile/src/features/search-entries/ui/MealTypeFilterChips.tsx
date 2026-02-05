@@ -6,7 +6,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/shared/ui/theme';
 import { tokens } from '@/shared/ui/tokens';
@@ -40,7 +40,10 @@ export const MealTypeFilterChips = memo(function MealTypeFilterChips({
     { value: MealType.LUNCH, label: common.mealTypeLunch, icon: 'sunny' },
     { value: MealType.DINNER, label: common.mealTypeDinner, icon: 'moon-outline' },
     { value: MealType.SNACK, label: common.mealTypeSnack, icon: 'nutrition-outline' },
-  ], [common.mealTypeBreakfast, common.mealTypeLunch, common.mealTypeDinner, common.mealTypeSnack]);
+    { value: MealType.DESSERT, label: common.mealTypeDessert, icon: 'ice-cream-outline' },
+    { value: MealType.DRINK, label: common.mealTypeDrink, icon: 'cafe-outline' },
+    { value: MealType.OTHER, label: common.mealTypeOther, icon: 'ellipsis-horizontal-circle-outline' },
+  ], [common.mealTypeBreakfast, common.mealTypeLunch, common.mealTypeDinner, common.mealTypeSnack, common.mealTypeDessert, common.mealTypeDrink, common.mealTypeOther]);
 
   const handlePress = useCallback(
     (mealType: MealType) => {
@@ -63,7 +66,7 @@ export const MealTypeFilterChips = memo(function MealTypeFilterChips({
   );
 
   return (
-    <View style={styles.container}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.container}>
       {MEAL_TYPE_OPTIONS.map((option) => {
         const active = isSelected(option.value);
         return (
@@ -95,7 +98,7 @@ export const MealTypeFilterChips = memo(function MealTypeFilterChips({
           </Pressable>
         );
       })}
-    </View>
+    </ScrollView>
   );
 });
 

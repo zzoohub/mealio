@@ -62,6 +62,12 @@ export function getMealTypeEmoji(mealType: string): string {
       return "moon";
     case "snack":
       return "nutrition";
+    case "dessert":
+      return "ice-cream";
+    case "drink":
+      return "cafe";
+    case "other":
+      return "ellipsis-horizontal-circle";
     default:
       return "restaurant";
   }
@@ -80,6 +86,12 @@ export function getMealTypeLabel(mealType: string): string {
       return "dinner";
     case "snack":
       return "snack";
+    case "dessert":
+      return "dessert";
+    case "drink":
+      return "drink";
+    case "other":
+      return "other";
     default:
       return "meal";
   }

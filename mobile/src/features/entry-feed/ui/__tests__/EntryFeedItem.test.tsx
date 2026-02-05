@@ -46,6 +46,9 @@ jest.mock("@/shared/lib/i18n", () => ({
     mealTypeLunch: "Lunch",
     mealTypeDinner: "Dinner",
     mealTypeSnack: "Snack",
+    mealTypeDessert: "Dessert",
+    mealTypeDrink: "Drink",
+    mealTypeOther: "Other",
     mealTypeMeal: "Meal",
   })),
 }));
@@ -116,6 +119,9 @@ describe("EntryFeedItem", () => {
       mealTypeLunch: "Lunch",
       mealTypeDinner: "Dinner",
       mealTypeSnack: "Snack",
+      mealTypeDessert: "Dessert",
+      mealTypeDrink: "Drink",
+      mealTypeOther: "Other",
       mealTypeMeal: "Meal",
     });
     mockFormatTime.mockImplementation((date: Date) => {
@@ -570,24 +576,6 @@ describe("EntryFeedItem", () => {
       expect(labelText).toBeTruthy();
     });
 
-    it("displays correct icon and label for OTHER", () => {
-      const entry = createMockEntry({
-        meal: {
-          photoUri: "https://example.com/photo.jpg",
-          mealType: MealType.OTHER,
-        },
-      });
-      const { UNSAFE_getAllByType } = render(<EntryFeedItem entry={entry} />);
-
-      const ionicons = UNSAFE_getAllByType("Ionicons" as any);
-      const mealIcon = ionicons.find((icon: any) => icon.props.name === "restaurant-outline");
-      expect(mealIcon).toBeTruthy();
-
-      const texts = UNSAFE_getAllByType("Text" as any);
-      const labelText = texts.find((text: any) => text.props.children === "Meal");
-      expect(labelText).toBeTruthy();
-    });
-
     it("displays correct icon and label for DESSERT", () => {
       const entry = createMockEntry({
         meal: {
@@ -598,8 +586,12 @@ describe("EntryFeedItem", () => {
       const { UNSAFE_getAllByType } = render(<EntryFeedItem entry={entry} />);
 
       const ionicons = UNSAFE_getAllByType("Ionicons" as any);
-      const mealIcon = ionicons.find((icon: any) => icon.props.name === "restaurant-outline");
+      const mealIcon = ionicons.find((icon: any) => icon.props.name === "ice-cream-outline");
       expect(mealIcon).toBeTruthy();
+
+      const texts = UNSAFE_getAllByType("Text" as any);
+      const labelText = texts.find((text: any) => text.props.children === "Dessert");
+      expect(labelText).toBeTruthy();
     });
 
     it("displays correct icon and label for DRINK", () => {
@@ -612,8 +604,30 @@ describe("EntryFeedItem", () => {
       const { UNSAFE_getAllByType } = render(<EntryFeedItem entry={entry} />);
 
       const ionicons = UNSAFE_getAllByType("Ionicons" as any);
-      const mealIcon = ionicons.find((icon: any) => icon.props.name === "restaurant-outline");
+      const mealIcon = ionicons.find((icon: any) => icon.props.name === "cafe-outline");
       expect(mealIcon).toBeTruthy();
+
+      const texts = UNSAFE_getAllByType("Text" as any);
+      const labelText = texts.find((text: any) => text.props.children === "Drink");
+      expect(labelText).toBeTruthy();
+    });
+
+    it("displays correct icon and label for OTHER", () => {
+      const entry = createMockEntry({
+        meal: {
+          photoUri: "https://example.com/photo.jpg",
+          mealType: MealType.OTHER,
+        },
+      });
+      const { UNSAFE_getAllByType } = render(<EntryFeedItem entry={entry} />);
+
+      const ionicons = UNSAFE_getAllByType("Ionicons" as any);
+      const mealIcon = ionicons.find((icon: any) => icon.props.name === "ellipsis-horizontal-circle-outline");
+      expect(mealIcon).toBeTruthy();
+
+      const texts = UNSAFE_getAllByType("Text" as any);
+      const labelText = texts.find((text: any) => text.props.children === "Other");
+      expect(labelText).toBeTruthy();
     });
 
     it("displays icon with correct size and color", () => {
@@ -771,12 +785,15 @@ describe("EntryFeedItem", () => {
   });
 
   describe("i18n integration", () => {
-    it("uses i18n labels for meal types", () => {
+    it("uses i18n labels for meal types - breakfast", () => {
       mockUseCommonI18n.mockReturnValue({
         mealTypeBreakfast: "아침",
         mealTypeLunch: "점심",
         mealTypeDinner: "저녁",
         mealTypeSnack: "간식",
+        mealTypeDessert: "디저트",
+        mealTypeDrink: "음료",
+        mealTypeOther: "기타",
         mealTypeMeal: "식사",
       });
 
@@ -790,6 +807,81 @@ describe("EntryFeedItem", () => {
 
       const texts = UNSAFE_getAllByType("Text" as any);
       const labelText = texts.find((text: any) => text.props.children === "아침");
+      expect(labelText).toBeTruthy();
+    });
+
+    it("uses i18n labels for meal types - dessert", () => {
+      mockUseCommonI18n.mockReturnValue({
+        mealTypeBreakfast: "아침",
+        mealTypeLunch: "점심",
+        mealTypeDinner: "저녁",
+        mealTypeSnack: "간식",
+        mealTypeDessert: "디저트",
+        mealTypeDrink: "음료",
+        mealTypeOther: "기타",
+        mealTypeMeal: "식사",
+      });
+
+      const entry = createMockEntry({
+        meal: {
+          photoUri: "https://example.com/photo.jpg",
+          mealType: MealType.DESSERT,
+        },
+      });
+      const { UNSAFE_getAllByType } = render(<EntryFeedItem entry={entry} />);
+
+      const texts = UNSAFE_getAllByType("Text" as any);
+      const labelText = texts.find((text: any) => text.props.children === "디저트");
+      expect(labelText).toBeTruthy();
+    });
+
+    it("uses i18n labels for meal types - drink", () => {
+      mockUseCommonI18n.mockReturnValue({
+        mealTypeBreakfast: "아침",
+        mealTypeLunch: "점심",
+        mealTypeDinner: "저녁",
+        mealTypeSnack: "간식",
+        mealTypeDessert: "디저트",
+        mealTypeDrink: "음료",
+        mealTypeOther: "기타",
+        mealTypeMeal: "식사",
+      });
+
+      const entry = createMockEntry({
+        meal: {
+          photoUri: "https://example.com/photo.jpg",
+          mealType: MealType.DRINK,
+        },
+      });
+      const { UNSAFE_getAllByType } = render(<EntryFeedItem entry={entry} />);
+
+      const texts = UNSAFE_getAllByType("Text" as any);
+      const labelText = texts.find((text: any) => text.props.children === "음료");
+      expect(labelText).toBeTruthy();
+    });
+
+    it("uses i18n labels for meal types - other", () => {
+      mockUseCommonI18n.mockReturnValue({
+        mealTypeBreakfast: "아침",
+        mealTypeLunch: "점심",
+        mealTypeDinner: "저녁",
+        mealTypeSnack: "간식",
+        mealTypeDessert: "디저트",
+        mealTypeDrink: "음료",
+        mealTypeOther: "기타",
+        mealTypeMeal: "식사",
+      });
+
+      const entry = createMockEntry({
+        meal: {
+          photoUri: "https://example.com/photo.jpg",
+          mealType: MealType.OTHER,
+        },
+      });
+      const { UNSAFE_getAllByType } = render(<EntryFeedItem entry={entry} />);
+
+      const texts = UNSAFE_getAllByType("Text" as any);
+      const labelText = texts.find((text: any) => text.props.children === "기타");
       expect(labelText).toBeTruthy();
     });
 

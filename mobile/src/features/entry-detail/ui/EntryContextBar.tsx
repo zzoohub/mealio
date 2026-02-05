@@ -71,6 +71,12 @@ function getMealTypeIcon(mealType: string): string {
       return 'moon-outline';
     case 'snack':
       return 'nutrition-outline';
+    case 'dessert':
+      return 'ice-cream-outline';
+    case 'drink':
+      return 'cafe-outline';
+    case 'other':
+      return 'ellipsis-horizontal-circle-outline';
     default:
       return 'restaurant-outline';
   }
@@ -123,6 +129,9 @@ export function EntryContextBar({
       case 'lunch': return common.mealTypeLunch;
       case 'dinner': return common.mealTypeDinner;
       case 'snack': return common.mealTypeSnack;
+      case 'dessert': return common.mealTypeDessert;
+      case 'drink': return common.mealTypeDrink;
+      case 'other': return common.mealTypeOther;
       default: return common.mealTypeMeal;
     }
   };
@@ -132,7 +141,10 @@ export function EntryContextBar({
     { value: MealType.LUNCH, label: common.mealTypeLunch },
     { value: MealType.DINNER, label: common.mealTypeDinner },
     { value: MealType.SNACK, label: common.mealTypeSnack },
-  ], [common.mealTypeBreakfast, common.mealTypeLunch, common.mealTypeDinner, common.mealTypeSnack]);
+    { value: MealType.DESSERT, label: common.mealTypeDessert },
+    { value: MealType.DRINK, label: common.mealTypeDrink },
+    { value: MealType.OTHER, label: common.mealTypeOther },
+  ], [common.mealTypeBreakfast, common.mealTypeLunch, common.mealTypeDinner, common.mealTypeSnack, common.mealTypeDessert, common.mealTypeDrink, common.mealTypeOther]);
 
   const handleMealTypePress = () => {
     if (disabled || !onMealTypeChange) return;

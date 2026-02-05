@@ -470,9 +470,36 @@ describe("useCamera hook", () => {
         expect.objectContaining({
           meal: expect.objectContaining({
             photoUri: "photo1.jpg",
+            photoUris: initialPhotos,
           }),
         }),
         initialPhotos
+      );
+    });
+
+    it("saves entry with all captured photos in photoUris field", async () => {
+      const capturedPhotos = ["photo1.jpg", "photo2.jpg", "photo3.jpg"];
+      mockOnSaveEntry.mockResolvedValue("entry-456");
+
+      const { result } = renderHook(() =>
+        useCamera({
+          onSaveEntry: mockOnSaveEntry,
+          initialPhotos: capturedPhotos,
+        })
+      );
+
+      await act(async () => {
+        await result.current.handleDone();
+      });
+
+      expect(mockOnSaveEntry).toHaveBeenCalledWith(
+        expect.objectContaining({
+          meal: expect.objectContaining({
+            photoUri: "photo1.jpg",
+            photoUris: capturedPhotos,
+          }),
+        }),
+        capturedPhotos
       );
     });
 
@@ -516,6 +543,30 @@ describe("useCamera hook", () => {
         expect.objectContaining({
           type: "success",
           onPress: expect.any(Function),
+        })
+      );
+    });
+
+    it("shows success toast without navigation when entryId is undefined", async () => {
+      const initialPhotos = ["photo1.jpg"];
+      mockOnSaveEntry.mockResolvedValue(undefined);
+
+      const { result } = renderHook(() =>
+        useCamera({
+          onSaveEntry: mockOnSaveEntry,
+          onNavigateToEntry: mockOnNavigateToEntry,
+          initialPhotos,
+        })
+      );
+
+      await act(async () => {
+        await result.current.handleDone();
+      });
+
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "success",
+          onPress: undefined,
         })
       );
     });
