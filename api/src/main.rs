@@ -112,11 +112,13 @@ async fn main() {
         .layer(cors)
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
+    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".into());
+    let addr = format!("0.0.0.0:{port}");
+    let listener = tokio::net::TcpListener::bind(&addr)
         .await
-        .expect("failed to bind to port 3000");
+        .unwrap_or_else(|_| panic!("failed to bind to {addr}"));
 
-    tracing::info!("listening on 0.0.0.0:3000");
+    tracing::info!("listening on {addr}");
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())

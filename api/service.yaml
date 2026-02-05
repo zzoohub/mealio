@@ -1,0 +1,79 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: mealio-api
+  labels:
+    cloud.googleapis.com/location: us-east4
+  annotations:
+    run.googleapis.com/launch-stage: GA
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "3"
+        run.googleapis.com/startup-cpu-boost: "true"
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      containers:
+        - image: IMAGE
+          ports:
+            - containerPort: 8080
+          env:
+            # --- Secrets (from GCP Secret Manager) ---
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: mealio-database-url
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: mealio-jwt-secret
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: mealio-google-client-id
+            - name: R2_ACCOUNT_ID
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: r2-account-id
+            - name: R2_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: r2-access-key-id
+            - name: R2_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: r2-secret-access-key
+            # --- Config (plain env vars) ---
+            - name: APPLE_TEAM_ID
+              value: 6VMN7W3K93
+            - name: APPLE_BUNDLE_ID
+              value: com.zzoo.mealio
+            - name: R2_BUCKET_NAME
+              value: mealio-uploads
+            - name: R2_PUBLIC_URL
+              value: https://pub-a6ac381f54d7453392feeeac89f6dc8b.r2.dev
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 0
+            periodSeconds: 4
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            periodSeconds: 15
