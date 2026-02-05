@@ -6,6 +6,8 @@ import { getCachedData } from "@/shared/lib/performance";
 import { useIsAuthenticated } from "@/shared/lib/auth";
 import { entryApi } from "@/entities/entry/api/entryApi";
 import { formatDateToString } from "@/shared/lib/utils";
+import { getCurrentLanguage } from "@/shared/lib/i18n";
+import i18n from "@/shared/lib/i18n/config";
 import { MealType } from "@/entities/meal";
 import type { ApiDiaryEntry, ApiMealType } from "@/shared/api";
 
@@ -285,17 +287,20 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
   }, []);
 
   const formatDateRange = useCallback(() => {
+    const locale = getCurrentLanguage();
     if (datePeriod.startDate && datePeriod.endDate) {
-      return `${datePeriod.startDate.toLocaleDateString("en-US", {
+      return `${datePeriod.startDate.toLocaleDateString(locale, {
         month: "short",
         day: "numeric",
-      })} - ${datePeriod.endDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+      })} - ${datePeriod.endDate.toLocaleDateString(locale, { month: "short", day: "numeric" })}`;
     } else if (datePeriod.startDate) {
-      return `From ${datePeriod.startDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+      const date = datePeriod.startDate.toLocaleDateString(locale, { month: "short", day: "numeric" });
+      return i18n.t("diary:dateRangeFrom", { date });
     } else if (datePeriod.endDate) {
-      return `Until ${datePeriod.endDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+      const date = datePeriod.endDate.toLocaleDateString(locale, { month: "short", day: "numeric" });
+      return i18n.t("diary:dateRangeUntil", { date });
     }
-    return "All time";
+    return i18n.t("diary:allTime");
   }, [datePeriod.startDate, datePeriod.endDate]);
 
   const setDateRangePreset = useCallback(

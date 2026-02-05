@@ -99,5 +99,7 @@
   "rangeDense": "Dense (5-10)",
   "rangeModerateDensity": "Moderate (2-5)",
   "rangeLowDensity": "Low (0-2)",
-  "allEntries": "All Entries ({{label}})"
+  "allEntries": "All Entries ({{label}})",
+  "dateRangeFrom": "From {{date}}",
+  "dateRangeUntil": "Until {{date}}"
 }

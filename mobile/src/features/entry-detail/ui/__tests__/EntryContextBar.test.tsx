@@ -80,6 +80,7 @@ jest.mock('@/entities/meal', () => ({
 jest.mock('@/shared/lib/i18n', () => ({
   useCommonI18n: jest.fn(),
   useDiaryI18n: jest.fn(),
+  getCurrentLanguage: jest.fn(() => 'en'),
 }));
 
 import React from 'react';

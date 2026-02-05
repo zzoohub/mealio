@@ -220,6 +220,8 @@ export interface DiaryTranslations {
   rangeModerateDensity: string;
   rangeLowDensity: string;
   allEntries: string;
+  dateRangeFrom: string;
+  dateRangeUntil: string;
 }
 
 // Settings translations

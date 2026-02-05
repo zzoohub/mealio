@@ -6,7 +6,7 @@ import { MealType } from "@/entities/meal";
 import { useEntrySearch } from "./useEntrySearch";
 import type { UseEntrySearchParams } from "./useEntrySearch";
 import type { DatePreset } from "../ui/DateQuickFilters";
-import { useDiaryI18n, useCommonI18n } from "@/shared/lib/i18n";
+import { useDiaryI18n, useCommonI18n, getCurrentLanguage } from "@/shared/lib/i18n";
 import type { ApiMealType } from "@/shared/api";
 
 // =============================================================================
@@ -147,11 +147,11 @@ export function useEntrySearchPage(): UseEntrySearchPageReturn {
 
   const customDateLabel = useMemo(() => {
     if (dateRange.startDate && dateRange.endDate) {
-      const start = dateRange.startDate.toLocaleDateString("ko-KR", {
+      const start = dateRange.startDate.toLocaleDateString(getCurrentLanguage(), {
         month: "short",
         day: "numeric",
       });
-      const end = dateRange.endDate.toLocaleDateString("ko-KR", {
+      const end = dateRange.endDate.toLocaleDateString(getCurrentLanguage(), {
         month: "short",
         day: "numeric",
       });

@@ -25,7 +25,7 @@ import { createStyles, useStyles } from '@/shared/ui/theme';
 import { BottomSheet } from '@/shared/ui/styled';
 import { MealType } from '@/entities/meal';
 import type { Location } from '@/entities/entry';
-import { useCommonI18n, useDiaryI18n } from '@/shared/lib/i18n';
+import { useCommonI18n, useDiaryI18n, getCurrentLanguage } from '@/shared/lib/i18n';
 
 // =============================================================================
 // TYPES
@@ -81,7 +81,7 @@ function getMealTypeIcon(mealType: string): string {
  * Format timestamp to 12-hour format with AM/PM
  */
 function formatTime(date: Date): string {
-  return date.toLocaleTimeString('en-US', {
+  return date.toLocaleTimeString(getCurrentLanguage(), {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,

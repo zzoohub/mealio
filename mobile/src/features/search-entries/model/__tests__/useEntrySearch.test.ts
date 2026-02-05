@@ -38,6 +38,27 @@ jest.mock("@/entities/meal", () => ({
     OTHER: "other",
   },
 }));
+jest.mock("@/shared/lib/i18n", () => ({
+  getCurrentLanguage: jest.fn(() => "en"),
+}));
+const i18nTranslations: Record<string, string> = {
+  "diary:allTime": "All time",
+  "diary:dateRangeFrom": "From {{date}}",
+  "diary:dateRangeUntil": "Until {{date}}",
+};
+const i18nT = (key: string, params?: Record<string, string>) => {
+  let value = i18nTranslations[key] ?? key;
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      value = value.replace(`{{${k}}}`, v);
+    });
+  }
+  return value;
+};
+jest.mock("@/shared/lib/i18n/config", () => ({
+  __esModule: true,
+  default: { t: i18nT, language: "en" },
+}));
 jest.mock("../useEntrySorting", () => ({
   entrySortingUtils: {
     sortEntries: jest.fn().mockResolvedValue([

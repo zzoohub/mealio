@@ -2,6 +2,8 @@
  * Date utility functions for the diary domain
  */
 
+import { getCurrentLanguage } from "@/shared/lib/i18n";
+
 /**
  * Get all days of the week for a given date
  * @param date - The date to get the week for
@@ -39,7 +41,7 @@ export function isSameDay(date1: Date, date2: Date): boolean {
  * @param date - The date to format
  * @param locale - The locale to use (default: "ko-KR")
  */
-export function formatTime(date: Date, locale: string = "ko-KR"): string {
+export function formatTime(date: Date, locale: string = getCurrentLanguage()): string {
   return date.toLocaleTimeString(locale, {
     hour: "numeric",
     minute: "2-digit",

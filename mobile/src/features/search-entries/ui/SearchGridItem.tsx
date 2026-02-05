@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
 import { Entry } from "@/entities/entry";
+import { getCurrentLanguage } from "@/shared/lib/i18n";
 
 // =============================================================================
 // TYPES
@@ -32,7 +33,7 @@ function formatDateTime(date: Date): string {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
   const day = date.getDate();
-  const time = date.toLocaleTimeString("ko-KR", {
+  const time = date.toLocaleTimeString(getCurrentLanguage(), {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,

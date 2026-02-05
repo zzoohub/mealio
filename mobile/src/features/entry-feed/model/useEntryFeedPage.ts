@@ -3,6 +3,7 @@ import type { Entry } from "@/entities/entry";
 import { useIsAuthenticated } from "@/shared/lib/auth";
 import { entryStorageUtils, useEntryListQuery } from "@/entities/entry";
 import { getWeekDays, isSameDay, formatDateToString } from "@/shared/lib/utils";
+import { getCurrentLanguage } from "@/shared/lib/i18n";
 import { MealType } from "@/entities/meal";
 import type { ApiDiaryEntry } from "@/shared/api";
 import { useWeekThumbnailsQuery } from "./useWeekThumbnailsQuery";
@@ -271,7 +272,7 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
     if (visibleWeekDays.length === 0) return "";
     const middleDate = visibleWeekDays[3];
     if (!middleDate) return "";
-    return middleDate.toLocaleDateString("ko-KR", { month: "long", year: "numeric" });
+    return middleDate.toLocaleDateString(getCurrentLanguage(), { month: "long", year: "numeric" });
   }, [visibleWeekDays]);
 
   const markedDates = useMemo(() => {

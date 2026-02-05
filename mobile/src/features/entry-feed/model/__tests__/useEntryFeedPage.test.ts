@@ -50,6 +50,9 @@ jest.mock("../useWeekThumbnailsQuery", () => ({
 jest.mock("../useMonthThumbnailsQuery", () => ({
   useMonthThumbnailsQuery: jest.fn(),
 }));
+jest.mock("@/shared/lib/i18n", () => ({
+  getCurrentLanguage: jest.fn(() => "en"),
+}));
 
 import { renderHook, act, waitFor } from "@testing-library/react-native";
 import { useEntryFeedPage } from "../useEntryFeedPage";

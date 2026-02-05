@@ -99,5 +99,7 @@
   "rangeDense": "높음 (5-10)",
   "rangeModerateDensity": "보통 (2-5)",
   "rangeLowDensity": "낮음 (0-2)",
-  "allEntries": "전체 기록 ({{label}})"
+  "allEntries": "전체 기록 ({{label}})",
+  "dateRangeFrom": "{{date}}부터",
+  "dateRangeUntil": "{{date}}까지"
 }

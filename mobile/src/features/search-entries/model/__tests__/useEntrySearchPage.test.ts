@@ -14,6 +14,7 @@ jest.mock("expo-router", () => ({
 jest.mock("@/shared/lib/i18n", () => ({
   useDiaryI18n: jest.fn(),
   useCommonI18n: jest.fn(),
+  getCurrentLanguage: jest.fn(() => "en"),
 }));
 jest.mock("@/entities/meal", () => ({
   MealType: {

@@ -401,6 +401,8 @@ export const useDiaryI18n = () => {
       rangeModerateDensity: t("rangeModerateDensity"),
       rangeLowDensity: t("rangeLowDensity"),
       allEntries: (label: string) => t("allEntries", { label }),
+      dateRangeFrom: (date: string) => t("dateRangeFrom", { date }),
+      dateRangeUntil: (date: string) => t("dateRangeUntil", { date }),
       stat: (key: string) => t(key as DiaryKeys),
     }),
     [t],
