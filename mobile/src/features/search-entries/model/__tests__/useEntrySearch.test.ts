@@ -40,6 +40,9 @@ jest.mock("@/entities/meal", () => ({
 }));
 jest.mock("@/shared/lib/i18n", () => ({
   getCurrentLanguage: jest.fn(() => "en"),
+  useDiaryI18n: jest.fn(() => ({
+    stat: jest.fn((key) => key),
+  })),
 }));
 const i18nTranslations: Record<string, string> = {
   "diary:allTime": "All time",
@@ -84,11 +87,13 @@ import { useTheme } from "@/shared/ui/theme";
 import type { ApiDiaryEntry } from "@/shared/api";
 import type { Entry } from "@/entities/entry";
 import { MealType } from "@/entities/meal";
+import { useDiaryI18n } from "@/shared/lib/i18n";
 
 const mockUseIsAuthenticated = useIsAuthenticated as jest.Mock;
 const mockGetEntriesFiltered = entryStorageUtils.getEntriesFiltered as jest.Mock;
 const mockEntryApiList = entryApi.list as jest.Mock;
 const mockUseTheme = useTheme as jest.Mock;
+const mockUseDiaryI18n = useDiaryI18n as jest.Mock;
 
 // =============================================================================
 // Test Helpers
@@ -146,6 +151,9 @@ describe("useEntrySearch", () => {
         interactive: { primary: "#007AFF" },
         text: { primary: "#000000" },
       },
+    });
+    mockUseDiaryI18n.mockReturnValue({
+      stat: (key: string) => key,
     });
   });
 

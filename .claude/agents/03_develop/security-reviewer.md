@@ -2,7 +2,7 @@
 name: security-reviewer
 description: |
   Security code review and vulnerability detection.
-  Use when: reviewing code for vulnerabilities, auditing auth implementation, pre-deployment security check.
+  Use when: reviewing code for vulnerabilities, auditing auth implementation, pre-deployment security check.  
 model: sonnet
 color: red
 skills: security-checklists

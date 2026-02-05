@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FlashList } from "@shopify/flash-list";
@@ -7,9 +7,12 @@ import { Ionicons } from "@expo/vector-icons";
 import type { DateData } from "react-native-calendars";
 import * as ImagePicker from "expo-image-picker";
 import type { Entry } from "@/entities/entry";
+import { useEntryData } from "@/entities/entry";
 import { useEntryFeedPage, WeekDaySelector, EntryFeedItem, CalendarSheetContent } from "@/features/entry-feed";
+import { detectMealType } from "@/features/capture-meal";
 import { isSameDay } from "@/shared/lib/utils";
-import { useDiaryI18n } from "@/shared/lib/i18n";
+import { useDiaryI18n, useCameraI18n, getCurrentLanguage } from "@/shared/lib/i18n";
+import { useDeviceLocation } from "@/shared/lib/location";
 import { useTheme } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
 import { useOverlayHelpers } from "@/app/providers/overlay";
@@ -22,7 +25,11 @@ export default function DiaryPage() {
   const { colors } = useTheme();
   const router = useRouter();
   const diary = useDiaryI18n();
-  const { bottomSheet } = useOverlayHelpers();
+  const cameraI18n = useCameraI18n();
+  const { bottomSheet, toast } = useOverlayHelpers();
+  const { saveEntry } = useEntryData();
+  const { getLocation } = useDeviceLocation();
+  const [isSaving, setIsSaving] = useState(false);
 
   // Use the extracted hook for all state and logic
   const {
@@ -73,6 +80,8 @@ export default function DiaryPage() {
   }, [bottomSheet, selectedDate, today, markedDates, dateThumbnails, handleCalendarDayPress, diary.selectDate]);
 
   const handleLoadFromAlbum = useCallback(async () => {
+    if (isSaving) return;
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
@@ -81,16 +90,59 @@ export default function DiaryPage() {
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      const photoUris = result.assets.map((a) => a.uri).join(",");
-      router.push({
-        pathname: "/",
-        params: {
-          initialPhotos: photoUris,
-          targetDate: selectedDate.toISOString(),
-        },
-      });
+      const photoUris = result.assets.map((a) => a.uri);
+
+      if (isToday) {
+        router.push({
+          pathname: "/",
+          params: {
+            initialPhotos: photoUris.join(","),
+            targetDate: selectedDate.toISOString(),
+          },
+        });
+        return;
+      }
+
+      setIsSaving(true);
+      try {
+        const location = await getLocation();
+        const entryId = await saveEntry(
+          {
+            userId: "",
+            timestamp: selectedDate,
+            notes: "",
+            location,
+            meal: {
+              photoUri: photoUris[0]!,
+              mealType: detectMealType(selectedDate),
+            },
+          },
+          photoUris,
+        );
+
+        toast({
+          title: cameraI18n.capture.success,
+          message: cameraI18n.capture.successMessage,
+          type: "success",
+          position: "top",
+          showArrow: true,
+          duration: 4000,
+          onPress: entryId ? () => router.push(`/diary/${entryId}`) : undefined,
+        });
+      } catch (error) {
+        console.error("Failed to save entry:", error);
+        toast({
+          title: cameraI18n.capture.error,
+          message: cameraI18n.capture.errorMessage,
+          type: "error",
+          position: "top",
+          duration: 4000,
+        });
+      } finally {
+        setIsSaving(false);
+      }
     }
-  }, [router, selectedDate]);
+  }, [isSaving, isToday, selectedDate, router, getLocation, saveEntry, toast, cameraI18n]);
 
   // =============================================================================
   // RENDER
@@ -134,7 +186,7 @@ export default function DiaryPage() {
             <Ionicons name="restaurant-outline" size={64} color={colors.text.secondary} />
             <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>{diary.noMealsFound}</Text>
             <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
-              {selectedDate.toLocaleDateString("ko-KR", {
+              {selectedDate.toLocaleDateString(getCurrentLanguage(), {
                 month: "long",
                 day: "numeric",
                 weekday: "long",

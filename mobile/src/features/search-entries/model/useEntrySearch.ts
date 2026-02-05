@@ -6,7 +6,7 @@ import { getCachedData } from "@/shared/lib/performance";
 import { useIsAuthenticated } from "@/shared/lib/auth";
 import { entryApi } from "@/entities/entry/api/entryApi";
 import { formatDateToString } from "@/shared/lib/utils";
-import { getCurrentLanguage } from "@/shared/lib/i18n";
+import { getCurrentLanguage, useDiaryI18n } from "@/shared/lib/i18n";
 import i18n from "@/shared/lib/i18n/config";
 import { MealType } from "@/entities/meal";
 import type { ApiDiaryEntry, ApiMealType } from "@/shared/api";
@@ -128,6 +128,7 @@ function apiEntryToEntry(apiEntry: ApiDiaryEntry): Entry {
 
 export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchReturn {
   const isAuthenticated = useIsAuthenticated();
+  const diary = useDiaryI18n();
 
   // Date period state (was in analytics store)
   const [datePeriod, setDatePeriod] = useState<DatePeriod>({ type: "day" });
@@ -174,7 +175,7 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
   });
 
   // Sort options
-  const sortOptions = useMemo(() => entrySortingUtils.getSortOptions(), []);
+  const sortOptions = useMemo(() => entrySortingUtils.getSortOptions(diary.stat), [diary.stat]);
 
   // Device timezone for API date filtering
   const deviceTz = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
