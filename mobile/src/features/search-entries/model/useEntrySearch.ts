@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Entry, EntryFilter, SortMethod } from "@/entities/entry";
 import { entryStorageUtils } from "@/entities/entry";
-import { entrySortingUtils, SortedSection } from "./useEntrySorting";
+import { entrySortingUtils, SortedSection, SortI18n } from "./useEntrySorting";
 import { getCachedData } from "@/shared/lib/performance";
 import { useIsAuthenticated } from "@/shared/lib/auth";
 import { entryApi } from "@/entities/entry/api/entryApi";
@@ -177,6 +177,35 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
   // Sort options
   const sortOptions = useMemo(() => entrySortingUtils.getSortOptions(diary.stat), [diary.stat]);
 
+  const sortI18n: SortI18n = useMemo(
+    () => ({
+      today: diary.today,
+      yesterday: diary.yesterday,
+      allEntries: diary.allEntries,
+      locale: getCurrentLanguage(),
+      ranges: {
+        rangeLight: diary.rangeLight,
+        rangeModerate: diary.rangeModerate,
+        rangeSubstantial: diary.rangeSubstantial,
+        rangeLarge: diary.rangeLarge,
+        rangeVeryLarge: diary.rangeVeryLarge,
+        rangeLowProtein: diary.rangeLowProtein,
+        rangeModerateProtein: diary.rangeModerateProtein,
+        rangeHighProtein: diary.rangeHighProtein,
+        rangeVeryHighProtein: diary.rangeVeryHighProtein,
+        rangeExcellent: diary.rangeExcellent,
+        rangeGood: diary.rangeGood,
+        rangeFair: diary.rangeFair,
+        rangePoor: diary.rangePoor,
+        rangeVeryDense: diary.rangeVeryDense,
+        rangeDense: diary.rangeDense,
+        rangeModerateDensity: diary.rangeModerateDensity,
+        rangeLowDensity: diary.rangeLowDensity,
+      },
+    }),
+    [diary],
+  );
+
   // Device timezone for API date filtering
   const deviceTz = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
 
@@ -205,13 +234,13 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
       try {
         const sections = await getCachedData(
           `entry-sections-${sortMethod}-${entries.length}-${searchQuery}`,
-          () => entrySortingUtils.sortEntries(entries, sortMethod),
+          () => entrySortingUtils.sortEntries(entries, sortMethod, sortI18n),
           { ttl: 1 * 60 * 1000 }
         );
         setSortedSections(sections);
       } catch (err) {
         console.error("Error sorting entries:", err);
-        const fallbackSections = await entrySortingUtils.sortEntries(entries, "date-desc");
+        const fallbackSections = await entrySortingUtils.sortEntries(entries, "date-desc", sortI18n);
         setSortedSections(fallbackSections);
       } finally {
         setIsSorting(false);
@@ -219,7 +248,7 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
     };
 
     updateSortedSections();
-  }, [entries, sortMethod, searchQuery]);
+  }, [entries, sortMethod, searchQuery, sortI18n]);
 
   // Load data on filter changes
   useEffect(() => {
