@@ -22,4 +22,13 @@ appConfig.extra = {
   },
 };
 
+// Standard encryption declaration (no export compliance needed)
+appConfig.ios = {
+  ...appConfig.ios,
+  infoPlist: {
+    ...appConfig.ios?.infoPlist,
+    ITSAppUsesNonExemptEncryption: false,
+  },
+};
+
 export default { expo: appConfig };
