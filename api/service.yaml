@@ -52,6 +52,11 @@ spec:
                 secretKeyRef:
                   key: latest
                   name: r2-secret-access-key
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: mealio-sentry-dsn
             # --- Config (plain env vars) ---
             - name: APPLE_TEAM_ID
               value: 6VMN7W3K93
