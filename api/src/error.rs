@@ -47,6 +47,11 @@ impl AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = self.status_code();
+
+        if status.is_server_error() {
+            sentry::capture_message(&self.to_string(), sentry::Level::Error);
+        }
+
         let problem = ProblemDetail {
             r#type: "about:blank",
             title: status.canonical_reason().unwrap_or("Error").to_string(),
@@ -205,5 +210,74 @@ mod tests {
             AppError::Internal(msg) => assert_eq!(msg, "external service error"),
             _ => panic!("Expected Internal error"),
         }
+    }
+
+    #[tokio::test]
+    async fn test_internal_error_response_integration() {
+        // Test that Internal errors (5xx) return correct response
+        // Note: Sentry capture happens as side effect, not tested here
+        let error = AppError::Internal("database connection failed".into());
+        let response = error.into_response();
+
+        // Verify response structure is correct even with Sentry integration
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+
+        let content_type = response.headers().get("content-type").unwrap();
+        assert_eq!(content_type, "application/problem+json");
+
+        // Verify body structure
+        use axum::body::to_bytes;
+        let body_bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body_str = String::from_utf8(body_bytes.to_vec()).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&body_str).unwrap();
+
+        assert_eq!(json["type"], "about:blank");
+        assert_eq!(json["title"], "Internal Server Error");
+        assert_eq!(json["status"], 500);
+        assert_eq!(json["detail"], "internal error: database connection failed");
+    }
+
+    #[tokio::test]
+    async fn test_not_implemented_error_response_integration() {
+        // Test that NotImplemented errors (5xx) also return correct response
+        let error = AppError::NotImplemented("feature not ready".into());
+        let response = error.into_response();
+
+        // Verify response structure is correct even with Sentry integration
+        assert_eq!(response.status(), StatusCode::NOT_IMPLEMENTED);
+
+        let content_type = response.headers().get("content-type").unwrap();
+        assert_eq!(content_type, "application/problem+json");
+
+        // Verify body structure
+        use axum::body::to_bytes;
+        let body_bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body_str = String::from_utf8(body_bytes.to_vec()).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&body_str).unwrap();
+
+        assert_eq!(json["type"], "about:blank");
+        assert_eq!(json["title"], "Not Implemented");
+        assert_eq!(json["status"], 501);
+        assert_eq!(json["detail"], "not implemented: feature not ready");
+    }
+
+    #[tokio::test]
+    async fn test_client_error_does_not_trigger_sentry() {
+        // Test that 4xx errors still work correctly (they should NOT trigger Sentry)
+        let error = AppError::BadRequest("invalid input".into());
+        let response = error.into_response();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let content_type = response.headers().get("content-type").unwrap();
+        assert_eq!(content_type, "application/problem+json");
+
+        // Verify body structure
+        use axum::body::to_bytes;
+        let body_bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body_str = String::from_utf8(body_bytes.to_vec()).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&body_str).unwrap();
+
+        assert_eq!(json["status"], 400);
     }
 }

@@ -9,6 +9,7 @@ use sqlx::postgres::PgPoolOptions;
 use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
+use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -22,8 +23,20 @@ use mealio_api::AppState;
 async fn main() {
     dotenvy::dotenv().ok();
 
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
+    let sentry_dsn = std::env::var("SENTRY_DSN").ok().filter(|s| !s.is_empty());
+    let _sentry_guard = sentry::init((
+        sentry_dsn,
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            traces_sample_rate: 0.2,
+            ..Default::default()
+        },
+    ));
+
+    tracing_subscriber::registry()
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
+        .with(tracing_subscriber::fmt::layer())
+        .with(sentry_tracing::layer())
         .init();
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -110,6 +123,8 @@ async fn main() {
             Duration::from_secs(30),
         ))
         .layer(TraceLayer::new_for_http())
+        .layer(sentry_tower::NewSentryLayer::new_from_top())
+        .layer(sentry_tower::SentryHttpLayer::new().enable_transaction())
         .layer(cors)
         .with_state(state);
 

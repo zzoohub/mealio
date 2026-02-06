@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens, darkColors } from '@/shared/ui/tokens';
+import { Sentry } from '@/shared/lib/sentry';
 
 interface Props {
   children: ReactNode;
@@ -48,10 +49,10 @@ export class ErrorBoundary extends Component<Props, State> {
   private logErrorToService(error: Error, errorInfo: ErrorInfo) {
     if (__DEV__) {
       console.error('ErrorBoundary caught an error:', error, errorInfo);
-    } else {
-      // In production, log to crash reporting service
-      // crashlytics().recordError(error);
     }
+    Sentry.captureException(error, {
+      contexts: { react: { componentStack: errorInfo.componentStack } },
+    });
   }
 
   private handleRetry = () => {

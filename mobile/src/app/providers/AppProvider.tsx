@@ -13,6 +13,7 @@ import { queryClient } from "./query";
 import { preloadCriticalModules, markPerformance, measurePerformance } from "@/shared/lib/performance";
 import { ThemeProvider, type ThemePreference } from "@/shared/ui/theme";
 import { useUploadProcessor } from "@/entities/entry";
+import { Sentry } from "@/shared/lib/sentry";
 
 function AppInitializer() {
   const loadUserFromStorage = useAuthStore(state => state.loadUserFromStorage);
@@ -97,13 +98,12 @@ export default function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
-    // Log critical errors to crash reporting service
     if (__DEV__) {
       console.error("App-level error:", error, errorInfo);
-    } else {
-      // In production, use crash reporting service like Crashlytics
-      // crashlytics().recordError(error);
     }
+    Sentry.captureException(error, {
+      contexts: { react: { componentStack: errorInfo.componentStack } },
+    });
   };
 
   return (

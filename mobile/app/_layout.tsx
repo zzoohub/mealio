@@ -3,8 +3,11 @@ import { Stack } from "expo-router";
 import { AppProvider } from "@/app/providers";
 import "react-native-reanimated";
 import "@/shared/lib/i18n";
+import { Sentry, initSentry } from "@/shared/lib/sentry";
 
-export default function RootLayout() {
+initSentry();
+
+function RootLayout() {
   return (
     <AppProvider>
       <Stack
@@ -56,3 +59,5 @@ export default function RootLayout() {
     </AppProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);
