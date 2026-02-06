@@ -14,7 +14,7 @@ export const GUEST_LIMITS = {
 
 // API configuration
 export const API_CONFIG = {
-  BASE_URL: __DEV__ ? "http://localhost:3000/api" : "https://api.mealio.app",
+  BASE_URL: __DEV__ ? "http://localhost:3000/api" : "https://mealio-api-1081857794554.us-east4.run.app/api",
   TIMEOUT: 10000,
   RETRY_ATTEMPTS: 3,
   CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
@@ -94,7 +94,8 @@ export const ERROR_MESSAGES = {
   UPLOAD_FAILED: "Failed to upload photo. Please try again.",
   GENERIC_ERROR: "Something went wrong. Please try again.",
   // Guest limit errors
-  GUEST_ENTRY_LIMIT_REACHED: "You've reached the maximum of 10 entries. Sign in to save unlimited entries and unlock AI analysis!",
+  GUEST_ENTRY_LIMIT_REACHED:
+    "You've reached the maximum of 10 entries. Sign in to save unlimited entries and unlock AI analysis!",
   GUEST_AI_NOT_AVAILABLE: "AI analysis is available for signed-in users. Sign in to unlock this feature!",
 } as const;
 
@@ -127,22 +128,16 @@ export const queryKeys = {
   },
   diary: {
     all: () => ["diary"] as const,
-    list: (params?: { date?: string; mealType?: string }) =>
-      ["diary", "list", params] as const,
+    list: (params?: { date?: string; mealType?: string }) => ["diary", "list", params] as const,
     detail: (id: number) => ["diary", "detail", id] as const,
-    weekThumbnails: (params: { startDate: string; endDate: string }) =>
-      ["diary", "weekThumbnails", params] as const,
-    monthThumbnails: (params: { startDate: string; endDate: string }) =>
-      ["diary", "monthThumbnails", params] as const,
+    weekThumbnails: (params: { startDate: string; endDate: string }) => ["diary", "weekThumbnails", params] as const,
+    monthThumbnails: (params: { startDate: string; endDate: string }) => ["diary", "monthThumbnails", params] as const,
   },
   statistics: {
     all: () => ["statistics"] as const,
-    overview: (params?: { startDate?: string; endDate?: string }) =>
-      ["statistics", "overview", params] as const,
-    nutrition: (params?: { startDate?: string; endDate?: string }) =>
-      ["statistics", "nutrition", params] as const,
-    mealTypes: (params?: { startDate?: string; endDate?: string }) =>
-      ["statistics", "meal-types", params] as const,
+    overview: (params?: { startDate?: string; endDate?: string }) => ["statistics", "overview", params] as const,
+    nutrition: (params?: { startDate?: string; endDate?: string }) => ["statistics", "nutrition", params] as const,
+    mealTypes: (params?: { startDate?: string; endDate?: string }) => ["statistics", "meal-types", params] as const,
   },
   settings: {
     all: () => ["settings"] as const,
