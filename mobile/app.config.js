@@ -14,4 +14,12 @@ appConfig.plugins = appConfig.plugins.map((plugin) => {
   return plugin;
 });
 
+// Add EAS project ID
+appConfig.extra = {
+  ...appConfig.extra,
+  eas: {
+    projectId: "3ccd67e8-81bb-43b2-af35-2e1b5450ba2e",
+  },
+};
+
 export default { expo: appConfig };
