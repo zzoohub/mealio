@@ -56,7 +56,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   key: latest
-                  name: mealio-sentry-dsn
+                  name: mealio-api-sentry-dsn
             # --- Config (plain env vars) ---
             - name: APPLE_TEAM_ID
               value: 6VMN7W3K93
