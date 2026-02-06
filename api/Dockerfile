@@ -1,0 +1,20 @@
+FROM rust:1.84-slim AS builder
+WORKDIR /app
+RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+COPY Cargo.toml Cargo.lock ./
+COPY .sqlx .sqlx
+COPY src src
+COPY migrations migrations
+ENV SQLX_OFFLINE=true
+RUN cargo build --release
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/* \
+    && useradd -m -u 1001 appuser
+WORKDIR /app
+COPY --from=builder --chown=appuser:appuser /app/target/release/mealio-api /usr/local/bin/app
+COPY --from=builder --chown=appuser:appuser /app/migrations ./migrations
+USER appuser
+ENV PORT=8080
+EXPOSE 8080
+CMD ["app"]

@@ -1,8 +1,9 @@
 use std::path::Path;
 use std::time::Duration;
 
+use axum::extract::State;
 use axum::routing::get;
-use axum::Router;
+use axum::{Json, Router};
 use sqlx::migrate::Migrator;
 use sqlx::postgres::PgPoolOptions;
 use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
@@ -102,7 +103,7 @@ async fn main() {
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .route("/health", get(|| async { "ok" }))
+        .route("/health", get(health))
         .nest("/api/v1", api)
         .layer(TimeoutLayer::with_status_code(
             axum::http::StatusCode::REQUEST_TIMEOUT,
@@ -112,7 +113,7 @@ async fn main() {
         .layer(cors)
         .with_state(state);
 
-    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".into());
+    let port = std::env::var("PORT").unwrap_or_else(|_| "8080".into());
     let addr = format!("0.0.0.0:{port}");
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
@@ -124,6 +125,18 @@ async fn main() {
         .with_graceful_shutdown(shutdown_signal())
         .await
         .expect("server error");
+}
+
+async fn health(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let db_ok = sqlx::query_scalar::<_, i32>("SELECT 1")
+        .fetch_one(&state.db)
+        .await
+        .is_ok();
+
+    Json(serde_json::json!({
+        "status": if db_ok { "ok" } else { "degraded" },
+        "db": if db_ok { "connected" } else { "unreachable" },
+    }))
 }
 
 fn build_cors() -> CorsLayer {
