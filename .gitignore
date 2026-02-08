@@ -146,3 +146,6 @@ tsconfig.tsbuildinfo
 *.bak
 *.tmp
 .cache/
+
+# Diagram plugin ephemeral state
+.diagram/

@@ -1,0 +1,255 @@
+direction: down
+
+classes: {
+  compute: {
+    style.stroke: "#1565C0"
+    style.stroke-width: 2
+    style.border-radius: 8
+  }
+  database: {
+    style.stroke: "#E65100"
+    style.stroke-width: 2
+    shape: cylinder
+  }
+  storage: {
+    style.stroke: "#2E7D32"
+    style.stroke-width: 2
+    shape: stored_data
+  }
+  registry: {
+    style.stroke: "#5D4037"
+    style.stroke-width: 2
+    shape: package
+  }
+  secrets: {
+    style.stroke: "#AD1457"
+    style.stroke-width: 2
+    shape: hexagon
+  }
+  external: {
+    style.stroke: "#C62828"
+    style.stroke-width: 2
+    shape: cloud
+  }
+  monitoring: {
+    style.stroke: "#7B1FA2"
+    style.stroke-width: 2
+    style.border-radius: 8
+  }
+  mobile: {
+    style.stroke: "#00838F"
+    style.stroke-width: 2
+    style.border-radius: 12
+  }
+  cdn: {
+    style.stroke: "#FF8F00"
+    style.stroke-width: 2
+    shape: cloud
+  }
+  buildservice: {
+    style.stroke: "#3949AB"
+    style.stroke-width: 2
+    style.border-radius: 8
+  }
+  store: {
+    style.stroke: "#2E7D32"
+    style.stroke-width: 2
+    style.border-radius: 8
+  }
+}
+
+# --- Clients ---
+
+clients: Clients {
+  mobile: Mobile App (React Native / Expo 55) {
+    class: mobile
+    icon: https://icons.terrastruct.com/dev%2Freact.svg
+  }
+
+  mmkv: MMKV Local Storage (Guest Mode) {
+    class: storage
+  }
+}
+
+# --- GCP ---
+
+gcp: Google Cloud Platform (us-east4) {
+  cloudrun: Cloud Run - mealio-api {
+    class: compute
+    icon: https://icons.terrastruct.com/dev%2Fdocker.svg
+  }
+
+  artifact: Artifact Registry (services/api) {
+    class: registry
+  }
+
+  secrets: Secret Manager (7 secrets) {
+    class: secrets
+  }
+}
+
+# --- Cloudflare ---
+
+cloudflare: Cloudflare {
+  r2: R2 Bucket (mealio-uploads) {
+    class: storage
+  }
+
+  cdn: R2 Public CDN {
+    class: cdn
+  }
+}
+
+# --- Neon ---
+
+neon: Neon (Serverless) {
+  postgres: PostgreSQL 18 {
+    class: database
+    icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg
+  }
+}
+
+# --- External Services ---
+
+external: External Services {
+  google: Google OAuth (JWKS) {
+    class: external
+  }
+
+  apple: Apple Sign-In (JWKS) {
+    class: external
+  }
+
+  sentry: Sentry (Error Tracking) {
+    class: monitoring
+  }
+
+  eas: Expo Application Services (EAS Build) {
+    class: buildservice
+  }
+}
+
+# --- Distribution ---
+
+distribution: App Distribution {
+  appstore: iOS App Store {
+    class: store
+  }
+
+  playstore: Google Play Store {
+    class: store
+  }
+}
+
+# --- Connections ---
+
+# Mobile to API
+clients.mobile -> gcp.cloudrun: HTTPS (REST /api/v1) {
+  style.stroke: "#1976D2"
+  style.stroke-width: 2
+}
+
+# Mobile direct upload to R2
+clients.mobile -> cloudflare.r2: Presigned PUT (direct upload) {
+  style.stroke: "#388E3C"
+  style.stroke-width: 2
+}
+
+# Mobile reads photos from CDN
+clients.mobile -> cloudflare.cdn: HTTPS (photo reads) {
+  style.stroke: "#388E3C"
+  style.stroke-width: 1
+}
+
+# Mobile to MMKV
+clients.mobile -> clients.mmkv: Guest mode data {
+  style.stroke: "#757575"
+  style.stroke-width: 1
+  style.stroke-dash: 3
+}
+
+# Mobile to Sentry
+clients.mobile -> external.sentry: Client-side errors {
+  style.stroke: "#7B1FA2"
+  style.stroke-width: 1
+  style.stroke-dash: 5
+}
+
+# API to PostgreSQL
+gcp.cloudrun -> neon.postgres: SQL/TLS (max 10 conn) {
+  style.stroke: "#E65100"
+  style.stroke-width: 2
+}
+
+# API to R2 (presign generation)
+gcp.cloudrun -> cloudflare.r2: S3 API (presigned URL generation) {
+  style.stroke: "#388E3C"
+  style.stroke-width: 2
+}
+
+# R2 to CDN
+cloudflare.r2 -> cloudflare.cdn: Public read endpoint {
+  style.stroke: "#FF8F00"
+  style.stroke-width: 1
+}
+
+# API to Google JWKS
+gcp.cloudrun -> external.google: JWKS fetch (RS256 verification) {
+  style.stroke: "#C62828"
+  style.stroke-width: 1
+  style.stroke-dash: 5
+}
+
+# API to Apple JWKS
+gcp.cloudrun -> external.apple: JWKS fetch (RS256 verification) {
+  style.stroke: "#C62828"
+  style.stroke-width: 1
+  style.stroke-dash: 5
+}
+
+# API to Sentry
+gcp.cloudrun -> external.sentry: 5xx error reporting (20% traces) {
+  style.stroke: "#7B1FA2"
+  style.stroke-width: 1
+  style.stroke-dash: 5
+}
+
+# Secret Manager to Cloud Run
+gcp.secrets -> gcp.cloudrun: Env var injection at startup {
+  style.stroke: "#AD1457"
+  style.stroke-width: 1
+  style.stroke-dash: 3
+}
+
+# Artifact Registry to Cloud Run
+gcp.artifact -> gcp.cloudrun: Image pull (api:latest) {
+  style.stroke: "#5D4037"
+  style.stroke-width: 1
+  style.stroke-dash: 3
+}
+
+# EAS to App Stores
+external.eas -> distribution.appstore: iOS build submission {
+  style.stroke: "#3949AB"
+  style.stroke-width: 1
+  style.stroke-dash: 3
+}
+
+external.eas -> distribution.playstore: Android build submission {
+  style.stroke: "#3949AB"
+  style.stroke-width: 1
+  style.stroke-dash: 3
+}
+
+# App Stores to Mobile
+distribution.appstore -> clients.mobile: iOS distribution {
+  style.stroke: "#757575"
+  style.stroke-width: 1
+  style.stroke-dash: 3
+}
+
+distribution.playstore -> clients.mobile: Android distribution {
+  style.stroke: "#757575"
+  style.stroke-width: 1
+  style.stroke-dash: 3
+}

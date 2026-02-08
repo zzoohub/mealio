@@ -1,0 +1,350 @@
+direction: down
+
+classes: {
+  presentation: {
+    style.stroke: "#3949AB"
+    style.stroke-width: 2
+    style.border-radius: 12
+  }
+  application: {
+    style.stroke: "#00838F"
+    style.stroke-width: 2
+    style.border-radius: 8
+  }
+  domain: {
+    style.stroke: "#FF8F00"
+    style.stroke-width: 2
+    style.border-radius: 8
+  }
+  data: {
+    style.stroke: "#5D4037"
+    style.stroke-width: 2
+  }
+  integration: {
+    style.stroke: "#AD1457"
+    style.stroke-width: 2
+    style.stroke-dash: 5
+  }
+  database: {
+    style.stroke: "#E65100"
+    style.stroke-width: 2
+    shape: cylinder
+  }
+  storage: {
+    style.stroke: "#2E7D32"
+    style.stroke-width: 2
+    shape: stored_data
+  }
+  external: {
+    style.stroke: "#C62828"
+    style.stroke-width: 2
+    shape: cloud
+  }
+  module: {
+    style.stroke: "#1565C0"
+    style.stroke-width: 1
+    style.border-radius: 6
+  }
+  layer: {
+    style.stroke: "#757575"
+    style.stroke-width: 1
+    style.border-radius: 4
+  }
+}
+
+# --- Users ---
+
+users: End Users (iOS / Android) {
+  class: presentation
+  icon: https://icons.terrastruct.com/essentials%2F359-users.svg
+}
+
+# --- Mobile App (FSD Architecture) ---
+
+mobile: Mobile App (React Native 0.83 / Expo 55) {
+  style.stroke: "#00838F"
+  style.stroke-width: 2
+
+  app: App Layer (Providers, ErrorBoundary, Sentry, i18n) {
+    class: layer
+  }
+
+  widgets: Widgets (entry-grid, recent-entries) {
+    class: layer
+  }
+
+  features: Features {
+    style.stroke: "#00838F"
+    style.stroke-width: 1
+
+    auth: auth (Google/Apple Sign-In) {
+      class: module
+    }
+    capture: capture-meal (Photo + Entry Form) {
+      class: module
+    }
+    feed: entry-feed (Calendar + List) {
+      class: module
+    }
+    detail: entry-detail (Single Entry View) {
+      class: module
+    }
+    search: search-entries (Full-text Search) {
+      class: module
+    }
+    settings: settings (User Preferences) {
+      class: module
+    }
+  }
+
+  entities: Entities {
+    style.stroke: "#FF8F00"
+    style.stroke-width: 1
+
+    user: user (AuthCredential, AuthProvider) {
+      class: module
+    }
+    meal: meal (MealType, NutritionInfo, CapturedPhoto) {
+      class: module
+    }
+    entry: entry (Entry, Location, Storage, Stats) {
+      class: module
+    }
+  }
+
+  shared: Shared {
+    style.stroke: "#757575"
+    style.stroke-width: 1
+
+    api_client: API Client (apiClient, tokenStore) {
+      class: module
+    }
+    config: Config (queryKeys, feature flags) {
+      class: module
+    }
+    ui: UI (Theme, Design Tokens) {
+      class: module
+    }
+    lib: Lib (MMKV, i18n, Sentry, auth utils) {
+      class: module
+    }
+  }
+
+  # FSD layer connections (top-down only)
+  app -> widgets: {style.stroke: "#BDBDBD"; style.stroke-width: 1}
+  widgets -> features: {style.stroke: "#BDBDBD"; style.stroke-width: 1}
+  features -> entities: {style.stroke: "#BDBDBD"; style.stroke-width: 1}
+  entities -> shared: {style.stroke: "#BDBDBD"; style.stroke-width: 1}
+}
+
+# --- API Server ---
+
+api: API Server (Rust 1.92 / Axum 0.8) {
+  style.stroke: "#1565C0"
+  style.stroke-width: 2
+
+  middleware: Middleware Stack (CORS, Sentry, Tracing, Timeout) {
+    class: layer
+  }
+
+  modules: Feature Modules {
+    style.stroke: "#1565C0"
+    style.stroke-width: 1
+
+    auth: auth (OAuth, JWT, JWKS) {
+      class: module
+    }
+    users: users (Profile, Settings) {
+      class: module
+    }
+    diary: diary (Entry CRUD, Location) {
+      class: module
+    }
+    photos: photos (Photo records, Primary) {
+      class: module
+    }
+    nutrition: nutrition (Macros, Calories) {
+      class: module
+    }
+    ingredients: ingredients (Master list, Trigram search) {
+      class: module
+    }
+    ai: ai_analyses (AI Nutrition - 501 placeholder) {
+      class: module
+    }
+    statistics: statistics (Aggregated stats) {
+      class: module
+    }
+    uploads: uploads (Presigned URL generation) {
+      class: module
+    }
+  }
+
+  shared_api: Shared (AppState, AppError, Extractors, Response) {
+    class: layer
+  }
+
+  middleware -> modules: {style.stroke: "#BDBDBD"; style.stroke-width: 1}
+  modules -> shared_api: {style.stroke: "#BDBDBD"; style.stroke-width: 1}
+}
+
+# --- Database ---
+
+db: PostgreSQL 18 (Neon) {
+  style.stroke: "#E65100"
+  style.stroke-width: 2
+
+  tables: Tables {
+    style.stroke: "#E65100"
+    style.stroke-width: 1
+
+    users_t: users (soft-delete) {
+      class: database
+      icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg
+    }
+    auth_providers: user_auth_providers {
+      class: database
+    }
+    settings: user_settings (auto-created) {
+      class: database
+    }
+    auth_tokens: auth_tokens (blake3 hash) {
+      class: database
+    }
+    diary: diary_entries (soft-delete) {
+      class: database
+    }
+    locations: entry_locations {
+      class: database
+    }
+    photos: entry_photos (max 10 trigger) {
+      class: database
+    }
+    nutrition: user_nutrition {
+      class: database
+    }
+    analyses: ai_analyses (JSONB) {
+      class: database
+    }
+    ingredients_t: ingredients (pg_trgm GIN) {
+      class: database
+    }
+    entry_ingredients: entry_ingredients (junction) {
+      class: database
+    }
+  }
+}
+
+# --- External Services ---
+
+r2: Cloudflare R2 (mealio-uploads) {
+  class: storage
+}
+
+google: Google OAuth (JWKS) {
+  class: external
+}
+
+apple: Apple Sign-In (JWKS) {
+  class: external
+}
+
+sentry: Sentry (Error Tracking) {
+  class: integration
+}
+
+# --- Connections ---
+
+# Users to Mobile
+users -> mobile: iOS / Android {
+  style.stroke: "#3949AB"
+  style.stroke-width: 2
+}
+
+# Mobile to API (authenticated mode)
+mobile.shared.api_client -> api.middleware: HTTPS REST /api/v1 (JWT Bearer) {
+  style.stroke: "#1976D2"
+  style.stroke-width: 2
+}
+
+# Mobile direct upload to R2
+mobile.features.capture -> r2: Presigned PUT (direct photo upload) {
+  style.stroke: "#388E3C"
+  style.stroke-width: 2
+}
+
+# Mobile guest mode (local storage)
+mobile.entities.entry -> mobile.shared.lib: MMKV (guest mode, max 10 entries) {
+  style.stroke: "#757575"
+  style.stroke-width: 1
+  style.stroke-dash: 3
+}
+
+# API to Database
+api.modules.auth -> db.tables.users_t: Find/create user {
+  style.stroke: "#E65100"
+  style.stroke-width: 1
+}
+
+api.modules.auth -> db.tables.auth_tokens: Token CRUD {
+  style.stroke: "#E65100"
+  style.stroke-width: 1
+}
+
+api.modules.diary -> db.tables.diary: Entry CRUD {
+  style.stroke: "#E65100"
+  style.stroke-width: 2
+}
+
+api.modules.photos -> db.tables.photos: Photo records {
+  style.stroke: "#E65100"
+  style.stroke-width: 1
+}
+
+api.modules.nutrition -> db.tables.nutrition: Nutrition upsert {
+  style.stroke: "#E65100"
+  style.stroke-width: 1
+}
+
+api.modules.ingredients -> db.tables.ingredients_t: Trigram search {
+  style.stroke: "#E65100"
+  style.stroke-width: 1
+}
+
+api.modules.statistics -> db.tables.diary: Aggregation queries {
+  style.stroke: "#E65100"
+  style.stroke-width: 1
+  style.stroke-dash: 3
+}
+
+# API to R2
+api.modules.uploads -> r2: S3 SDK (presigned URL gen) {
+  style.stroke: "#388E3C"
+  style.stroke-width: 1
+}
+
+# API to OAuth providers
+api.modules.auth -> google: JWKS fetch (RS256) {
+  style.stroke: "#C62828"
+  style.stroke-width: 1
+  style.stroke-dash: 5
+}
+
+api.modules.auth -> apple: JWKS fetch (RS256) {
+  style.stroke: "#C62828"
+  style.stroke-width: 1
+  style.stroke-dash: 5
+}
+
+# Error tracking
+api.middleware -> sentry: 5xx errors, 20% traces {
+  style.stroke: "#7B1FA2"
+  style.stroke-width: 1
+  style.stroke-dash: 5
+}
+
+mobile.app -> sentry: Client-side errors {
+  style.stroke: "#7B1FA2"
+  style.stroke-width: 1
+  style.stroke-dash: 5
+}

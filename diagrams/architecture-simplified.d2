@@ -1,0 +1,109 @@
+direction: down
+
+classes: {
+  presentation: {
+    style.stroke: "#3949AB"
+    style.stroke-width: 2
+    style.border-radius: 12
+  }
+  application: {
+    style.stroke: "#00838F"
+    style.stroke-width: 2
+    style.border-radius: 8
+  }
+  database: {
+    style.stroke: "#E65100"
+    style.stroke-width: 2
+    shape: cylinder
+  }
+  storage: {
+    style.stroke: "#2E7D32"
+    style.stroke-width: 2
+    shape: stored_data
+  }
+  external: {
+    style.stroke: "#C62828"
+    style.stroke-width: 2
+    shape: cloud
+  }
+  monitoring: {
+    style.stroke: "#7B1FA2"
+    style.stroke-width: 2
+    style.border-radius: 8
+  }
+}
+
+# --- Nodes ---
+
+mobile: Mobile App (React Native / Expo) {
+  class: presentation
+  icon: https://icons.terrastruct.com/dev%2Freact.svg
+}
+
+api: API Server (Rust / Axum) {
+  class: application
+  icon: https://icons.terrastruct.com/tech%2F022-server.svg
+}
+
+db: Database (PostgreSQL / Neon) {
+  class: database
+  icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg
+}
+
+r2: Object Storage (Cloudflare R2) {
+  class: storage
+}
+
+idp: Identity Providers (Google / Apple OAuth) {
+  class: external
+}
+
+sentry: Observability (Sentry) {
+  class: monitoring
+}
+
+# --- Connections ---
+
+mobile -> api: HTTPS REST /api/v1 (JWT Bearer) {
+  style.stroke: "#1976D2"
+  style.stroke-width: 2
+}
+
+mobile -> r2: Direct photo upload (presigned PUT) {
+  style.stroke: "#388E3C"
+  style.stroke-width: 2
+}
+
+mobile -> idp: OAuth sign-in (ID token) {
+  style.stroke: "#C62828"
+  style.stroke-width: 1
+  style.stroke-dash: 5
+}
+
+api -> db: SQL/TLS (all CRUD operations) {
+  style.stroke: "#E65100"
+  style.stroke-width: 2
+}
+
+api -> r2: S3 API (presigned URL generation) {
+  style.stroke: "#388E3C"
+  style.stroke-width: 1
+}
+
+api -> idp: JWKS token verification (RS256) {
+  style.stroke: "#C62828"
+  style.stroke-width: 1
+  style.stroke-dash: 5
+}
+
+mobile -> sentry: Client-side errors {
+  style.stroke: "#7B1FA2"
+  style.stroke-width: 1
+  style.stroke-dash: 5
+}
+
+api -> sentry: Server-side errors (5xx) {
+  style.stroke: "#7B1FA2"
+  style.stroke-width: 1
+  style.stroke-dash: 5
+}

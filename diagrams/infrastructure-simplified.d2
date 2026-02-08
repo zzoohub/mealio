@@ -1,0 +1,118 @@
+direction: down
+
+classes: {
+  compute: {
+    style.stroke: "#1565C0"
+    style.stroke-width: 2
+    style.border-radius: 8
+  }
+  database: {
+    style.stroke: "#E65100"
+    style.stroke-width: 2
+    shape: cylinder
+  }
+  storage: {
+    style.stroke: "#2E7D32"
+    style.stroke-width: 2
+    shape: stored_data
+  }
+  secrets: {
+    style.stroke: "#AD1457"
+    style.stroke-width: 2
+    shape: hexagon
+  }
+  external: {
+    style.stroke: "#C62828"
+    style.stroke-width: 2
+    shape: cloud
+  }
+  monitoring: {
+    style.stroke: "#7B1FA2"
+    style.stroke-width: 2
+    style.border-radius: 8
+  }
+  mobile: {
+    style.stroke: "#00838F"
+    style.stroke-width: 2
+    style.border-radius: 12
+  }
+}
+
+# --- Nodes ---
+
+mobile: Mobile App (React Native / Expo) {
+  class: mobile
+  icon: https://icons.terrastruct.com/dev%2Freact.svg
+}
+
+api: API Service (Rust/Axum on Cloud Run) {
+  class: compute
+  icon: https://icons.terrastruct.com/dev%2Fdocker.svg
+}
+
+db: Database (PostgreSQL 18 / Neon) {
+  class: database
+  icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg
+}
+
+r2: Object Storage (Cloudflare R2) {
+  class: storage
+}
+
+auth: Auth Providers (Google / Apple OAuth) {
+  class: external
+}
+
+sentry: Error Tracking (Sentry) {
+  class: monitoring
+}
+
+secrets: Secrets (GCP Secret Manager) {
+  class: secrets
+}
+
+# --- Connections ---
+
+mobile -> api: HTTPS (REST /api/v1) {
+  style.stroke: "#1976D2"
+  style.stroke-width: 2
+}
+
+mobile -> r2: Direct photo upload (presigned PUT) {
+  style.stroke: "#388E3C"
+  style.stroke-width: 2
+}
+
+api -> db: SQL/TLS {
+  style.stroke: "#E65100"
+  style.stroke-width: 2
+}
+
+api -> r2: S3 API (presigned URL generation) {
+  style.stroke: "#388E3C"
+  style.stroke-width: 1
+}
+
+api -> auth: JWKS token verification {
+  style.stroke: "#C62828"
+  style.stroke-width: 1
+  style.stroke-dash: 5
+}
+
+mobile -> sentry: Client-side errors {
+  style.stroke: "#7B1FA2"
+  style.stroke-width: 1
+  style.stroke-dash: 5
+}
+
+api -> sentry: Server-side errors (5xx) {
+  style.stroke: "#7B1FA2"
+  style.stroke-width: 1
+  style.stroke-dash: 5
+}
+
+secrets -> api: Env var injection at startup {
+  style.stroke: "#AD1457"
+  style.stroke-width: 1
+  style.stroke-dash: 3
+}
