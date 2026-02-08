@@ -153,6 +153,11 @@ async fn main() {
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/health", get(health))
+        .route(
+            "/.well-known/apple-app-site-association",
+            get(apple_app_site_association),
+        )
+        .route("/.well-known/assetlinks.json", get(asset_links))
         .nest("/api/v1", api)
         .layer(TimeoutLayer::with_status_code(
             axum::http::StatusCode::REQUEST_TIMEOUT,
@@ -191,6 +196,33 @@ async fn health(State(state): State<AppState>) -> Json<serde_json::Value> {
     }))
 }
 
+async fn apple_app_site_association() -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "applinks": {
+            "apps": [],
+            "details": [
+                {
+                    "appIDs": ["6VMN7W3K93.com.zzoo.mealio"],
+                    "paths": ["/diary/*", "/"]
+                }
+            ]
+        }
+    }))
+}
+
+async fn asset_links() -> Json<serde_json::Value> {
+    Json(serde_json::json!([
+        {
+            "relation": ["delegate_permission/common.handle_all_urls"],
+            "target": {
+                "namespace": "android_app",
+                "package_name": "com.zzoo.mealio",
+                "sha256_cert_fingerprints": []
+            }
+        }
+    ]))
+}
+
 fn build_cors() -> CorsLayer {
     let allowed_origins = std::env::var("CORS_ORIGINS").unwrap_or_default();
 
@@ -215,4 +247,150 @@ async fn shutdown_signal() {
         .await
         .expect("failed to install signal handler");
     tracing::info!("shutting down");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_apple_app_site_association_returns_correct_structure() {
+        let response = apple_app_site_association().await;
+        let json = response.0;
+
+        // Verify top-level structure
+        assert!(json.get("applinks").is_some(), "Response should contain 'applinks' key");
+
+        let applinks = json.get("applinks").unwrap();
+        assert!(applinks.get("apps").is_some(), "applinks should contain 'apps' key");
+        assert!(applinks.get("details").is_some(), "applinks should contain 'details' key");
+    }
+
+    #[tokio::test]
+    async fn test_apple_app_site_association_contains_correct_app_id() {
+        let response = apple_app_site_association().await;
+        let json = response.0;
+
+        let details = json["applinks"]["details"].as_array().unwrap();
+        assert_eq!(details.len(), 1, "Should have exactly one detail entry");
+
+        let first_detail = &details[0];
+        let app_ids = first_detail["appIDs"].as_array().unwrap();
+
+        assert_eq!(app_ids.len(), 1, "Should have exactly one appID");
+        assert_eq!(
+            app_ids[0].as_str().unwrap(),
+            "6VMN7W3K93.com.zzoo.mealio",
+            "appID should match expected value"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_apple_app_site_association_contains_correct_paths() {
+        let response = apple_app_site_association().await;
+        let json = response.0;
+
+        let details = json["applinks"]["details"].as_array().unwrap();
+        let paths = details[0]["paths"].as_array().unwrap();
+
+        assert_eq!(paths.len(), 2, "Should have exactly two paths");
+        assert_eq!(paths[0].as_str().unwrap(), "/diary/*");
+        assert_eq!(paths[1].as_str().unwrap(), "/");
+    }
+
+    #[tokio::test]
+    async fn test_apple_app_site_association_apps_array_is_empty() {
+        let response = apple_app_site_association().await;
+        let json = response.0;
+
+        let apps = json["applinks"]["apps"].as_array().unwrap();
+        assert_eq!(apps.len(), 0, "apps array should be empty");
+    }
+
+    #[tokio::test]
+    async fn test_asset_links_returns_array() {
+        let response = asset_links().await;
+        let json = response.0;
+
+        assert!(json.is_array(), "Response should be an array");
+        let array = json.as_array().unwrap();
+        assert_eq!(array.len(), 1, "Should have exactly one asset link entry");
+    }
+
+    #[tokio::test]
+    async fn test_asset_links_contains_correct_package_name() {
+        let response = asset_links().await;
+        let json = response.0;
+
+        let array = json.as_array().unwrap();
+        let first_entry = &array[0];
+
+        let target = first_entry.get("target").unwrap();
+        let package_name = target.get("package_name").unwrap().as_str().unwrap();
+
+        assert_eq!(
+            package_name,
+            "com.zzoo.mealio",
+            "package_name should match expected value"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_asset_links_contains_correct_namespace() {
+        let response = asset_links().await;
+        let json = response.0;
+
+        let array = json.as_array().unwrap();
+        let target = array[0].get("target").unwrap();
+        let namespace = target.get("namespace").unwrap().as_str().unwrap();
+
+        assert_eq!(namespace, "android_app", "namespace should be 'android_app'");
+    }
+
+    #[tokio::test]
+    async fn test_asset_links_contains_correct_relation() {
+        let response = asset_links().await;
+        let json = response.0;
+
+        let array = json.as_array().unwrap();
+        let relation = array[0].get("relation").unwrap().as_array().unwrap();
+
+        assert_eq!(relation.len(), 1, "Should have exactly one relation");
+        assert_eq!(
+            relation[0].as_str().unwrap(),
+            "delegate_permission/common.handle_all_urls"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_asset_links_sha256_fingerprints_is_empty_array() {
+        let response = asset_links().await;
+        let json = response.0;
+
+        let array = json.as_array().unwrap();
+        let target = array[0].get("target").unwrap();
+        let fingerprints = target.get("sha256_cert_fingerprints").unwrap().as_array().unwrap();
+
+        assert_eq!(fingerprints.len(), 0, "sha256_cert_fingerprints should be empty array");
+    }
+
+    #[tokio::test]
+    async fn test_apple_app_site_association_json_serialization() {
+        // Test that the response can be serialized to JSON string without errors
+        let response = apple_app_site_association().await;
+        let json_string = serde_json::to_string(&response.0).unwrap();
+
+        assert!(json_string.contains("6VMN7W3K93.com.zzoo.mealio"));
+        assert!(json_string.contains("applinks"));
+    }
+
+    #[tokio::test]
+    async fn test_asset_links_json_serialization() {
+        // Test that the response can be serialized to JSON string without errors
+        let response = asset_links().await;
+        let json_string = serde_json::to_string(&response.0).unwrap();
+
+        assert!(json_string.contains("com.zzoo.mealio"));
+        assert!(json_string.contains("delegate_permission/common.handle_all_urls"));
+    }
 }

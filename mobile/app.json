@@ -5,11 +5,12 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "mealio",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.zzoo.mealio"
+      "bundleIdentifier": "com.zzoo.mealio",
+      "associatedDomains": ["applinks:mealio.zzooapp.com"]
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +23,21 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION"
       ],
-      "package": "com.zzoo.mealio"
+      "package": "com.zzoo.mealio",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "mealio.zzooapp.com",
+              "pathPrefix": "/diary"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
