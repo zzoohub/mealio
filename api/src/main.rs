@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::sync::Arc;
 use std::time::Duration;
 
 use axum::extract::State;
@@ -6,6 +7,9 @@ use axum::routing::get;
 use axum::{Json, Router};
 use sqlx::migrate::Migrator;
 use sqlx::postgres::PgPoolOptions;
+use tower_governor::governor::GovernorConfigBuilder;
+use tower_governor::key_extractor::SmartIpKeyExtractor;
+use tower_governor::GovernorLayer;
 use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
@@ -33,11 +37,21 @@ async fn main() {
         },
     ));
 
-    tracing_subscriber::registry()
-        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
-        .with(tracing_subscriber::fmt::layer())
-        .with(sentry_tracing::layer())
-        .init();
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into());
+    let use_json = std::env::var("LOG_FORMAT").unwrap_or_default() == "json";
+    if use_json {
+        tracing_subscriber::registry()
+            .with(env_filter)
+            .with(tracing_subscriber::fmt::layer().json())
+            .with(sentry_tracing::layer())
+            .init();
+    } else {
+        tracing_subscriber::registry()
+            .with(env_filter)
+            .with(tracing_subscriber::fmt::layer())
+            .with(sentry_tracing::layer())
+            .init();
+    }
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
@@ -102,8 +116,30 @@ async fn main() {
 
     let cors = build_cors();
 
+    // Rate limiting: 10 req/min for auth, 60 req/min global
+    let auth_governor = Arc::new(
+        GovernorConfigBuilder::default()
+            .per_second(6) // 1 token every 6 seconds = 10 req/min
+            .burst_size(10)
+            .key_extractor(SmartIpKeyExtractor)
+            .finish()
+            .expect("failed to build auth rate limiter"),
+    );
+
+    let global_governor = Arc::new(
+        GovernorConfigBuilder::default()
+            .per_second(1) // 1 token every second = 60 req/min
+            .burst_size(60)
+            .key_extractor(SmartIpKeyExtractor)
+            .finish()
+            .expect("failed to build global rate limiter"),
+    );
+
+    let auth_routes = features::auth::router()
+        .layer(GovernorLayer { config: auth_governor });
+
     let api = Router::new()
-        .nest("/auth", features::auth::router())
+        .nest("/auth", auth_routes)
         .nest("/users", features::users::router())
         .nest("/diary", features::diary::router())
         .nest("/diary", features::photos::router())
@@ -122,6 +158,7 @@ async fn main() {
             axum::http::StatusCode::REQUEST_TIMEOUT,
             Duration::from_secs(30),
         ))
+        .layer(GovernorLayer { config: global_governor })
         .layer(TraceLayer::new_for_http())
         .layer(sentry_tower::NewSentryLayer::new_from_top())
         .layer(sentry_tower::SentryHttpLayer::new().enable_transaction())
