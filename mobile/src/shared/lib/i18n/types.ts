@@ -111,6 +111,8 @@ export interface CommonTranslations {
   uploading: string;
   uploadFailed: string;
   uploadFailedMessage: string;
+  share: string;
+  shareEntry: string;
 }
 
 // Error translations

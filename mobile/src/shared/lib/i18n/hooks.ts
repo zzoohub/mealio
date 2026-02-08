@@ -179,6 +179,8 @@ export const useCommonI18n = () => {
       uploading: t("uploading"),
       uploadFailed: t("uploadFailed"),
       uploadFailedMessage: t("uploadFailedMessage"),
+      share: t("share"),
+      shareEntry: t("shareEntry"),
       formatNumber: format.number,
       formatCurrency: format.currency,
       formatDate: format.date,

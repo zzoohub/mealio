@@ -35,5 +35,7 @@
   "sortBy": "정렬 기준",
   "uploading": "업로드 중...",
   "uploadFailed": "업로드 실패",
-  "uploadFailedMessage": "업로드에 실패했습니다. 연결 상태를 확인해 주세요."
+  "uploadFailedMessage": "업로드에 실패했습니다. 연결 상태를 확인해 주세요.",
+  "share": "공유",
+  "shareEntry": "Mealio에서 내 식사를 확인해보세요!"
 }

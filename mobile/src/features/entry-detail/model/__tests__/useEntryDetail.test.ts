@@ -3,6 +3,12 @@ jest.mock("react-native", () => ({
   Alert: {
     alert: jest.fn(),
   },
+  Share: {
+    share: jest.fn(),
+  },
+  Platform: {
+    OS: "ios",
+  },
 }));
 jest.mock("expo-router", () => ({
   useRouter: jest.fn(),
@@ -1274,6 +1280,524 @@ describe("useEntryDetail", () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to add photos:", uploadError);
 
       consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe("shareEntry", () => {
+    beforeEach(() => {
+      jest.mock("react-native", () => ({
+        Alert: {
+          alert: jest.fn(),
+        },
+        Share: {
+          share: jest.fn(),
+        },
+        Platform: {
+          OS: "ios",
+        },
+      }));
+    });
+
+    it("shares entry URL on iOS", async () => {
+      const { Share, Platform } = jest.requireMock("react-native");
+      Platform.OS = "ios";
+
+      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
+      (useEntryDetailQuery as jest.Mock).mockReturnValue({
+        data: {
+          id: "123",
+          userId: "1",
+          timestamp: new Date(),
+          notes: "Test",
+          meal: { photoUri: "uri1", mealType: MealType.BREAKFAST },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        isLoading: false,
+        error: null,
+      });
+
+      (useCommonI18n as jest.Mock).mockReturnValue({
+        cancel: "Cancel",
+        delete: "Delete",
+        error: "Error",
+        ok: "OK",
+        shareEntry: "Check out this meal!",
+      });
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "123" }));
+
+      act(() => {
+        result.current.shareEntry();
+      });
+
+      expect(Share.share).toHaveBeenCalledWith({
+        url: "https://mealio.zzooapp.com/diary/123",
+        message: "Check out this meal!",
+      });
+    });
+
+    it("shares entry URL on Android with message and URL concatenated", async () => {
+      const { Share, Platform } = jest.requireMock("react-native");
+      Platform.OS = "android";
+
+      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
+      (useEntryDetailQuery as jest.Mock).mockReturnValue({
+        data: {
+          id: "456",
+          userId: "1",
+          timestamp: new Date(),
+          notes: "Test",
+          meal: { photoUri: "uri1", mealType: MealType.BREAKFAST },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        isLoading: false,
+        error: null,
+      });
+
+      (useCommonI18n as jest.Mock).mockReturnValue({
+        cancel: "Cancel",
+        delete: "Delete",
+        error: "Error",
+        ok: "OK",
+        shareEntry: "Check out this meal!",
+      });
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "456" }));
+
+      act(() => {
+        result.current.shareEntry();
+      });
+
+      expect(Share.share).toHaveBeenCalledWith({
+        message: "Check out this meal!\nhttps://mealio.zzooapp.com/diary/456",
+      });
+    });
+
+    it("does nothing when entry is null", () => {
+      const { Share } = jest.requireMock("react-native");
+
+      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
+      (useEntryDetailQuery as jest.Mock).mockReturnValue({
+        data: null,
+        isLoading: false,
+        error: null,
+      });
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "123" }));
+
+      act(() => {
+        result.current.shareEntry();
+      });
+
+      expect(Share.share).not.toHaveBeenCalled();
+    });
+
+    it("does nothing when entry is a guest entry", async () => {
+      const { Share } = jest.requireMock("react-native");
+
+      (useIsAuthenticated as jest.Mock).mockReturnValue(false);
+      const mockEntry = {
+        id: "guest-123",
+        userId: "guest",
+        timestamp: new Date(),
+        notes: "Test",
+        meal: { photoUri: "uri1", mealType: MealType.BREAKFAST },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      (entryStorageUtils.getEntryById as jest.Mock).mockResolvedValue(mockEntry);
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "guest-123" }));
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      act(() => {
+        result.current.shareEntry();
+      });
+
+      expect(Share.share).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("canShare", () => {
+    it("returns true when entry is API entry and exists", () => {
+      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
+      (useEntryDetailQuery as jest.Mock).mockReturnValue({
+        data: {
+          id: "123",
+          userId: "1",
+          timestamp: new Date(),
+          notes: "Test",
+          meal: { photoUri: "uri1", mealType: MealType.BREAKFAST },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        isLoading: false,
+        error: null,
+      });
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "123" }));
+
+      expect(result.current.canShare).toBe(true);
+    });
+
+    it("returns false when entry is null", () => {
+      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
+      (useEntryDetailQuery as jest.Mock).mockReturnValue({
+        data: null,
+        isLoading: false,
+        error: null,
+      });
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "123" }));
+
+      expect(result.current.canShare).toBe(false);
+    });
+
+    it("returns false when entry is a guest entry", async () => {
+      (useIsAuthenticated as jest.Mock).mockReturnValue(false);
+      const mockEntry = {
+        id: "guest-123",
+        userId: "guest",
+        timestamp: new Date(),
+        notes: "Test",
+        meal: { photoUri: "uri1", mealType: MealType.BREAKFAST },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      (entryStorageUtils.getEntryById as jest.Mock).mockResolvedValue(mockEntry);
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "guest-123" }));
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(result.current.canShare).toBe(false);
+    });
+  });
+
+  describe("deleteEntry", () => {
+    it("shows confirmation alert with correct text", () => {
+      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
+      (useEntryDetailQuery as jest.Mock).mockReturnValue({
+        data: {
+          id: "123",
+          userId: "1",
+          timestamp: new Date(),
+          notes: "Test",
+          meal: { photoUri: "uri1", mealType: MealType.BREAKFAST },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        isLoading: false,
+        error: null,
+      });
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "123" }));
+
+      act(() => {
+        result.current.deleteEntry();
+      });
+
+      expect(Alert.alert).toHaveBeenCalledWith(
+        "Delete Entry",
+        "Are you sure?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: expect.any(Function),
+          },
+        ]
+      );
+    });
+
+    it("deletes API entry and navigates back on confirmation", async () => {
+      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
+      (useEntryDetailQuery as jest.Mock).mockReturnValue({
+        data: {
+          id: "123",
+          userId: "1",
+          timestamp: new Date(),
+          notes: "Test",
+          meal: { photoUri: "uri1", mealType: MealType.BREAKFAST },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        isLoading: false,
+        error: null,
+      });
+      (mockDeleteMutation.mutateAsync as jest.Mock).mockResolvedValue({});
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "123" }));
+
+      act(() => {
+        result.current.deleteEntry();
+      });
+
+      const alertCall = (Alert.alert as jest.Mock).mock.calls[0];
+      const confirmButton = alertCall[2][1];
+
+      await act(async () => {
+        await confirmButton.onPress();
+      });
+
+      expect(mockDeleteMutation.mutateAsync).toHaveBeenCalledWith(123);
+      expect(mockRouter.back).toHaveBeenCalled();
+    });
+
+    it("deletes guest entry and navigates back on confirmation", async () => {
+      (useIsAuthenticated as jest.Mock).mockReturnValue(false);
+      const mockEntry = {
+        id: "guest-123",
+        userId: "guest",
+        timestamp: new Date(),
+        notes: "Test",
+        meal: { photoUri: "uri1", mealType: MealType.BREAKFAST },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      (entryStorageUtils.getEntryById as jest.Mock).mockResolvedValue(mockEntry);
+      (entryStorageUtils.deleteEntry as jest.Mock).mockResolvedValue(undefined);
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "guest-123" }));
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      act(() => {
+        result.current.deleteEntry();
+      });
+
+      const alertCall = (Alert.alert as jest.Mock).mock.calls[0];
+      const confirmButton = alertCall[2][1];
+
+      await act(async () => {
+        await confirmButton.onPress();
+      });
+
+      expect(entryStorageUtils.deleteEntry).toHaveBeenCalledWith("guest-123");
+      expect(mockRouter.back).toHaveBeenCalled();
+    });
+
+    it("shows error alert when API delete fails", async () => {
+      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
+      (useEntryDetailQuery as jest.Mock).mockReturnValue({
+        data: {
+          id: "123",
+          userId: "1",
+          timestamp: new Date(),
+          notes: "Test",
+          meal: { photoUri: "uri1", mealType: MealType.BREAKFAST },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        isLoading: false,
+        error: null,
+      });
+      (mockDeleteMutation.mutateAsync as jest.Mock).mockRejectedValue(new Error("Delete failed"));
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "123" }));
+
+      act(() => {
+        result.current.deleteEntry();
+      });
+
+      const alertCall = (Alert.alert as jest.Mock).mock.calls[0];
+      const confirmButton = alertCall[2][1];
+
+      await act(async () => {
+        await confirmButton.onPress();
+      });
+
+      expect(Alert.alert).toHaveBeenCalledWith("Error", "Delete failed");
+      expect(mockRouter.back).not.toHaveBeenCalled();
+    });
+
+    it("shows error alert when guest delete fails", async () => {
+      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+
+      (useIsAuthenticated as jest.Mock).mockReturnValue(false);
+      const mockEntry = {
+        id: "guest-123",
+        userId: "guest",
+        timestamp: new Date(),
+        notes: "Test",
+        meal: { photoUri: "uri1", mealType: MealType.BREAKFAST },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      (entryStorageUtils.getEntryById as jest.Mock).mockResolvedValue(mockEntry);
+      (entryStorageUtils.deleteEntry as jest.Mock).mockRejectedValue(new Error("Delete failed"));
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "guest-123" }));
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      act(() => {
+        result.current.deleteEntry();
+      });
+
+      const alertCall = (Alert.alert as jest.Mock).mock.calls[0];
+      const confirmButton = alertCall[2][1];
+
+      await act(async () => {
+        await confirmButton.onPress();
+      });
+
+      expect(Alert.alert).toHaveBeenCalledWith("Error", "Delete failed");
+      expect(mockRouter.back).not.toHaveBeenCalled();
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it("does nothing when entryId is undefined", async () => {
+      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
+      (useEntryDetailQuery as jest.Mock).mockReturnValue({
+        data: null,
+        isLoading: false,
+        error: null,
+      });
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: undefined }));
+
+      act(() => {
+        result.current.deleteEntry();
+      });
+
+      const alertCall = (Alert.alert as jest.Mock).mock.calls[0];
+      const confirmButton = alertCall[2][1];
+
+      await act(async () => {
+        await confirmButton.onPress();
+      });
+
+      expect(mockDeleteMutation.mutateAsync).not.toHaveBeenCalled();
+      expect(entryStorageUtils.deleteEntry).not.toHaveBeenCalled();
+      expect(mockRouter.back).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("guest entry loading", () => {
+    it("handles entry not found error", async () => {
+      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+
+      (useIsAuthenticated as jest.Mock).mockReturnValue(false);
+      (entryStorageUtils.getEntryById as jest.Mock).mockResolvedValue(null);
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "guest-123" }));
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(result.current.entry).toBeNull();
+      expect(result.current.error).toEqual(new Error("Entry not found"));
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it("handles storage read error", async () => {
+      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+
+      (useIsAuthenticated as jest.Mock).mockReturnValue(false);
+      const storageError = new Error("Storage error");
+      (entryStorageUtils.getEntryById as jest.Mock).mockRejectedValue(storageError);
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "guest-123" }));
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(result.current.entry).toBeNull();
+      expect(result.current.error).toEqual(storageError);
+      expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to load entry:", storageError);
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it("handles non-Error exception", async () => {
+      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+
+      (useIsAuthenticated as jest.Mock).mockReturnValue(false);
+      (entryStorageUtils.getEntryById as jest.Mock).mockRejectedValue("string error");
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "guest-123" }));
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(result.current.entry).toBeNull();
+      expect(result.current.error).toEqual(new Error("Failed to load entry"));
+
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe("navigation", () => {
+    it("goBack calls router.back", () => {
+      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
+      (useEntryDetailQuery as jest.Mock).mockReturnValue({
+        data: {
+          id: "123",
+          userId: "1",
+          timestamp: new Date(),
+          notes: "Test",
+          meal: { photoUri: "uri1", mealType: MealType.BREAKFAST },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        isLoading: false,
+        error: null,
+      });
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "123" }));
+
+      act(() => {
+        result.current.goBack();
+      });
+
+      expect(mockRouter.back).toHaveBeenCalled();
+    });
+
+    it("openPhotoViewer logs to console", () => {
+      const consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
+
+      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
+      (useEntryDetailQuery as jest.Mock).mockReturnValue({
+        data: {
+          id: "123",
+          userId: "1",
+          timestamp: new Date(),
+          notes: "Test",
+          meal: { photoUri: "uri1", mealType: MealType.BREAKFAST },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        isLoading: false,
+        error: null,
+      });
+
+      const { result } = renderHook(() => useEntryDetail({ entryId: "123" }));
+
+      act(() => {
+        result.current.openPhotoViewer();
+      });
+
+      expect(consoleLogSpy).toHaveBeenCalledWith("Photo pressed - implement fullscreen viewer");
+
+      consoleLogSpy.mockRestore();
     });
   });
 });

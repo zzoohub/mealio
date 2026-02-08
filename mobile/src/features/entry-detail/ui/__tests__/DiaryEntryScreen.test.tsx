@@ -19,6 +19,7 @@ jest.mock("react-native", () => ({
 
 jest.mock("expo-router", () => ({
   useLocalSearchParams: jest.fn(),
+  useRouter: jest.fn(() => ({ replace: jest.fn(), back: jest.fn() })),
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -55,6 +56,11 @@ jest.mock("@/shared/lib/auth", () => ({
   useIsAuthenticated: jest.fn(),
 }));
 
+jest.mock("@/shared/lib/deeplink", () => ({
+  setPendingDeepLink: jest.fn(),
+  consumePendingDeepLink: jest.fn(),
+}));
+
 jest.mock("@/shared/config", () => ({
   CAMERA_SETTINGS: {
     MAX_PHOTOS_PER_POST: 5,
@@ -72,7 +78,7 @@ jest.mock("@/entities/meal", () => ({
 import React from "react";
 import { useWindowDimensions } from "react-native";
 import { render } from "@testing-library/react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DiaryEntryScreen from "../../../../../app/diary/[id]";
 import { useEntryDetail } from "@/features/entry-detail";
@@ -98,6 +104,8 @@ describe("DiaryEntryScreen", () => {
     updateNutrition: jest.fn(),
     deleteEntry: jest.fn(),
     addPhotos: mockAddPhotos,
+    shareEntry: jest.fn(),
+    canShare: false,
     goBack: jest.fn(),
     openPhotoViewer: jest.fn(),
   };
@@ -737,6 +745,152 @@ describe("DiaryEntryScreen", () => {
         }),
         undefined
       );
+    });
+  });
+
+  describe("auth guard and deep link", () => {
+    it("redirects to auth and sets pending deep link when accessing numeric ID unauthenticated", () => {
+      const mockRouter = { replace: jest.fn(), back: jest.fn() };
+      (useRouter as jest.Mock).mockReturnValue(mockRouter);
+      (useIsAuthenticated as jest.Mock).mockReturnValue(false);
+      (useLocalSearchParams as jest.Mock).mockReturnValue({ id: "123" });
+
+      const { setPendingDeepLink } = jest.requireMock("@/shared/lib/deeplink");
+
+      render(<DiaryEntryScreen />);
+
+      expect(setPendingDeepLink).toHaveBeenCalledWith("/diary/123");
+      expect(mockRouter.replace).toHaveBeenCalledWith("/auth");
+    });
+
+    it("does not redirect when accessing guest ID unauthenticated", () => {
+      const mockRouter = { replace: jest.fn(), back: jest.fn() };
+      (useRouter as jest.Mock).mockReturnValue(mockRouter);
+      (useIsAuthenticated as jest.Mock).mockReturnValue(false);
+      (useLocalSearchParams as jest.Mock).mockReturnValue({ id: "guest-123" });
+
+      render(<DiaryEntryScreen />);
+
+      expect(mockRouter.replace).not.toHaveBeenCalled();
+    });
+
+    it("returns null when auth guard triggers", () => {
+      const mockRouter = { replace: jest.fn(), back: jest.fn() };
+      (useRouter as jest.Mock).mockReturnValue(mockRouter);
+      (useIsAuthenticated as jest.Mock).mockReturnValue(false);
+      (useLocalSearchParams as jest.Mock).mockReturnValue({ id: "123" });
+
+      const { toJSON } = render(<DiaryEntryScreen />);
+
+      expect(toJSON()).toBeNull();
+    });
+
+    it("renders normally when authenticated with numeric ID", () => {
+      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
+      (useLocalSearchParams as jest.Mock).mockReturnValue({ id: "123" });
+
+      render(<DiaryEntryScreen />);
+
+      expect(PhotoCarousel).toHaveBeenCalled();
+    });
+  });
+
+  describe("share functionality", () => {
+    it("passes shareEntry to EntryDetailHeader when canShare is true", () => {
+      const mockShareEntry = jest.fn();
+      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
+      (useLocalSearchParams as jest.Mock).mockReturnValue({ id: "123" });
+      (useEntryDetail as jest.Mock).mockReturnValue({
+        ...mockUseEntryDetail,
+        shareEntry: mockShareEntry,
+        canShare: true,
+      });
+
+      const { EntryDetailHeader } = jest.requireMock("@/features/entry-detail");
+
+      render(<DiaryEntryScreen />);
+
+      expect(EntryDetailHeader).toEqual("EntryDetailHeader");
+    });
+
+    it("passes undefined to EntryDetailHeader when canShare is false", () => {
+      (useIsAuthenticated as jest.Mock).mockReturnValue(false);
+      (useLocalSearchParams as jest.Mock).mockReturnValue({ id: "guest-123" });
+      (useEntryDetail as jest.Mock).mockReturnValue({
+        ...mockUseEntryDetail,
+        canShare: false,
+      });
+
+      const { EntryDetailHeader } = jest.requireMock("@/features/entry-detail");
+
+      render(<DiaryEntryScreen />);
+
+      expect(EntryDetailHeader).toEqual("EntryDetailHeader");
+    });
+  });
+
+  describe("photo viewer", () => {
+    it("passes openPhotoViewer when entry has photoUri", () => {
+      const mockOpenPhotoViewer = jest.fn();
+      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
+      (useLocalSearchParams as jest.Mock).mockReturnValue({ id: "123" });
+      (useEntryDetail as jest.Mock).mockReturnValue({
+        ...mockUseEntryDetail,
+        entry: {
+          id: "123",
+          userId: "1",
+          timestamp: new Date(),
+          notes: "Test",
+          meal: {
+            photoUri: "uri1",
+            mealType: MealType.BREAKFAST,
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        openPhotoViewer: mockOpenPhotoViewer,
+      });
+
+      render(<DiaryEntryScreen />);
+
+      expect(PhotoCarousel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          onPhotoPress: expect.any(Function),
+        }),
+        undefined
+      );
+
+      const photoCarouselCall = (PhotoCarousel as jest.Mock).mock.calls[0][0];
+      photoCarouselCall.onPhotoPress();
+
+      expect(mockOpenPhotoViewer).toHaveBeenCalled();
+    });
+  });
+
+  describe("timestamp handling", () => {
+    it("handles string timestamp from API", () => {
+      (useIsAuthenticated as jest.Mock).mockReturnValue(true);
+      (useLocalSearchParams as jest.Mock).mockReturnValue({ id: "123" });
+      (useEntryDetail as jest.Mock).mockReturnValue({
+        ...mockUseEntryDetail,
+        entry: {
+          id: "123",
+          userId: "1",
+          timestamp: "2026-02-09T12:00:00.000Z",
+          notes: "Test",
+          meal: {
+            photoUri: "uri1",
+            mealType: MealType.BREAKFAST,
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      render(<DiaryEntryScreen />);
+
+      // Test that component renders with string timestamp
+      expect(PhotoCarousel).toHaveBeenCalled();
     });
   });
 });

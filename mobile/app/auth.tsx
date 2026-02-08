@@ -2,20 +2,22 @@ import { View, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import { useAuthStore, selectIsAuthenticated } from "@/features/auth/model/authStore";
 import { AuthFlow } from "@/features/auth";
+import { consumePendingDeepLink } from "@/shared/lib/deeplink";
 import { useEffect } from "react";
 
 export default function AuthScreen() {
   const isAuthenticated = useAuthStore(selectIsAuthenticated);
 
   useEffect(() => {
-    // If user is already authenticated, redirect to main app
     if (isAuthenticated) {
-      router.replace("/");
+      const pending = consumePendingDeepLink();
+      router.replace(pending ?? "/");
     }
   }, [isAuthenticated]);
 
   const handleAuthComplete = () => {
-    router.replace("/");
+    const pending = consumePendingDeepLink();
+    router.replace(pending ?? "/");
   };
 
   return (

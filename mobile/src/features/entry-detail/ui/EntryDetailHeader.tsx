@@ -27,6 +27,8 @@ import { useCommonI18n } from '@/shared/lib/i18n';
 export interface EntryDetailHeaderProps {
   /** Callback when back button is pressed */
   onBackPress?: (() => void) | undefined;
+  /** Callback when share button is pressed (optional - hides button if not provided) */
+  onSharePress?: (() => void) | undefined;
   /** Callback when edit button is pressed (optional - hides button if not provided) */
   onEditPress?: (() => void) | undefined;
   /** Whether edit button should be disabled */
@@ -47,6 +49,7 @@ const HEADER_HEIGHT = 48;
 
 export function EntryDetailHeader({
   onBackPress,
+  onSharePress,
   onEditPress,
   editDisabled = false,
   testID,
@@ -72,6 +75,22 @@ export function EntryDetailHeader({
 
       {/* Spacer */}
       <View style={s.spacer} />
+
+      {/* Share Button - Only shown if onSharePress is provided */}
+      {onSharePress && (
+        <Pressable
+          style={s.shareButton}
+          onPress={onSharePress}
+          accessibilityLabel={common.share}
+          accessibilityRole="button"
+        >
+          <Ionicons
+            name="share-outline"
+            size={tokens.size.icon.md}
+            color={s.iconColor.color as string}
+          />
+        </Pressable>
+      )}
 
       {/* Edit Button - Only shown if onEditPress is provided */}
       {onEditPress && (
@@ -113,6 +132,12 @@ const styles = createStyles((colors) => ({
   },
   spacer: {
     flex: 1,
+  },
+  shareButton: {
+    width: tokens.size.touchTarget.md,
+    height: tokens.size.touchTarget.md,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   editButton: {
     minWidth: tokens.size.touchTarget.md,

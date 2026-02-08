@@ -35,5 +35,7 @@
   "sortBy": "Sort By",
   "uploading": "Uploading...",
   "uploadFailed": "Upload failed",
-  "uploadFailedMessage": "Upload failed. Check your connection."
+  "uploadFailedMessage": "Upload failed. Check your connection.",
+  "share": "Share",
+  "shareEntry": "Check out my meal on Mealio!"
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Alert } from "react-native";
+import { Alert, Share, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useQueryClient } from "@tanstack/react-query";
@@ -43,6 +43,10 @@ export interface UseEntryDetailReturn {
   updateNutrition: (nutrition: NutritionInfo) => void;
   deleteEntry: () => void;
   addPhotos: () => void;
+  shareEntry: () => void;
+
+  // Derived
+  canShare: boolean;
 
   // Navigation
   goBack: () => void;
@@ -360,6 +364,25 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
   }, [entryId, isApiEntry, numericId, deleteEntryMutation, router, diary.deleteEntryTitle, diary.deleteEntryMessage, common.cancel, common.delete, common.error, errors.deleteFailed]);
 
   // =============================================================================
+  // SHARE
+  // =============================================================================
+
+  const canShare = isApiEntry && !!entry;
+
+  const shareEntry = useCallback(() => {
+    if (!isApiEntry || !entry) return;
+
+    const url = `https://mealio.zzooapp.com/diary/${numericId}`;
+    const message = common.shareEntry;
+
+    if (Platform.OS === "ios") {
+      Share.share({ url, message });
+    } else {
+      Share.share({ message: `${message}\n${url}` });
+    }
+  }, [isApiEntry, entry, numericId, common.shareEntry]);
+
+  // =============================================================================
   // NAVIGATION
   // =============================================================================
 
@@ -396,6 +419,10 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
     updateNutrition,
     deleteEntry,
     addPhotos,
+    shareEntry,
+
+    // Derived
+    canShare,
 
     // Navigation
     goBack,

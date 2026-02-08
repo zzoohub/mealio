@@ -2,7 +2,8 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
-use axum::extract::State;
+use axum::extract::{Path as AxumPath, State};
+use axum::response::Html;
 use axum::routing::get;
 use axum::{Json, Router};
 use sqlx::migrate::Migrator;
@@ -153,6 +154,8 @@ async fn main() {
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/health", get(health))
+        .route("/diary/{id}", get(diary_fallback))
+        .route("/", get(landing_page))
         .route(
             "/.well-known/apple-app-site-association",
             get(apple_app_site_association),
@@ -224,6 +227,100 @@ async fn asset_links() -> Json<serde_json::Value> {
             }
         }
     ]))
+}
+
+async fn diary_fallback(AxumPath(id): AxumPath<i64>) -> Html<String> {
+    if id <= 0 {
+        let Html(html) = landing_page().await;
+        return Html(html.to_string());
+    }
+    let url = format!("https://mealio.zzooapp.com/diary/{id}");
+    let deep_link = format!("mealio://diary/{id}");
+    Html(format!(
+        r#"<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mealio</title>
+<meta property="og:title" content="Mealio">
+<meta property="og:description" content="Check out this meal on Mealio!">
+<meta property="og:url" content="{url}">
+<meta property="og:type" content="website">
+<meta name="apple-itunes-app" content="app-id=6746208498, app-argument={url}">
+<style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f8f9fa;color:#333}}
+.card{{text-align:center;padding:48px 32px;max-width:400px}}
+h1{{font-size:32px;margin-bottom:8px}}
+p{{font-size:16px;color:#666;margin-bottom:32px}}
+.buttons{{display:flex;flex-direction:column;gap:12px}}
+a{{display:block;padding:14px 24px;border-radius:12px;text-decoration:none;font-size:16px;font-weight:600}}
+.app-store{{background:#000;color:#fff}}
+.play-store{{background:#01875f;color:#fff}}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>Mealio</h1>
+<p>Track your meals with ease</p>
+<div class="buttons">
+<a class="app-store" href="https://apps.apple.com/app/mealio/id6746208498">Download on the App Store</a>
+<a class="play-store" href="https://play.google.com/store/apps/details?id=com.zzoo.mealio">Get it on Google Play</a>
+</div>
+</div>
+<script>
+(function(){{
+  var deep="{deep_link}";
+  var start=Date.now();
+  window.location.href=deep;
+  setTimeout(function(){{
+    if(Date.now()-start<2000){{}}
+  }},1500);
+}})();
+</script>
+</body>
+</html>"#
+    ))
+}
+
+async fn landing_page() -> Html<&'static str> {
+    Html(
+        r#"<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mealio - Track your meals</title>
+<meta property="og:title" content="Mealio">
+<meta property="og:description" content="Track your meals with ease">
+<meta property="og:url" content="https://mealio.zzooapp.com">
+<meta property="og:type" content="website">
+<meta name="apple-itunes-app" content="app-id=6746208498">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f8f9fa;color:#333}
+.card{text-align:center;padding:48px 32px;max-width:400px}
+h1{font-size:32px;margin-bottom:8px}
+p{font-size:16px;color:#666;margin-bottom:32px}
+.buttons{display:flex;flex-direction:column;gap:12px}
+a{display:block;padding:14px 24px;border-radius:12px;text-decoration:none;font-size:16px;font-weight:600}
+.app-store{background:#000;color:#fff}
+.play-store{background:#01875f;color:#fff}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>Mealio</h1>
+<p>Track your meals with ease</p>
+<div class="buttons">
+<a class="app-store" href="https://apps.apple.com/app/mealio/id6746208498">Download on the App Store</a>
+<a class="play-store" href="https://play.google.com/store/apps/details?id=com.zzoo.mealio">Get it on Google Play</a>
+</div>
+</div>
+</body>
+</html>"#,
+    )
 }
 
 fn build_cors() -> CorsLayer {
@@ -399,5 +496,50 @@ mod tests {
 
         assert!(json_string.contains("com.zzoo.mealio"));
         assert!(json_string.contains("delegate_permission/common.handle_all_urls"));
+    }
+
+    #[tokio::test]
+    async fn test_diary_fallback_contains_og_tags() {
+        let response = diary_fallback(AxumPath(123)).await;
+        let html = response.0;
+
+        assert!(html.contains(r#"og:title" content="Mealio"#));
+        assert!(html.contains(r#"og:description"#));
+        assert!(html.contains(r#"og:url" content="https://mealio.zzooapp.com/diary/123"#));
+    }
+
+    #[tokio::test]
+    async fn test_diary_fallback_contains_deep_link() {
+        let response = diary_fallback(AxumPath(456)).await;
+        let html = response.0;
+
+        assert!(html.contains("mealio://diary/456"));
+    }
+
+    #[tokio::test]
+    async fn test_diary_fallback_contains_app_store_links() {
+        let response = diary_fallback(AxumPath(1)).await;
+        let html = response.0;
+
+        assert!(html.contains("apps.apple.com/app/mealio/id6746208498"));
+        assert!(html.contains("play.google.com/store/apps/details?id=com.zzoo.mealio"));
+    }
+
+    #[tokio::test]
+    async fn test_landing_page_contains_mealio() {
+        let response = landing_page().await;
+        let html = response.0;
+
+        assert!(html.contains("Mealio"));
+        assert!(html.contains(r#"og:title" content="Mealio"#));
+    }
+
+    #[tokio::test]
+    async fn test_landing_page_contains_app_store_links() {
+        let response = landing_page().await;
+        let html = response.0;
+
+        assert!(html.contains("apps.apple.com/app/mealio/id6746208498"));
+        assert!(html.contains("play.google.com/store/apps/details?id=com.zzoo.mealio"));
     }
 }

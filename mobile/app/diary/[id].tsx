@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, ScrollView, useWindowDimensions } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { createStyles, useStyles } from "@/shared/ui/theme";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/features/entry-detail";
 import { PhotoCarousel } from "@/shared/ui/styled";
 import { useIsAuthenticated } from "@/shared/lib/auth";
+import { setPendingDeepLink } from "@/shared/lib/deeplink";
 import { CAMERA_SETTINGS } from "@/shared/config";
 
 // =============================================================================
@@ -35,6 +36,18 @@ export default function DiaryEntryScreen() {
   const { height: screenHeight } = useWindowDimensions();
 
   const isAuthenticated = useIsAuthenticated();
+  const router = useRouter();
+
+  const isNumericId = !isNaN(Number(id)) && Number(id) > 0;
+
+  useEffect(() => {
+    if (isNumericId && !isAuthenticated) {
+      setPendingDeepLink(`/diary/${id}`);
+      router.replace("/auth");
+    }
+  }, [isNumericId, isAuthenticated, id, router]);
+
+  if (isNumericId && !isAuthenticated) return null;
 
   const {
     entry,
@@ -50,6 +63,8 @@ export default function DiaryEntryScreen() {
     updateNutrition,
     deleteEntry,
     addPhotos,
+    shareEntry,
+    canShare,
     goBack,
     openPhotoViewer,
   } = useEntryDetail({
@@ -66,7 +81,7 @@ export default function DiaryEntryScreen() {
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
       {/* Header */}
-      <EntryDetailHeader onBackPress={goBack} />
+      <EntryDetailHeader onBackPress={goBack} onSharePress={canShare ? shareEntry : undefined} />
 
       {/* Scrollable Content */}
       <ScrollView
