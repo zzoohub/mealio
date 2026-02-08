@@ -217,7 +217,7 @@ async fn asset_links() -> Json<serde_json::Value> {
             "target": {
                 "namespace": "android_app",
                 "package_name": "com.zzoo.mealio",
-                "sha256_cert_fingerprints": []
+                "sha256_cert_fingerprints": ["B7:F3:36:83:CD:C4:1B:56:FC:94:29:7E:66:DD:4A:A7:2A:A1:6D:3E:06:9E:8D:9D:36:D6:BA:4B:F8:60:40:0F"]
             }
         }
     ]))
@@ -371,7 +371,11 @@ mod tests {
         let target = array[0].get("target").unwrap();
         let fingerprints = target.get("sha256_cert_fingerprints").unwrap().as_array().unwrap();
 
-        assert_eq!(fingerprints.len(), 0, "sha256_cert_fingerprints should be empty array");
+        assert_eq!(fingerprints.len(), 1, "sha256_cert_fingerprints should have one entry");
+        assert_eq!(
+            fingerprints[0].as_str().unwrap(),
+            "B7:F3:36:83:CD:C4:1B:56:FC:94:29:7E:66:DD:4A:A7:2A:A1:6D:3E:06:9E:8D:9D:36:D6:BA:4B:F8:60:40:0F"
+        );
     }
 
     #[tokio::test]
