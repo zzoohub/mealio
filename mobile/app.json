@@ -98,6 +98,12 @@
         }
       ]
     ],
+    "updates": {
+      "url": "https://u.expo.dev/3ccd67e8-81bb-43b2-af35-2e1b5450ba2e"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "experiments": {
       "typedRoutes": true
     },
