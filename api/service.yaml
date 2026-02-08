@@ -17,7 +17,7 @@ spec:
       containerConcurrency: 80
       timeoutSeconds: 300
       containers:
-        - image: us-east4-docker.pkg.dev/mealio-483914/services/api:latest
+        - image: us-east4-docker.pkg.dev/mealio-483914/services/api:98aa441
           ports:
             - containerPort: 8080
           env:
