@@ -7,7 +7,9 @@ description: |
   Do not use for: API design decisions (use api-design skill), thin CRUD apps (use axum skill).
   Workflow: api-design (design) → this skill (implementation).
 references:
-  - examples.md
+  - examples-domain.md
+  - examples-adapters.md
+  - examples-bootstrap.md
 ---
 
 # Axum + Hexagonal Architecture
@@ -24,24 +26,6 @@ Separate **business domain** from **infrastructure**. Domain defines *what*; ada
 ```
 
 **Dependencies always point inward.** Domain code never imports axum, sqlx, or any infrastructure crate.
-
-### When to use
-
-| Scenario | Recommendation |
-|----------|---------------|
-| Startup scaling toward production | ✅ Hex from day one |
-| Team project, moderate+ business logic | ✅ Strong fit |
-| Greenfield in established company | ✅ Clean boundaries |
-| Monolith → microservices path | ✅ Extract domains first |
-| Thin CRUD, no business logic | ❌ Use axum skill |
-| Solo dev / personal project | ⚠️ Learning playground only |
-
-### Trade-offs
-
-- **More code upfront** — transport ↔ domain ↔ persistence translations
-- **Cultural investment** — whole team must understand the rationale
-- **YAGNI risk** — if you'll never swap infra, abstraction has less value
-- **Test balance** — mocked unit tests complement but don't replace integration/E2E
 
 ---
 
@@ -60,13 +44,14 @@ src/
 ├── inbound/http/
 │   ├── server.rs                # HttpServer wrapper around axum
 │   ├── error.rs                 # ApiError → RFC 9457
-│   ├── response.rs              # ApiSuccess
+│   ├── response.rs              # ApiSuccess, Created, Ok, NoContent
 │   └── authors/
 │       ├── handlers.rs          # Parse → call service → map response
 │       ├── request.rs           # CreateAuthorHttpRequestBody
 │       └── response.rs          # AuthorResponseData
 └── outbound/
     ├── sqlite.rs                # impl AuthorRepository for Sqlite
+    ├── postgres.rs              # impl AuthorRepository for Postgres
     ├── prometheus.rs            # impl AuthorMetrics
     └── email_client.rs          # impl AuthorNotifier
 ```
@@ -110,6 +95,9 @@ Three categories: **Repository** (data), **Metrics** (observability), **Notifier
 ## Inbound Layer
 
 - **HttpServer wrapper** — wrap axum so `main` never imports axum.
+  Expose `build_router()` for tests — returns `Router` without binding a port.
+- **DI via State** — services wrapped in `Arc` inside `AppState<AS>`.
+  Handler generic `AS: AuthorService` ensures dependency on trait, never concrete.
 - **Handlers** do three things only: parse input → call service → map response. No SQL.
 - **Request types** decoupled from domain — `try_into_domain()` validates into domain type.
 - **Response types** built via `From<&Author>` — never expose domain structs.
@@ -123,10 +111,13 @@ Three categories: **Repository** (data), **Metrics** (observability), **Notifier
 ## Outbound Layer
 
 - Wrap connection pool in own type (`Sqlite`, `Postgres`).
+- Expose `from_pool()` constructor for tests.
 - **Transactions encapsulated in adapter**, invisible to callers.
 - Keep transactions short. **No external calls (HTTP, queues) inside tx.**
 - Map DB-specific errors (e.g. unique constraint codes) to domain error variants.
 - Unknown DB errors wrapped with `anyhow` context.
+- For complex row types or ORM (diesel, sea-orm), use explicit `to_domain()` mapper in outbound.
+  For simple `sqlx::query!` rows, inline mapping in the adapter is fine.
 
 ### Query Method
 
@@ -142,20 +133,6 @@ Three categories: **Repository** (data), **Metrics** (observability), **Notifier
 PgPoolOptions::new()
     .max_connections(10)
     .acquire_timeout(Duration::from_secs(3))  // Always set this
-```
-
-```rust
-// ✅ Transaction in adapter
-impl AuthorRepository for Sqlite {
-    async fn create_author(&self, req: &CreateAuthorRequest) -> Result<Author, CreateAuthorError> {
-        let mut tx = self.pool.begin().await?;
-        // ... SQL ...
-        tx.commit().await?;
-        Ok(author)
-    }
-}
-// ❌ Never in handler
-let mut tx = db.begin().await?;
 ```
 
 ---
@@ -176,7 +153,7 @@ Auth middleware lives in the inbound layer. Domain never handles raw tokens.
 
 ## Bootstrap (main.rs)
 
-Construct adapters → assemble service → start server. No axum/sqlx imports.
+Construct adapters → assemble service → start server. **No axum/sqlx imports.**
 
 ```rust
 let sqlite = Sqlite::new(&config.database_url).await?;
@@ -184,6 +161,8 @@ let service = AuthorServiceImpl::new(sqlite, metrics, notifier);
 let server = HttpServer::new(service, HttpServerConfig { port: &config.port }).await?;
 server.run().await
 ```
+
+CI: `cargo sqlx prepare && git add .sqlx/` — commit offline query data.
 
 ---
 
@@ -196,7 +175,20 @@ server.run().await
 
 > If you leak transactions into business logic for cross-domain atomicity, your boundaries are wrong.
 
-Monolith → Microservices: extract domain within monolith → refine → stabilize API → then extract.
+---
+
+## Common Gotchas
+
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| `Future is not Send` | Async trait method missing `+ Send` | Use `impl Future<Output = ...> + Send` |
+| `T is not Clone` | Port trait needs `Clone` bound | Wrap in `Arc` or derive `Clone` |
+| `anyhow::Error` not `Clone` | Used in mock results | Wrap mock result in `Arc<Mutex<R>>` |
+| Compile error on `sqlx::query!` | Missing `.sqlx/` offline data | Run `cargo sqlx prepare` |
+| Handler can't extract `State` | Missing `.with_state(state)` | Add state to router |
+| Middleware not running | Layer order wrong | `route_layer` for per-route, `layer` for global |
+| Mutex poisoned | Panic while holding lock | Never panic — return errors |
+| DB pool exhausted | No acquire timeout | Set `acquire_timeout(Duration::from_secs(3))` |
 
 ---
 
@@ -210,6 +202,9 @@ Monolith → Microservices: extract domain within monolith → refine → stabil
 | Business orchestration? | Service impl |
 | Handler responsibility? | Parse → service → response |
 | main responsibility? | Construct adapters → assemble → start |
+| DI mechanism? | `State<AppState<AS>>` with `Arc` |
+| DB row ↔ domain? | `to_domain()` mapper in outbound |
+| Test app? | `HttpServer::build_router()` + `tower::oneshot` |
 
 ---
 
@@ -219,15 +214,15 @@ Monolith → Microservices: extract domain within monolith → refine → stabil
 - [ ] RFC 9457 ProblemDetails error responses
 - [ ] Domain models validate on construction, no `Deserialize`
 - [ ] Domain errors exhaustive with `Unknown(anyhow::Error)`
-- [ ] Port traits: `Clone + Send + Sync + 'static`
+- [ ] Port traits: `Clone + Send + Sync + 'static` with `+ Send` on futures
 - [ ] Service encapsulates orchestration
 - [ ] HTTP types separate from domain
 - [ ] API errors mapped manually, never leaked
 - [ ] Transactions in adapters only
 - [ ] `main` has no axum/sqlx imports
 - [ ] Axum wrapped in `HttpServer`
+- [ ] `build_router()` exposed for tests
 - [ ] Tower layers for middleware (trace, timeout, compression, CORS)
 - [ ] Auth middleware in inbound layer
 - [ ] `acquire_timeout` set on pool
-- [ ] Tests per layer + integration for critical paths
 - [ ] `.sqlx/` committed
