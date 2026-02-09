@@ -70,15 +70,16 @@ impl AuthToken {
         device_info: Option<&str>,
         expires_at: DateTime<Utc>,
     ) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, AuthToken>(
+        sqlx::query_as!(
+            AuthToken,
             "INSERT INTO auth_tokens (user_id, token_hash, device_info, expires_at)
              VALUES ($1, $2, $3, $4)
              RETURNING id, user_id, token_hash, device_info, expires_at, revoked_at, created_at",
+            user_id,
+            token_hash,
+            device_info,
+            expires_at,
         )
-        .bind(user_id)
-        .bind(token_hash)
-        .bind(device_info)
-        .bind(expires_at)
         .fetch_one(db)
         .await
     }
@@ -87,12 +88,13 @@ impl AuthToken {
         db: E,
         token_hash: &str,
     ) -> Result<Option<Self>, sqlx::Error> {
-        sqlx::query_as::<_, AuthToken>(
+        sqlx::query_as!(
+            AuthToken,
             "SELECT id, user_id, token_hash, device_info, expires_at, revoked_at, created_at
              FROM auth_tokens
              WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > now()",
+            token_hash,
         )
-        .bind(token_hash)
         .fetch_optional(db)
         .await
     }
@@ -101,12 +103,13 @@ impl AuthToken {
         db: E,
         token_hash: &str,
     ) -> Result<Option<Self>, sqlx::Error> {
-        sqlx::query_as::<_, AuthToken>(
+        sqlx::query_as!(
+            AuthToken,
             "SELECT id, user_id, token_hash, device_info, expires_at, revoked_at, created_at
              FROM auth_tokens
              WHERE token_hash = $1",
+            token_hash,
         )
-        .bind(token_hash)
         .fetch_optional(db)
         .await
     }
@@ -115,10 +118,12 @@ impl AuthToken {
         db: E,
         token_hash: &str,
     ) -> Result<(), sqlx::Error> {
-        sqlx::query("UPDATE auth_tokens SET revoked_at = now() WHERE token_hash = $1")
-            .bind(token_hash)
-            .execute(db)
-            .await?;
+        sqlx::query!(
+            "UPDATE auth_tokens SET revoked_at = now() WHERE token_hash = $1",
+            token_hash,
+        )
+        .execute(db)
+        .await?;
         Ok(())
     }
 
@@ -126,10 +131,10 @@ impl AuthToken {
         db: E,
         user_id: i64,
     ) -> Result<(), sqlx::Error> {
-        sqlx::query(
+        sqlx::query!(
             "UPDATE auth_tokens SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL",
+            user_id,
         )
-        .bind(user_id)
         .execute(db)
         .await?;
         Ok(())
@@ -142,13 +147,14 @@ impl UserAuthProvider {
         provider: &str,
         provider_uid: &str,
     ) -> Result<Option<Self>, sqlx::Error> {
-        sqlx::query_as::<_, UserAuthProvider>(
+        sqlx::query_as!(
+            UserAuthProvider,
             "SELECT id, user_id, provider, provider_uid, created_at
              FROM user_auth_providers
              WHERE provider = $1 AND provider_uid = $2",
+            provider,
+            provider_uid,
         )
-        .bind(provider)
-        .bind(provider_uid)
         .fetch_optional(db)
         .await
     }
@@ -159,14 +165,15 @@ impl UserAuthProvider {
         provider: &str,
         provider_uid: &str,
     ) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, UserAuthProvider>(
+        sqlx::query_as!(
+            UserAuthProvider,
             "INSERT INTO user_auth_providers (user_id, provider, provider_uid)
              VALUES ($1, $2, $3)
              RETURNING id, user_id, provider, provider_uid, created_at",
+            user_id,
+            provider,
+            provider_uid,
         )
-        .bind(user_id)
-        .bind(provider)
-        .bind(provider_uid)
         .fetch_one(db)
         .await
     }

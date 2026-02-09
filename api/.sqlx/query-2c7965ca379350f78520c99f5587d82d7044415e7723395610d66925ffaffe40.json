@@ -1,0 +1,115 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO diary_entries (user_id, meal_type, notes, eaten_at)\n             VALUES ($1, $2, $3, COALESCE($4, now()))\n             RETURNING id, user_id, meal_type as \"meal_type: MealType\", notes, eaten_at, created_at, updated_at,\n                       NULL::text AS primary_photo_url,\n                       ARRAY[]::text[] AS \"photo_urls!: Vec<String>\",\n                       rating, would_eat_again",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "meal_type: MealType",
+        "type_info": {
+          "Custom": {
+            "name": "meal_type",
+            "kind": {
+              "Enum": [
+                "breakfast",
+                "lunch",
+                "dinner",
+                "snack",
+                "dessert",
+                "drink",
+                "other"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "eaten_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "primary_photo_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "photo_urls!: Vec<String>",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 9,
+        "name": "rating",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 10,
+        "name": "would_eat_again",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "meal_type",
+            "kind": {
+              "Enum": [
+                "breakfast",
+                "lunch",
+                "dinner",
+                "snack",
+                "dessert",
+                "drink",
+                "other"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      null,
+      null,
+      true,
+      true
+    ]
+  },
+  "hash": "2c7965ca379350f78520c99f5587d82d7044415e7723395610d66925ffaffe40"
+}

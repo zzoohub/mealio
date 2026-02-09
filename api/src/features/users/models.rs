@@ -44,11 +44,12 @@ impl User {
         db: E,
         id: i64,
     ) -> Result<Option<Self>, sqlx::Error> {
-        sqlx::query_as::<_, User>(
+        sqlx::query_as!(
+            User,
             "SELECT id, display_name, email, photo_url, created_at, updated_at, deleted_at
              FROM users WHERE id = $1 AND deleted_at IS NULL",
+            id,
         )
-        .bind(id)
         .fetch_optional(db)
         .await
     }
@@ -59,14 +60,15 @@ impl User {
         email: &str,
         photo_url: Option<&str>,
     ) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, User>(
+        sqlx::query_as!(
+            User,
             "INSERT INTO users (display_name, email, photo_url)
              VALUES ($1, $2, $3)
              RETURNING id, display_name, email, photo_url, created_at, updated_at, deleted_at",
+            display_name,
+            email,
+            photo_url,
         )
-        .bind(display_name)
-        .bind(email)
-        .bind(photo_url)
         .fetch_one(db)
         .await
     }
@@ -77,16 +79,17 @@ impl User {
         display_name: Option<&str>,
         photo_url: Option<&str>,
     ) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, User>(
+        sqlx::query_as!(
+            User,
             "UPDATE users
              SET display_name = COALESCE($2, display_name),
                  photo_url = COALESCE($3, photo_url)
              WHERE id = $1 AND deleted_at IS NULL
              RETURNING id, display_name, email, photo_url, created_at, updated_at, deleted_at",
+            id,
+            display_name,
+            photo_url,
         )
-        .bind(id)
-        .bind(display_name)
-        .bind(photo_url)
         .fetch_one(db)
         .await
     }
@@ -95,10 +98,12 @@ impl User {
         db: E,
         id: i64,
     ) -> Result<(), sqlx::Error> {
-        sqlx::query("UPDATE users SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL")
-            .bind(id)
-            .execute(db)
-            .await?;
+        sqlx::query!(
+            "UPDATE users SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL",
+            id,
+        )
+        .execute(db)
+        .await?;
         Ok(())
     }
 
@@ -108,7 +113,8 @@ impl User {
         display_name: &str,
         photo_url: Option<&str>,
     ) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, User>(
+        sqlx::query_as!(
+            User,
             "UPDATE users
              SET deleted_at = NULL,
                  display_name = $2,
@@ -116,10 +122,10 @@ impl User {
                  updated_at = now()
              WHERE id = $1 AND deleted_at IS NOT NULL
              RETURNING id, display_name, email, photo_url, created_at, updated_at, deleted_at",
+            id,
+            display_name,
+            photo_url,
         )
-        .bind(id)
-        .bind(display_name)
-        .bind(photo_url)
         .fetch_one(db)
         .await
     }
@@ -130,11 +136,12 @@ impl UserSettings {
         db: E,
         user_id: i64,
     ) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, UserSettings>(
+        sqlx::query_as!(
+            UserSettings,
             "SELECT id, user_id, theme, language, notifications_enabled, privacy_profile_public, created_at, updated_at
              FROM user_settings WHERE user_id = $1",
+            user_id,
         )
-        .bind(user_id)
         .fetch_one(db)
         .await
     }
@@ -147,7 +154,8 @@ impl UserSettings {
         notifications_enabled: Option<bool>,
         privacy_profile_public: Option<bool>,
     ) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, UserSettings>(
+        sqlx::query_as!(
+            UserSettings,
             "UPDATE user_settings
              SET theme = COALESCE($2, theme),
                  language = COALESCE($3, language),
@@ -155,12 +163,12 @@ impl UserSettings {
                  privacy_profile_public = COALESCE($5, privacy_profile_public)
              WHERE user_id = $1
              RETURNING id, user_id, theme, language, notifications_enabled, privacy_profile_public, created_at, updated_at",
+            user_id,
+            theme,
+            language,
+            notifications_enabled,
+            privacy_profile_public,
         )
-        .bind(user_id)
-        .bind(theme)
-        .bind(language)
-        .bind(notifications_enabled)
-        .bind(privacy_profile_public)
         .fetch_one(db)
         .await
     }

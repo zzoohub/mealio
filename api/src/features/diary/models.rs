@@ -125,6 +125,8 @@ impl DiaryEntry {
         Ok(())
     }
 
+    /// Uses runtime queries because ORDER BY clause is dynamic.
+    /// SAFETY: `to_sql()` returns only `&'static str` from enum variants — no user input reaches `format!()`.
     pub async fn list(
         db: &PgPool,
         user_id: i64,
@@ -205,20 +207,21 @@ impl DiaryEntry {
     }
 
     pub async fn find_by_id(db: &PgPool, id: i64, user_id: i64) -> Result<Option<Self>, sqlx::Error> {
-        sqlx::query_as::<_, DiaryEntry>(
-            "SELECT d.id, d.user_id, d.meal_type, d.notes, d.eaten_at, d.created_at, d.updated_at,
+        sqlx::query_as!(
+            DiaryEntry,
+            r#"SELECT d.id, d.user_id, d.meal_type as "meal_type: MealType", d.notes, d.eaten_at, d.created_at, d.updated_at,
                     (SELECT ep.url FROM entry_photos ep
                      WHERE ep.entry_id = d.id
                      ORDER BY ep.is_primary DESC, ep.sort_order, ep.created_at
                      LIMIT 1) AS primary_photo_url,
                     ARRAY(SELECT ep.url FROM entry_photos ep
                           WHERE ep.entry_id = d.id
-                          ORDER BY ep.sort_order, ep.created_at) AS photo_urls,
+                          ORDER BY ep.sort_order, ep.created_at) AS "photo_urls!: Vec<String>",
                     d.rating, d.would_eat_again
-             FROM diary_entries d WHERE d.id = $1 AND d.user_id = $2 AND d.deleted_at IS NULL",
+             FROM diary_entries d WHERE d.id = $1 AND d.user_id = $2 AND d.deleted_at IS NULL"#,
+            id,
+            user_id,
         )
-        .bind(id)
-        .bind(user_id)
         .fetch_optional(db)
         .await
     }
@@ -230,18 +233,19 @@ impl DiaryEntry {
         notes: Option<&str>,
         eaten_at: Option<DateTime<Utc>>,
     ) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, DiaryEntry>(
-            "INSERT INTO diary_entries (user_id, meal_type, notes, eaten_at)
+        sqlx::query_as!(
+            DiaryEntry,
+            r#"INSERT INTO diary_entries (user_id, meal_type, notes, eaten_at)
              VALUES ($1, $2, $3, COALESCE($4, now()))
-             RETURNING id, user_id, meal_type, notes, eaten_at, created_at, updated_at,
+             RETURNING id, user_id, meal_type as "meal_type: MealType", notes, eaten_at, created_at, updated_at,
                        NULL::text AS primary_photo_url,
-                       ARRAY[]::text[] AS photo_urls,
-                       rating, would_eat_again",
+                       ARRAY[]::text[] AS "photo_urls!: Vec<String>",
+                       rating, would_eat_again"#,
+            user_id,
+            meal_type as &MealType,
+            notes,
+            eaten_at,
         )
-        .bind(user_id)
-        .bind(meal_type)
-        .bind(notes)
-        .bind(eaten_at)
         .fetch_one(db)
         .await
     }
@@ -256,41 +260,42 @@ impl DiaryEntry {
         rating: Option<i16>,
         would_eat_again: Option<bool>,
     ) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, DiaryEntry>(
-            "UPDATE diary_entries
+        sqlx::query_as!(
+            DiaryEntry,
+            r#"UPDATE diary_entries
              SET meal_type = COALESCE($3, meal_type),
                  notes = COALESCE($4, notes),
                  eaten_at = COALESCE($5, eaten_at),
                  rating = COALESCE($6, rating),
                  would_eat_again = COALESCE($7, would_eat_again)
              WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
-             RETURNING id, user_id, meal_type, notes, eaten_at, created_at, updated_at,
+             RETURNING id, user_id, meal_type as "meal_type: MealType", notes, eaten_at, created_at, updated_at,
                        (SELECT ep.url FROM entry_photos ep
                         WHERE ep.entry_id = id
                         ORDER BY ep.is_primary DESC, ep.sort_order, ep.created_at
                         LIMIT 1) AS primary_photo_url,
                        ARRAY(SELECT ep.url FROM entry_photos ep
                              WHERE ep.entry_id = id
-                             ORDER BY ep.sort_order, ep.created_at) AS photo_urls,
-                       rating, would_eat_again",
+                             ORDER BY ep.sort_order, ep.created_at) AS "photo_urls!: Vec<String>",
+                       rating, would_eat_again"#,
+            id,
+            user_id,
+            meal_type as Option<&MealType>,
+            notes,
+            eaten_at,
+            rating,
+            would_eat_again,
         )
-        .bind(id)
-        .bind(user_id)
-        .bind(meal_type)
-        .bind(notes)
-        .bind(eaten_at)
-        .bind(rating)
-        .bind(would_eat_again)
         .fetch_one(db)
         .await
     }
 
     pub async fn soft_delete(db: &PgPool, id: i64, user_id: i64) -> Result<(), sqlx::Error> {
-        sqlx::query(
+        sqlx::query!(
             "UPDATE diary_entries SET deleted_at = now() WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL",
+            id,
+            user_id,
         )
-        .bind(id)
-        .bind(user_id)
         .execute(db)
         .await?;
         Ok(())
@@ -299,11 +304,12 @@ impl DiaryEntry {
 
 impl EntryLocation {
     pub async fn find_by_entry_id(db: &PgPool, entry_id: i64) -> Result<Option<Self>, sqlx::Error> {
-        sqlx::query_as::<_, EntryLocation>(
+        sqlx::query_as!(
+            EntryLocation,
             "SELECT id, entry_id, name, latitude, longitude, address, created_at, updated_at
              FROM entry_locations WHERE entry_id = $1",
+            entry_id,
         )
-        .bind(entry_id)
         .fetch_optional(db)
         .await
     }
@@ -316,25 +322,25 @@ impl EntryLocation {
         longitude: f64,
         address: Option<&str>,
     ) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, EntryLocation>(
+        sqlx::query_as!(
+            EntryLocation,
             "INSERT INTO entry_locations (entry_id, name, latitude, longitude, address)
              VALUES ($1, $2, $3, $4, $5)
              ON CONFLICT (entry_id)
              DO UPDATE SET name = $2, latitude = $3, longitude = $4, address = $5
              RETURNING id, entry_id, name, latitude, longitude, address, created_at, updated_at",
+            entry_id,
+            name,
+            latitude,
+            longitude,
+            address,
         )
-        .bind(entry_id)
-        .bind(name)
-        .bind(latitude)
-        .bind(longitude)
-        .bind(address)
         .fetch_one(db)
         .await
     }
 
     pub async fn delete_by_entry_id(db: &PgPool, entry_id: i64) -> Result<(), sqlx::Error> {
-        sqlx::query("DELETE FROM entry_locations WHERE entry_id = $1")
-            .bind(entry_id)
+        sqlx::query!("DELETE FROM entry_locations WHERE entry_id = $1", entry_id)
             .execute(db)
             .await?;
         Ok(())

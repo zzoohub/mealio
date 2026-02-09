@@ -45,11 +45,12 @@ pub struct UpsertNutritionRequest {
 
 impl UserNutrition {
     pub async fn find_by_entry_id(db: &PgPool, entry_id: i64) -> Result<Option<Self>, sqlx::Error> {
-        sqlx::query_as::<_, UserNutrition>(
+        sqlx::query_as!(
+            UserNutrition,
             "SELECT id, entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, created_at, updated_at
              FROM user_nutrition WHERE entry_id = $1",
+            entry_id,
         )
-        .bind(entry_id)
         .fetch_optional(db)
         .await
     }
@@ -59,28 +60,28 @@ impl UserNutrition {
         entry_id: i64,
         req: &UpsertNutritionRequest,
     ) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, UserNutrition>(
+        sqlx::query_as!(
+            UserNutrition,
             "INSERT INTO user_nutrition (entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
              ON CONFLICT (entry_id)
              DO UPDATE SET calories = $2, protein_grams = $3, fat_grams = $4, carbs_grams = $5, fiber_grams = $6, sugar_grams = $7, sodium_mg = $8
              RETURNING id, entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, created_at, updated_at",
+            entry_id,
+            req.calories.as_ref() as Option<&BigDecimal>,
+            req.protein_grams.as_ref() as Option<&BigDecimal>,
+            req.fat_grams.as_ref() as Option<&BigDecimal>,
+            req.carbs_grams.as_ref() as Option<&BigDecimal>,
+            req.fiber_grams.as_ref() as Option<&BigDecimal>,
+            req.sugar_grams.as_ref() as Option<&BigDecimal>,
+            req.sodium_mg.as_ref() as Option<&BigDecimal>,
         )
-        .bind(entry_id)
-        .bind(&req.calories)
-        .bind(&req.protein_grams)
-        .bind(&req.fat_grams)
-        .bind(&req.carbs_grams)
-        .bind(&req.fiber_grams)
-        .bind(&req.sugar_grams)
-        .bind(&req.sodium_mg)
         .fetch_one(db)
         .await
     }
 
     pub async fn delete_by_entry_id(db: &PgPool, entry_id: i64) -> Result<(), sqlx::Error> {
-        sqlx::query("DELETE FROM user_nutrition WHERE entry_id = $1")
-            .bind(entry_id)
+        sqlx::query!("DELETE FROM user_nutrition WHERE entry_id = $1", entry_id)
             .execute(db)
             .await?;
         Ok(())

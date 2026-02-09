@@ -52,32 +52,34 @@ pub struct CreateAnalysisRequest {
 
 impl AiAnalysis {
     pub async fn find_by_entry_id(db: &PgPool, entry_id: i64) -> Result<Option<Self>, sqlx::Error> {
-        sqlx::query_as::<_, AiAnalysis>(
+        sqlx::query_as!(
+            AiAnalysis,
             "SELECT id, entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, description, confidence_score, raw_response, created_at
              FROM ai_analyses WHERE entry_id = $1 ORDER BY created_at DESC LIMIT 1",
+            entry_id,
         )
-        .bind(entry_id)
         .fetch_optional(db)
         .await
     }
 
     pub async fn create(db: &PgPool, entry_id: i64, req: &CreateAnalysisRequest) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, AiAnalysis>(
+        sqlx::query_as!(
+            AiAnalysis,
             "INSERT INTO ai_analyses (entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, description, confidence_score, raw_response)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
              RETURNING id, entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, description, confidence_score, raw_response, created_at",
+            entry_id,
+            req.calories.as_ref() as Option<&BigDecimal>,
+            req.protein_grams.as_ref() as Option<&BigDecimal>,
+            req.fat_grams.as_ref() as Option<&BigDecimal>,
+            req.carbs_grams.as_ref() as Option<&BigDecimal>,
+            req.fiber_grams.as_ref() as Option<&BigDecimal>,
+            req.sugar_grams.as_ref() as Option<&BigDecimal>,
+            req.sodium_mg.as_ref() as Option<&BigDecimal>,
+            req.description.as_deref(),
+            req.confidence_score.as_ref() as Option<&BigDecimal>,
+            req.raw_response.as_ref() as Option<&serde_json::Value>,
         )
-        .bind(entry_id)
-        .bind(&req.calories)
-        .bind(&req.protein_grams)
-        .bind(&req.fat_grams)
-        .bind(&req.carbs_grams)
-        .bind(&req.fiber_grams)
-        .bind(&req.sugar_grams)
-        .bind(&req.sodium_mg)
-        .bind(&req.description)
-        .bind(&req.confidence_score)
-        .bind(&req.raw_response)
         .fetch_one(db)
         .await
     }

@@ -62,37 +62,39 @@ impl Ingredient {
         let per_page = params.per_page.unwrap_or(20).clamp(1, 100);
         let offset = (page - 1) * per_page;
 
-        let count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM ingredients
+        let row = sqlx::query!(
+            "SELECT COUNT(*) as \"count!: i64\" FROM ingredients
              WHERE ($1::text IS NULL OR name % $1 OR name ILIKE '%' || $1 || '%')",
+            params.q.as_deref(),
         )
-        .bind(&params.q)
         .fetch_one(db)
         .await?;
 
-        let ingredients = sqlx::query_as::<_, Ingredient>(
+        let ingredients = sqlx::query_as!(
+            Ingredient,
             "SELECT id, name, category, created_at FROM ingredients
              WHERE ($1::text IS NULL OR name % $1 OR name ILIKE '%' || $1 || '%')
              ORDER BY CASE WHEN $1::text IS NOT NULL THEN similarity(name, $1) END DESC NULLS LAST, name
              LIMIT $2 OFFSET $3",
+            params.q.as_deref(),
+            per_page,
+            offset,
         )
-        .bind(&params.q)
-        .bind(per_page)
-        .bind(offset)
         .fetch_all(db)
         .await?;
 
-        Ok((ingredients, count.0))
+        Ok((ingredients, row.count))
     }
 
     pub async fn create(db: &PgPool, name: &str, category: Option<&str>) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, Ingredient>(
+        sqlx::query_as!(
+            Ingredient,
             "INSERT INTO ingredients (name, category)
              VALUES ($1, $2)
              RETURNING id, name, category, created_at",
+            name,
+            category,
         )
-        .bind(name)
-        .bind(category)
         .fetch_one(db)
         .await
     }
@@ -100,14 +102,15 @@ impl Ingredient {
 
 impl EntryIngredient {
     pub async fn list_by_entry_id(db: &PgPool, entry_id: i64) -> Result<Vec<EntryIngredientWithName>, sqlx::Error> {
-        sqlx::query_as::<_, EntryIngredientWithName>(
+        sqlx::query_as!(
+            EntryIngredientWithName,
             "SELECT ei.id, ei.entry_id, ei.ingredient_id, i.name as ingredient_name, ei.amount, ei.unit, ei.created_at
              FROM entry_ingredients ei
              JOIN ingredients i ON i.id = ei.ingredient_id
              WHERE ei.entry_id = $1
              ORDER BY ei.created_at",
+            entry_id,
         )
-        .bind(entry_id)
         .fetch_all(db)
         .await
     }
@@ -119,15 +122,16 @@ impl EntryIngredient {
         amount: Option<&str>,
         unit: Option<&str>,
     ) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, EntryIngredient>(
+        sqlx::query_as!(
+            EntryIngredient,
             "INSERT INTO entry_ingredients (entry_id, ingredient_id, amount, unit)
              VALUES ($1, $2, $3, $4)
              RETURNING id, entry_id, ingredient_id, amount, unit, created_at",
+            entry_id,
+            ingredient_id,
+            amount,
+            unit,
         )
-        .bind(entry_id)
-        .bind(ingredient_id)
-        .bind(amount)
-        .bind(unit)
         .fetch_one(db)
         .await
     }
@@ -139,19 +143,18 @@ impl EntryIngredient {
     ) -> Result<Vec<EntryIngredientWithName>, sqlx::Error> {
         let mut tx = db.begin().await?;
 
-        sqlx::query("DELETE FROM entry_ingredients WHERE entry_id = $1")
-            .bind(entry_id)
+        sqlx::query!("DELETE FROM entry_ingredients WHERE entry_id = $1", entry_id)
             .execute(&mut *tx)
             .await?;
 
         for ing in ingredients {
-            sqlx::query(
+            sqlx::query!(
                 "INSERT INTO entry_ingredients (entry_id, ingredient_id, amount, unit) VALUES ($1, $2, $3, $4)",
+                entry_id,
+                ing.ingredient_id,
+                ing.amount.as_deref(),
+                ing.unit.as_deref(),
             )
-            .bind(entry_id)
-            .bind(ing.ingredient_id)
-            .bind(&ing.amount)
-            .bind(&ing.unit)
             .execute(&mut *tx)
             .await?;
         }
@@ -162,11 +165,13 @@ impl EntryIngredient {
     }
 
     pub async fn unlink(db: &PgPool, entry_id: i64, ingredient_id: i64) -> Result<(), sqlx::Error> {
-        sqlx::query("DELETE FROM entry_ingredients WHERE entry_id = $1 AND ingredient_id = $2")
-            .bind(entry_id)
-            .bind(ingredient_id)
-            .execute(db)
-            .await?;
+        sqlx::query!(
+            "DELETE FROM entry_ingredients WHERE entry_id = $1 AND ingredient_id = $2",
+            entry_id,
+            ingredient_id,
+        )
+        .execute(db)
+        .await?;
         Ok(())
     }
 }

@@ -150,33 +150,14 @@ pub async fn overview(
     }))
 }
 
-#[derive(sqlx::FromRow)]
-struct NutritionStatsRow {
-    total_entries: i64,
-    avg_calories: Option<BigDecimal>,
-    total_calories: Option<BigDecimal>,
-    avg_protein: Option<BigDecimal>,
-    total_protein: Option<BigDecimal>,
-    avg_fat: Option<BigDecimal>,
-    total_fat: Option<BigDecimal>,
-    avg_sugar: Option<BigDecimal>,
-    total_sugar: Option<BigDecimal>,
-    avg_carbs: Option<BigDecimal>,
-    total_carbs: Option<BigDecimal>,
-    avg_fiber: Option<BigDecimal>,
-    total_fiber: Option<BigDecimal>,
-    avg_sodium: Option<BigDecimal>,
-    total_sodium: Option<BigDecimal>,
-}
-
 async fn fetch_nutrition_stats(
     db: &sqlx::PgPool,
     user_id: i64,
     params: &StatsParams,
 ) -> Result<NutritionStats, AppError> {
-    let row = sqlx::query_as::<_, NutritionStatsRow>(
-        "SELECT
-            COUNT(de.id) as total_entries,
+    let row = sqlx::query!(
+        r#"SELECT
+            COUNT(de.id) as "total_entries!: i64",
             AVG(un.calories) as avg_calories,
             SUM(un.calories) as total_calories,
             AVG(un.protein_grams) as avg_protein,
@@ -195,11 +176,11 @@ async fn fetch_nutrition_stats(
         LEFT JOIN user_nutrition un ON un.entry_id = de.id
         WHERE de.user_id = $1 AND de.deleted_at IS NULL
         AND ($2::date IS NULL OR de.eaten_at::date >= $2)
-        AND ($3::date IS NULL OR de.eaten_at::date <= $3)",
+        AND ($3::date IS NULL OR de.eaten_at::date <= $3)"#,
+        user_id,
+        params.start_date,
+        params.end_date,
     )
-    .bind(user_id)
-    .bind(params.start_date)
-    .bind(params.end_date)
     .fetch_one(db)
     .await?;
 
@@ -227,18 +208,19 @@ async fn fetch_meal_type_counts(
     user_id: i64,
     params: &StatsParams,
 ) -> Result<Vec<MealTypeCount>, AppError> {
-    let rows = sqlx::query_as::<_, MealTypeCount>(
-        "SELECT meal_type, COUNT(*) as count
+    let rows = sqlx::query_as!(
+        MealTypeCount,
+        r#"SELECT meal_type as "meal_type: MealType", COUNT(*)::int8 as "count!"
          FROM diary_entries
          WHERE user_id = $1 AND deleted_at IS NULL
          AND ($2::date IS NULL OR eaten_at::date >= $2)
          AND ($3::date IS NULL OR eaten_at::date <= $3)
          GROUP BY meal_type
-         ORDER BY count DESC",
+         ORDER BY COUNT(*) DESC"#,
+        user_id,
+        params.start_date,
+        params.end_date,
     )
-    .bind(user_id)
-    .bind(params.start_date)
-    .bind(params.end_date)
     .fetch_all(db)
     .await?;
 
@@ -250,8 +232,9 @@ async fn fetch_top_ingredients(
     user_id: i64,
     params: &StatsParams,
 ) -> Result<Vec<TopIngredient>, AppError> {
-    let rows = sqlx::query_as::<_, TopIngredient>(
-        "SELECT i.id as ingredient_id, i.name as ingredient_name, COUNT(*) as usage_count
+    let rows = sqlx::query_as!(
+        TopIngredient,
+        r#"SELECT i.id as "ingredient_id!", i.name as "ingredient_name!", COUNT(*)::int8 as "usage_count!"
          FROM entry_ingredients ei
          JOIN ingredients i ON i.id = ei.ingredient_id
          JOIN diary_entries de ON de.id = ei.entry_id
@@ -259,12 +242,12 @@ async fn fetch_top_ingredients(
          AND ($2::date IS NULL OR de.eaten_at::date >= $2)
          AND ($3::date IS NULL OR de.eaten_at::date <= $3)
          GROUP BY i.id, i.name
-         ORDER BY usage_count DESC
-         LIMIT 20",
+         ORDER BY COUNT(*) DESC
+         LIMIT 20"#,
+        user_id,
+        params.start_date,
+        params.end_date,
     )
-    .bind(user_id)
-    .bind(params.start_date)
-    .bind(params.end_date)
     .fetch_all(db)
     .await?;
 

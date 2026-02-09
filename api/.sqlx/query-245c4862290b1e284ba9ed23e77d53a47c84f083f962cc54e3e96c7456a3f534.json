@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, description, confidence_score, raw_response, created_at\n             FROM ai_analyses WHERE entry_id = $1 ORDER BY created_at DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "entry_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "calories",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "protein_grams",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "fat_grams",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "carbs_grams",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "fiber_grams",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "sugar_grams",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "sodium_mg",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "confidence_score",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 11,
+        "name": "raw_response",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "245c4862290b1e284ba9ed23e77d53a47c84f083f962cc54e3e96c7456a3f534"
+}

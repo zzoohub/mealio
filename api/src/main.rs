@@ -191,7 +191,7 @@ async fn main() {
 }
 
 async fn health(State(state): State<AppState>) -> Json<serde_json::Value> {
-    let db_ok = sqlx::query_scalar::<_, i32>("SELECT 1")
+    let db_ok = sqlx::query_scalar!("SELECT 1::int4")
         .fetch_one(&state.db)
         .await
         .is_ok();

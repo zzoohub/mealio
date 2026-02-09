@@ -1,0 +1,118 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE diary_entries\n             SET meal_type = COALESCE($3, meal_type),\n                 notes = COALESCE($4, notes),\n                 eaten_at = COALESCE($5, eaten_at),\n                 rating = COALESCE($6, rating),\n                 would_eat_again = COALESCE($7, would_eat_again)\n             WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL\n             RETURNING id, user_id, meal_type as \"meal_type: MealType\", notes, eaten_at, created_at, updated_at,\n                       (SELECT ep.url FROM entry_photos ep\n                        WHERE ep.entry_id = id\n                        ORDER BY ep.is_primary DESC, ep.sort_order, ep.created_at\n                        LIMIT 1) AS primary_photo_url,\n                       ARRAY(SELECT ep.url FROM entry_photos ep\n                             WHERE ep.entry_id = id\n                             ORDER BY ep.sort_order, ep.created_at) AS \"photo_urls!: Vec<String>\",\n                       rating, would_eat_again",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "meal_type: MealType",
+        "type_info": {
+          "Custom": {
+            "name": "meal_type",
+            "kind": {
+              "Enum": [
+                "breakfast",
+                "lunch",
+                "dinner",
+                "snack",
+                "dessert",
+                "drink",
+                "other"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "eaten_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "primary_photo_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "photo_urls!: Vec<String>",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 9,
+        "name": "rating",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 10,
+        "name": "would_eat_again",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        {
+          "Custom": {
+            "name": "meal_type",
+            "kind": {
+              "Enum": [
+                "breakfast",
+                "lunch",
+                "dinner",
+                "snack",
+                "dessert",
+                "drink",
+                "other"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Timestamptz",
+        "Int2",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      null,
+      null,
+      true,
+      true
+    ]
+  },
+  "hash": "3bb590b5d77cd4880497fa09c0360622a20b5f09729efaa314e1855ce225ea17"
+}

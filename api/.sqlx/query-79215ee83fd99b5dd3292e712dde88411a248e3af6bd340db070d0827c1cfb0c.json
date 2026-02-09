@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM entry_photos WHERE id = $1 AND entry_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "79215ee83fd99b5dd3292e712dde88411a248e3af6bd340db070d0827c1cfb0c"
+}

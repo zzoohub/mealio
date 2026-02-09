@@ -1,0 +1,108 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n            COUNT(de.id) as \"total_entries!: i64\",\n            AVG(un.calories) as avg_calories,\n            SUM(un.calories) as total_calories,\n            AVG(un.protein_grams) as avg_protein,\n            SUM(un.protein_grams) as total_protein,\n            AVG(un.fat_grams) as avg_fat,\n            SUM(un.fat_grams) as total_fat,\n            AVG(un.sugar_grams) as avg_sugar,\n            SUM(un.sugar_grams) as total_sugar,\n            AVG(un.carbs_grams) as avg_carbs,\n            SUM(un.carbs_grams) as total_carbs,\n            AVG(un.fiber_grams) as avg_fiber,\n            SUM(un.fiber_grams) as total_fiber,\n            AVG(un.sodium_mg) as avg_sodium,\n            SUM(un.sodium_mg) as total_sodium\n        FROM diary_entries de\n        LEFT JOIN user_nutrition un ON un.entry_id = de.id\n        WHERE de.user_id = $1 AND de.deleted_at IS NULL\n        AND ($2::date IS NULL OR de.eaten_at::date >= $2)\n        AND ($3::date IS NULL OR de.eaten_at::date <= $3)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "total_entries!: i64",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "avg_calories",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 2,
+        "name": "total_calories",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "avg_protein",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "total_protein",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "avg_fat",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "total_fat",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "avg_sugar",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "total_sugar",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "avg_carbs",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "total_carbs",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 11,
+        "name": "avg_fiber",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 12,
+        "name": "total_fiber",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 13,
+        "name": "avg_sodium",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 14,
+        "name": "total_sodium",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "4ae72b0c384e42aab7ab850bd9529a801dc57a9eaee06e0d309d4fadae91a8e0"
+}

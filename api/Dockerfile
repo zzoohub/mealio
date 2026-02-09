@@ -4,6 +4,8 @@ RUN apt-get update && apt-get install -y pkg-config libssl-dev curl && rm -rf /v
 COPY Cargo.toml Cargo.lock ./
 COPY src src
 COPY migrations migrations
+COPY .sqlx .sqlx
+ENV SQLX_OFFLINE=true
 RUN cargo build --release
 
 FROM debian:trixie-slim

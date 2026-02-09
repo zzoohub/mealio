@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT d.id, d.user_id, d.meal_type as \"meal_type: MealType\", d.notes, d.eaten_at, d.created_at, d.updated_at,\n                    (SELECT ep.url FROM entry_photos ep\n                     WHERE ep.entry_id = d.id\n                     ORDER BY ep.is_primary DESC, ep.sort_order, ep.created_at\n                     LIMIT 1) AS primary_photo_url,\n                    ARRAY(SELECT ep.url FROM entry_photos ep\n                          WHERE ep.entry_id = d.id\n                          ORDER BY ep.sort_order, ep.created_at) AS \"photo_urls!: Vec<String>\",\n                    d.rating, d.would_eat_again\n             FROM diary_entries d WHERE d.id = $1 AND d.user_id = $2 AND d.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "meal_type: MealType",
+        "type_info": {
+          "Custom": {
+            "name": "meal_type",
+            "kind": {
+              "Enum": [
+                "breakfast",
+                "lunch",
+                "dinner",
+                "snack",
+                "dessert",
+                "drink",
+                "other"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "eaten_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "primary_photo_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "photo_urls!: Vec<String>",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 9,
+        "name": "rating",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 10,
+        "name": "would_eat_again",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      null,
+      null,
+      true,
+      true
+    ]
+  },
+  "hash": "8dd99bb9899271c04bce8c52bb0ee5c1c364748b21a630096a055417726fdda4"
+}

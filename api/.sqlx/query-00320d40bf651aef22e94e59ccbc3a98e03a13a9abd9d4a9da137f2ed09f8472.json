@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, category, created_at FROM ingredients\n             WHERE ($1::text IS NULL OR name % $1 OR name ILIKE '%' || $1 || '%')\n             ORDER BY CASE WHEN $1::text IS NOT NULL THEN similarity(name, $1) END DESC NULLS LAST, name\n             LIMIT $2 OFFSET $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "category",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "00320d40bf651aef22e94e59ccbc3a98e03a13a9abd9d4a9da137f2ed09f8472"
+}

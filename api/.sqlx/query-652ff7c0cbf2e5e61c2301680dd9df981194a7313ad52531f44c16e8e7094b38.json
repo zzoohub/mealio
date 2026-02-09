@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.id as \"ingredient_id!\", i.name as \"ingredient_name!\", COUNT(*)::int8 as \"usage_count!\"\n         FROM entry_ingredients ei\n         JOIN ingredients i ON i.id = ei.ingredient_id\n         JOIN diary_entries de ON de.id = ei.entry_id\n         WHERE de.user_id = $1 AND de.deleted_at IS NULL\n         AND ($2::date IS NULL OR de.eaten_at::date >= $2)\n         AND ($3::date IS NULL OR de.eaten_at::date <= $3)\n         GROUP BY i.id, i.name\n         ORDER BY COUNT(*) DESC\n         LIMIT 20",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ingredient_id!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "ingredient_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "usage_count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "652ff7c0cbf2e5e61c2301680dd9df981194a7313ad52531f44c16e8e7094b38"
+}

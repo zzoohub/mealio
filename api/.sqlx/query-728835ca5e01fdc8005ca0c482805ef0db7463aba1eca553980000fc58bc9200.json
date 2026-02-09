@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, created_at, updated_at\n             FROM user_nutrition WHERE entry_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "entry_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "calories",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "protein_grams",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "fat_grams",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "carbs_grams",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "fiber_grams",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "sugar_grams",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "sodium_mg",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "728835ca5e01fdc8005ca0c482805ef0db7463aba1eca553980000fc58bc9200"
+}
