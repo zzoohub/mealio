@@ -1,0 +1,83 @@
+name: API
+
+on:
+  push:
+    branches: [main]
+    paths: [api/**]
+  pull_request:
+    branches: [main]
+    paths: [api/**]
+
+concurrency:
+  group: api-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: us-east4-docker.pkg.dev
+  IMAGE: us-east4-docker.pkg.dev/mealio-483914/services/api
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: api
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test
+        env:
+          SQLX_OFFLINE: "true"
+
+      - name: Build
+        run: cargo build --release
+        env:
+          SQLX_OFFLINE: "true"
+
+  cd:
+    name: Deploy
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker "$REGISTRY" --quiet
+
+      - name: Build and push image
+        run: |
+          docker build -t "$IMAGE:$SHA" -t "$IMAGE:${SHA::7}" api/
+          docker push "$IMAGE" --all-tags
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: mealio-api
+          region: us-east4
+          image: ${{ env.IMAGE }}:${{ github.sha }}
