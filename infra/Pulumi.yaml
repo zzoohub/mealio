@@ -1,0 +1,12 @@
+name: mealio-infra
+runtime:
+  name: nodejs
+  options:
+    packagemanager: bun
+description: Infrastructure as Code for Mealio API
+packages:
+  neon:
+    source: terraform-provider
+    version: 1.1.0
+    parameters:
+      - kislerdm/neon

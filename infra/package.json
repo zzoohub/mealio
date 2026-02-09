@@ -1,0 +1,18 @@
+{
+  "name": "mealio-infra",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@pulumi/pulumi": "^3",
+    "@pulumi/gcp": "^8",
+    "@pulumi/cloudflare": "^6",
+    "@pulumi/neon": "file:sdks/neon"
+  },
+  "devDependencies": {
+    "typescript": "^5.5"
+  },
+  "trustedDependencies": ["@pulumi/neon"]
+}
