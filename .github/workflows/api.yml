@@ -29,13 +29,9 @@ jobs:
 
       - name: Build
         run: cargo build --release
-        env:
-          SQLX_OFFLINE: "true"
 
       - name: Test
         run: cargo test
-        env:
-          SQLX_OFFLINE: "true"
 
   deploy:
     name: Deploy to Cloud Run

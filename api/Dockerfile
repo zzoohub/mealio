@@ -2,10 +2,8 @@ FROM rust:1.92-slim AS builder
 WORKDIR /app
 RUN apt-get update && apt-get install -y pkg-config libssl-dev curl && rm -rf /var/lib/apt/lists/*
 COPY Cargo.toml Cargo.lock ./
-COPY .sqlx .sqlx
 COPY src src
 COPY migrations migrations
-ENV SQLX_OFFLINE=true
 RUN cargo build --release
 
 FROM debian:trixie-slim
