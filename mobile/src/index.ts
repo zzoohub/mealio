@@ -6,7 +6,7 @@
 // =============================================================================
 
 // Types
-export type { PaginatedResponse, ThemeColors, BaseComponentProps, LoadingStateType, ApiPaginatedResponse, ApiProblemDetail } from "./shared/types";
+export type { PaginatedResponse, BaseComponentProps, LoadingStateType, ApiPaginatedResponse, ApiProblemDetail } from "./shared/types";
 
 // Config/Constants
 export { CAMERA_SETTINGS, APP_CONFIG, API_CONFIG, STORAGE_KEYS, queryKeys } from "./shared/config";
