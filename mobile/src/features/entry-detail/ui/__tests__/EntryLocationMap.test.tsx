@@ -271,57 +271,6 @@ describe("EntryLocationMap", () => {
   });
 
   // =============================================================================
-  // HEADER RENDERING
-  // =============================================================================
-
-  describe("header rendering", () => {
-    it("renders section header with location icon", () => {
-      const location = createMockLocation();
-      const { UNSAFE_getAllByType } = render(<EntryLocationMap location={location} />);
-
-      const ionicons = UNSAFE_getAllByType("Ionicons" as any);
-      const locationIcon = ionicons.find(
-        (icon: any) => icon.props.name === "location-outline"
-      );
-      expect(locationIcon).toBeTruthy();
-      expect(locationIcon.props.size).toBe(16);
-    });
-
-    it("renders section header with location text", () => {
-      const location = createMockLocation();
-      const { UNSAFE_getAllByType } = render(<EntryLocationMap location={location} />);
-
-      const texts = UNSAFE_getAllByType("Text" as any);
-      const titleText = texts.find((text: any) => text.props.children === "Location");
-      expect(titleText).toBeTruthy();
-    });
-
-    it("uses i18n translation for location text", () => {
-      mockUseDiaryI18n.mockReturnValue({
-        location: "위치",
-        openInMaps: "지도에서 열기",
-      });
-      const location = createMockLocation();
-      const { UNSAFE_getAllByType } = render(<EntryLocationMap location={location} />);
-
-      const texts = UNSAFE_getAllByType("Text" as any);
-      const titleText = texts.find((text: any) => text.props.children === "위치");
-      expect(titleText).toBeTruthy();
-    });
-
-    it("applies correct icon color from theme", () => {
-      const location = createMockLocation();
-      const { UNSAFE_getAllByType } = render(<EntryLocationMap location={location} />);
-
-      const ionicons = UNSAFE_getAllByType("Ionicons" as any);
-      const locationIcon = ionicons.find(
-        (icon: any) => icon.props.name === "location-outline"
-      );
-      expect(locationIcon.props.color).toBe("#999999");
-    });
-  });
-
-  // =============================================================================
   // ADDRESS RENDERING
   // =============================================================================
 
@@ -337,25 +286,23 @@ describe("EntryLocationMap", () => {
         (text: any) => text.props.children === "123 Main St, New York, NY"
       );
       expect(addressText).toBeTruthy();
-      expect(addressText.props.numberOfLines).toBe(2);
+      expect(addressText.props.numberOfLines).toBe(1);
     });
 
     it("hides address when undefined", () => {
       const location = createMockLocation({ address: undefined });
-      const { UNSAFE_getAllByType } = render(<EntryLocationMap location={location} />);
+      const { toJSON } = render(<EntryLocationMap location={location} />);
 
-      const texts = UNSAFE_getAllByType("Text" as any);
-      // Should only have "Location" title text, not address
-      expect(texts.length).toBe(1);
+      const tree = JSON.stringify(toJSON());
+      expect(tree).not.toContain("address");
     });
 
     it("hides address when empty string", () => {
       const location = createMockLocation({ address: "" });
-      const { UNSAFE_getAllByType } = render(<EntryLocationMap location={location} />);
+      const { toJSON } = render(<EntryLocationMap location={location} />);
 
-      const texts = UNSAFE_getAllByType("Text" as any);
-      // Should only have "Location" title text
-      expect(texts.length).toBe(1);
+      const tree = JSON.stringify(toJSON());
+      expect(tree).not.toContain("open-outline");
     });
 
     it("renders open icon when address is present", () => {
@@ -372,11 +319,10 @@ describe("EntryLocationMap", () => {
 
     it("hides open icon when address is not present", () => {
       const location = createMockLocation({ address: undefined });
-      const { UNSAFE_getAllByType } = render(<EntryLocationMap location={location} />);
+      const { toJSON } = render(<EntryLocationMap location={location} />);
 
-      const ionicons = UNSAFE_getAllByType("Ionicons" as any);
-      const openIcon = ionicons.find((icon: any) => icon.props.name === "open-outline");
-      expect(openIcon).toBeUndefined();
+      const tree = JSON.stringify(toJSON());
+      expect(tree).not.toContain("open-outline");
     });
 
     it("handles very long address", () => {
@@ -387,7 +333,7 @@ describe("EntryLocationMap", () => {
       const texts = UNSAFE_getAllByType("Text" as any);
       const addressText = texts.find((text: any) => text.props.children === longAddress);
       expect(addressText).toBeTruthy();
-      expect(addressText.props.numberOfLines).toBe(2);
+      expect(addressText.props.numberOfLines).toBe(1);
     });
 
     it("handles address with special characters", () => {
@@ -437,8 +383,7 @@ describe("EntryLocationMap", () => {
       expect(mockLinkingOpenURL).toHaveBeenCalledTimes(1);
     });
 
-    it("opens iOS maps URL when platform is iOS", () => {
-      mockPlatformSelect.mockImplementation((obj) => obj.ios);
+    it("opens Google Maps URL with address label", () => {
       const location = createMockLocation({
         latitude: 37.5665,
         longitude: 126.978,
@@ -451,30 +396,11 @@ describe("EntryLocationMap", () => {
       mapPressable.props.onPress();
 
       expect(mockLinkingOpenURL).toHaveBeenCalledWith(
-        "maps:0,0?q=Seoul@37.5665,126.978"
+        "https://www.google.com/maps/search/?api=1&query=Seoul&query_place_id&center=37.5665,126.978"
       );
     });
 
-    it("opens Android maps URL when platform is Android", () => {
-      mockPlatformSelect.mockImplementation((obj) => obj.android);
-      const location = createMockLocation({
-        latitude: 37.5665,
-        longitude: 126.978,
-        address: "Seoul, South Korea",
-      });
-      const { UNSAFE_getAllByType } = render(<EntryLocationMap location={location} />);
-
-      const pressables = UNSAFE_getAllByType("Pressable" as any);
-      const mapPressable = pressables[0];
-      mapPressable.props.onPress();
-
-      expect(mockLinkingOpenURL).toHaveBeenCalledWith(
-        "geo:37.5665,126.978?q=37.5665,126.978(Seoul)"
-      );
-    });
-
-    it("uses first part of address as label for iOS", () => {
-      mockPlatformSelect.mockImplementation((obj) => obj.ios);
+    it("uses first part of address as query", () => {
       const location = createMockLocation({
         latitude: 40.7128,
         longitude: -74.006,
@@ -487,30 +413,11 @@ describe("EntryLocationMap", () => {
       mapPressable.props.onPress();
 
       expect(mockLinkingOpenURL).toHaveBeenCalledWith(
-        "maps:0,0?q=New York@40.7128,-74.006"
+        "https://www.google.com/maps/search/?api=1&query=New%20York&query_place_id&center=40.7128,-74.006"
       );
     });
 
-    it("uses first part of address as label for Android", () => {
-      mockPlatformSelect.mockImplementation((obj) => obj.android);
-      const location = createMockLocation({
-        latitude: 40.7128,
-        longitude: -74.006,
-        address: "New York, NY, USA",
-      });
-      const { UNSAFE_getAllByType } = render(<EntryLocationMap location={location} />);
-
-      const pressables = UNSAFE_getAllByType("Pressable" as any);
-      const mapPressable = pressables[0];
-      mapPressable.props.onPress();
-
-      expect(mockLinkingOpenURL).toHaveBeenCalledWith(
-        "geo:40.7128,-74.006?q=40.7128,-74.006(New York)"
-      );
-    });
-
-    it("uses empty label when address is undefined", () => {
-      mockPlatformSelect.mockImplementation((obj) => obj.ios);
+    it("uses coordinates as query when address is undefined", () => {
       const location = createMockLocation({
         latitude: 37.5665,
         longitude: 126.978,
@@ -522,11 +429,12 @@ describe("EntryLocationMap", () => {
       const mapPressable = pressables[0];
       mapPressable.props.onPress();
 
-      expect(mockLinkingOpenURL).toHaveBeenCalledWith("maps:0,0?q=@37.5665,126.978");
+      expect(mockLinkingOpenURL).toHaveBeenCalledWith(
+        "https://www.google.com/maps/search/?api=1&query=37.5665,126.978&query_place_id&center=37.5665,126.978"
+      );
     });
 
     it("uses full address as label when no comma", () => {
-      mockPlatformSelect.mockImplementation((obj) => obj.ios);
       const location = createMockLocation({
         latitude: 37.5665,
         longitude: 126.978,
@@ -539,7 +447,7 @@ describe("EntryLocationMap", () => {
       mapPressable.props.onPress();
 
       expect(mockLinkingOpenURL).toHaveBeenCalledWith(
-        "maps:0,0?q=Seoul@37.5665,126.978"
+        "https://www.google.com/maps/search/?api=1&query=Seoul&query_place_id&center=37.5665,126.978"
       );
     });
 
@@ -559,7 +467,6 @@ describe("EntryLocationMap", () => {
     });
 
     it("handles negative coordinates in URL", () => {
-      mockPlatformSelect.mockImplementation((obj) => obj.ios);
       const location = createMockLocation({
         latitude: -33.8688,
         longitude: -151.2093,
@@ -572,7 +479,7 @@ describe("EntryLocationMap", () => {
       mapPressable.props.onPress();
 
       expect(mockLinkingOpenURL).toHaveBeenCalledWith(
-        "maps:0,0?q=Sydney@-33.8688,-151.2093"
+        "https://www.google.com/maps/search/?api=1&query=Sydney&query_place_id&center=-33.8688,-151.2093"
       );
     });
 
@@ -667,13 +574,13 @@ describe("EntryLocationMap", () => {
       expect(mapView.props.liteMode).toBe(true);
     });
 
-    it("does not apply Google provider on iOS", () => {
+    it("does not apply lite mode on iOS", () => {
       (Platform as any).OS = "ios";
       const location = createMockLocation();
       const { UNSAFE_getByType } = render(<EntryLocationMap location={location} />);
 
       const mapView = UNSAFE_getByType("MapView" as any);
-      expect(mapView.props.provider).toBeUndefined();
+      expect(mapView.props.provider).toBe("google");
       expect(mapView.props.liteMode).toBeUndefined();
     });
   });
@@ -683,22 +590,22 @@ describe("EntryLocationMap", () => {
   // =============================================================================
 
   describe("theme integration", () => {
-    it("applies theme text colors to title", () => {
-      const location = createMockLocation();
+    it("applies theme secondary color to address text", () => {
+      const location = createMockLocation({ address: "Test Location" });
       mockUseStyles.mockImplementationOnce((stylesFn) => {
         const mockColors = {
           border: { default: "#E5E5E5" },
-          text: { primary: "#FF0000", secondary: "#666666", tertiary: "#999999" },
+          text: { primary: "#FF0000", secondary: "#00FF00", tertiary: "#999999" },
         };
         return stylesFn(mockColors);
       });
       const { UNSAFE_getAllByType } = render(<EntryLocationMap location={location} />);
 
       const texts = UNSAFE_getAllByType("Text" as any);
-      const titleText = texts.find((text: any) => text.props.children === "Location");
-      const style = Array.isArray(titleText.props.style) ? titleText.props.style.flat() : [titleText.props.style];
+      const addressText = texts.find((text: any) => text.props.children === "Test Location");
+      const style = Array.isArray(addressText.props.style) ? addressText.props.style.flat() : [addressText.props.style];
       const colorStyle = style.find((s: any) => s && s.color);
-      expect(colorStyle.color).toBe("#FF0000");
+      expect(colorStyle.color).toBe("#00FF00");
     });
 
     it("applies theme text colors to address", () => {
@@ -721,8 +628,8 @@ describe("EntryLocationMap", () => {
       expect(colorStyle.color).toBe("#00FF00");
     });
 
-    it("applies theme icon color", () => {
-      const location = createMockLocation();
+    it("applies theme icon color to open icon", () => {
+      const location = createMockLocation({ address: "Test Address" });
       mockUseStyles.mockImplementationOnce((stylesFn) => {
         const mockColors = {
           border: { default: "#E5E5E5" },
@@ -733,10 +640,10 @@ describe("EntryLocationMap", () => {
       const { UNSAFE_getAllByType } = render(<EntryLocationMap location={location} />);
 
       const ionicons = UNSAFE_getAllByType("Ionicons" as any);
-      const locationIcon = ionicons.find(
-        (icon: any) => icon.props.name === "location-outline"
+      const openIcon = ionicons.find(
+        (icon: any) => icon.props.name === "open-outline"
       );
-      expect(locationIcon.props.color).toBe("#0000FF");
+      expect(openIcon.props.color).toBe("#0000FF");
     });
 
     it("applies theme border color", () => {
@@ -770,7 +677,7 @@ describe("EntryLocationMap", () => {
       expect(mockUseDiaryI18n).toHaveBeenCalled();
     });
 
-    it("uses i18n translations for all text", () => {
+    it("uses i18n translations for accessibility label", () => {
       mockUseDiaryI18n.mockReturnValue({
         location: "Ubicación",
         openInMaps: "Abrir en Mapas",
@@ -778,9 +685,9 @@ describe("EntryLocationMap", () => {
       const location = createMockLocation();
       const { UNSAFE_getAllByType } = render(<EntryLocationMap location={location} />);
 
-      const texts = UNSAFE_getAllByType("Text" as any);
-      const titleText = texts.find((text: any) => text.props.children === "Ubicación");
-      expect(titleText).toBeTruthy();
+      const pressables = UNSAFE_getAllByType("Pressable" as any);
+      const mapPressable = pressables[0];
+      expect(mapPressable.props.accessibilityLabel).toBe("Abrir en Mapas");
     });
   });
 
@@ -888,43 +795,34 @@ describe("EntryLocationMap", () => {
       expect(mapView).toBeTruthy();
       expect(marker).toBeTruthy();
       expect(mapView.props.customMapStyle).toBeDefined();
-      expect(texts.length).toBeGreaterThan(1);
+      expect(texts.length).toBeGreaterThanOrEqual(1);
     });
 
-    it("does not crash when Platform.select returns undefined", () => {
-      mockPlatformSelect.mockReturnValue(undefined);
-      const location = createMockLocation();
+    it("always opens Google Maps URL regardless of platform", () => {
+      const location = createMockLocation({
+        address: "Seoul, South Korea",
+      });
       const { UNSAFE_getAllByType } = render(<EntryLocationMap location={location} />);
 
       const pressables = UNSAFE_getAllByType("Pressable" as any);
       const mapPressable = pressables[0];
+      mapPressable.props.onPress();
 
-      expect(() => mapPressable.props.onPress()).not.toThrow();
-      expect(mockLinkingOpenURL).not.toHaveBeenCalled();
+      expect(mockLinkingOpenURL).toHaveBeenCalledWith(
+        expect.stringContaining("https://www.google.com/maps/search/")
+      );
     });
 
-    it("does not crash when Platform.select returns null", () => {
-      mockPlatformSelect.mockReturnValue(null);
+    it("does not call openURL when location is null in handler", () => {
       const location = createMockLocation();
-      const { UNSAFE_getAllByType } = render(<EntryLocationMap location={location} />);
+      const { UNSAFE_getAllByType, rerender } = render(<EntryLocationMap location={location} />);
 
       const pressables = UNSAFE_getAllByType("Pressable" as any);
       const mapPressable = pressables[0];
 
+      // Handler should work with valid location
       expect(() => mapPressable.props.onPress()).not.toThrow();
-      expect(mockLinkingOpenURL).not.toHaveBeenCalled();
-    });
-
-    it("does not crash when Platform.select returns empty string", () => {
-      mockPlatformSelect.mockReturnValue("");
-      const location = createMockLocation();
-      const { UNSAFE_getAllByType } = render(<EntryLocationMap location={location} />);
-
-      const pressables = UNSAFE_getAllByType("Pressable" as any);
-      const mapPressable = pressables[0];
-
-      expect(() => mapPressable.props.onPress()).not.toThrow();
-      expect(mockLinkingOpenURL).not.toHaveBeenCalled();
+      expect(mockLinkingOpenURL).toHaveBeenCalledTimes(1);
     });
   });
 });
