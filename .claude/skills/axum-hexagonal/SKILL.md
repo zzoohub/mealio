@@ -54,6 +54,7 @@ src/
     ├── postgres.rs              # impl AuthorRepository for Postgres
     ├── prometheus.rs            # impl AuthorMetrics
     └── email_client.rs          # impl AuthorNotifier
+.sqlx/                 # Commit this
 ```
 
 **Rule:** `domain/` never imports from `inbound/` or `outbound/`.
@@ -182,7 +183,7 @@ server.run().await
 | `Future is not Send` | Async trait method missing `+ Send` | Use `impl Future<Output = ...> + Send` |
 | `T is not Clone` | Port trait needs `Clone` bound | Wrap in `Arc` or derive `Clone` |
 | `anyhow::Error` not `Clone` | Used in mock results | Wrap mock result in `Arc<Mutex<R>>` |
-| Compile error on `sqlx::query!` (if using query! macro) | Missing `.sqlx/` offline data | Run `cargo sqlx prepare` |
+| Compile error on `sqlx::query!` | Missing `.sqlx/` offline data | Run `cargo sqlx prepare` |
 | Handler can't extract `State` | Missing `.with_state(state)` | Add state to router |
 | Middleware not running | Layer order wrong | `route_layer` for per-route, `layer` for global |
 | Mutex poisoned | Panic while holding lock | Never panic — return errors |
@@ -223,4 +224,4 @@ server.run().await
 - [ ] Tower layers for middleware (trace, timeout, compression, CORS)
 - [ ] Auth middleware in inbound layer
 - [ ] `acquire_timeout` set on pool
-- [ ] `.sqlx/` committed (if using query! macro)
+- [ ] using compile time query check. and `.sqlx/` must be committed

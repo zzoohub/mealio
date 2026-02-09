@@ -55,7 +55,7 @@ src/
         ├── handlers.rs
         └── models.rs  # Entity + repository
 migrations/
-.sqlx/ (if using query! macro)
+.sqlx/                 # Commit this
 ```
 
 ---
@@ -136,4 +136,4 @@ PgPoolOptions::new()
 - [ ] Repository pattern
 - [ ] Tower layers for cross-cutting concerns
 - [ ] `acquire_timeout` set
-- [ ] `.sqlx/` committed (if using query! macro)
+- [ ] using compile time query check. and `.sqlx/` must be committed
