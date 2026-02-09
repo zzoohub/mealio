@@ -1,0 +1,49 @@
+name: Mobile Build & Submit
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to build
+        required: true
+        default: all
+        type: choice
+        options: [all, ios, android]
+      profile:
+        description: Build profile
+        required: true
+        default: production
+        type: choice
+        options: [production, preview]
+      submit:
+        description: Submit to stores after build
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  build:
+    name: EAS Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: eas build --platform ${{ inputs.platform }} --profile ${{ inputs.profile }} --non-interactive
+
+      - name: Submit
+        if: inputs.submit
+        run: eas submit --platform ${{ inputs.platform }} --latest --non-interactive

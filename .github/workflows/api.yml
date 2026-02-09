@@ -1,0 +1,74 @@
+name: API
+
+on:
+  push:
+    branches: [main]
+    paths: ['api/**']
+  pull_request:
+    branches: [main]
+    paths: ['api/**']
+
+env:
+  IMAGE: us-east4-docker.pkg.dev/mealio-483914/services/api
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: api -> target
+
+      - name: Build
+        run: cargo build --release
+        env:
+          SQLX_OFFLINE: "true"
+
+      - name: Test
+        run: cargo test
+        env:
+          SQLX_OFFLINE: "true"
+
+  deploy:
+    name: Deploy to Cloud Run
+    if: github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Authorize Docker
+        run: gcloud auth configure-docker us-east4-docker.pkg.dev --quiet
+
+      - name: Build & push image
+        run: |
+          TAG=${GITHUB_SHA::7}
+          docker build -t $IMAGE:$TAG -t $IMAGE:latest api/
+          docker push $IMAGE:$TAG
+          docker push $IMAGE:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy mealio-api \
+            --image ${{ env.IMAGE }}:${GITHUB_SHA::7} \
+            --region us-east4
