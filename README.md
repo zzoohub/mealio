@@ -53,6 +53,7 @@ Mealio replaces tedious manual food logging with camera-based meal tracking. Use
 | Error tracking | Sentry |
 | Analytics | PostHog |
 | Mobile builds | EAS (Expo Application Services) |
+| IaC | Pulumi (GCP, Cloudflare, Neon) |
 
 ## Project Structure
 
@@ -64,16 +65,27 @@ mealio/
 │   │   ├── auth.tsx           # Sign-in screen
 │   │   ├── settings.tsx       # User settings
 │   │   └── diary/             # Diary screens
+│   │       ├── index.tsx      # Diary feed
+│   │       ├── [id].tsx       # Entry detail
+│   │       └── search.tsx     # Search entries
 │   └── src/                   # Feature-Sliced Design
 │       ├── app/               # Providers, global config
-│       ├── widgets/           # Composite UI blocks
+│       ├── widgets/           # entry-grid, recent-entries
 │       ├── features/          # User interactions
-│       ├── entities/          # Business entities
-│       └── shared/            # Reusable utilities & UI
+│       │   ├── auth/          # Sign-in (Google, Apple)
+│       │   ├── capture-meal/  # Camera capture & meal form
+│       │   ├── diary-page/    # Diary calendar view
+│       │   ├── entry-detail/  # Entry detail view
+│       │   ├── entry-feed/    # Feed list
+│       │   ├── search-entries/# Search & filter
+│       │   └── settings/      # User preferences
+│       ├── entities/          # entry, meal, user
+│       └── shared/            # ui, lib, api, config, types
 ├── api/                       # Rust / Axum API
 │   ├── src/
 │   │   ├── main.rs
 │   │   ├── lib.rs             # AppState
+│   │   ├── openapi.rs         # OpenAPI spec generation
 │   │   ├── features/          # Route modules
 │   │   │   ├── auth/          # OAuth, JWT, JWKS
 │   │   │   ├── users/         # Profile & settings
@@ -82,10 +94,13 @@ mealio/
 │   │   │   ├── nutrition/     # Nutrition overrides
 │   │   │   ├── ai_analyses/   # AI meal analysis
 │   │   │   ├── ingredients/   # Ingredient list
-│   │   │   └── statistics/    # Aggregated stats
+│   │   │   ├── statistics/    # Aggregated stats
+│   │   │   └── uploads/       # Presigned URL generation
 │   │   └── shared/            # Cross-feature utilities
-│   └── migrations/            # SQL migrations
-└── docs/                      # Architecture & PRD
+│   └── migrations/            # SQL migrations (0001–0009)
+├── infra/                     # Pulumi IaC
+│   └── src/                   # GCP, Cloudflare, Neon config
+└── diagrams/                  # D2 architecture & infra diagrams
 ```
 
 The mobile app follows **Feature-Sliced Design** with strict import rules: `app → widgets → features → entities → shared` (no upward imports).
@@ -204,6 +219,7 @@ cargo test error       # Run tests matching "error"
 - **Mobile**: EAS Build → App Store (iOS) / Play Store (Android)
 - **Database**: Neon (managed PostgreSQL)
 - **Storage**: Cloudflare R2 with presigned URL uploads
+- **IaC**: Pulumi manages all infrastructure (GCP, Cloudflare, Neon)
 
 ## License
 
