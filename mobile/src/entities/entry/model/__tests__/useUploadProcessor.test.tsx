@@ -416,6 +416,14 @@ describe("useUploadProcessor", () => {
         },
         { timeout: 3000 }
       );
+
+      // Wait for the full pipeline to complete before ending the test
+      await waitFor(
+        () => {
+          expect(useUploadQueueStore.getState().queue.size).toBe(0);
+        },
+        { timeout: 3000 }
+      );
     });
 
     it("handles empty photo array", async () => {

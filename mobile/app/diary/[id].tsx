@@ -40,15 +40,6 @@ export default function DiaryEntryScreen() {
 
   const isNumericId = !isNaN(Number(id)) && Number(id) > 0;
 
-  useEffect(() => {
-    if (isNumericId && !isAuthenticated) {
-      setPendingDeepLink(`/diary/${id}`);
-      router.replace("/auth");
-    }
-  }, [isNumericId, isAuthenticated, id, router]);
-
-  if (isNumericId && !isAuthenticated) return null;
-
   const {
     entry,
     isLoading,
@@ -70,6 +61,15 @@ export default function DiaryEntryScreen() {
   } = useEntryDetail({
     entryId: id,
   });
+
+  useEffect(() => {
+    if (isNumericId && !isAuthenticated) {
+      setPendingDeepLink(`/diary/${id}`);
+      router.replace("/auth");
+    }
+  }, [isNumericId, isAuthenticated, id, router]);
+
+  if (isNumericId && !isAuthenticated) return null;
 
   const minContentHeight = screenHeight - insets.top - HEADER_HEIGHT;
   const isDisabled = isLoading || !entry;

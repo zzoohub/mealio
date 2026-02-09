@@ -4,7 +4,14 @@ jest.mock('react-native', () => ({
   Text: 'Text',
   Pressable: 'Pressable',
   ScrollView: 'ScrollView',
-  StyleSheet: { create: (styles: any) => styles },
+  StyleSheet: {
+    create: (styles: any) => styles,
+    flatten: (style: any) => {
+      if (!style) return {};
+      if (!Array.isArray(style)) return style;
+      return style.reduce((acc: any, s: any) => ({ ...acc, ...s }), {});
+    },
+  },
 }));
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
 jest.mock('@/shared/ui/theme', () => ({
