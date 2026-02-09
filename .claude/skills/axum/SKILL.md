@@ -55,7 +55,7 @@ src/
         ├── handlers.rs
         └── models.rs  # Entity + repository
 migrations/
-.sqlx/                 # Commit this
+.sqlx/ (if using query! macro)
 ```
 
 ---
@@ -128,16 +128,6 @@ PgPoolOptions::new()
 
 ---
 
-## CI/CD
-
-```bash
-cargo sqlx prepare
-git add .sqlx/
-SQLX_OFFLINE=true cargo build
-```
-
----
-
 ## Checklist
 
 - [ ] Response types (`Created`, `Ok`, `NoContent`)
@@ -146,4 +136,4 @@ SQLX_OFFLINE=true cargo build
 - [ ] Repository pattern
 - [ ] Tower layers for cross-cutting concerns
 - [ ] `acquire_timeout` set
-- [ ] `.sqlx/` committed
+- [ ] `.sqlx/` committed (if using query! macro)
