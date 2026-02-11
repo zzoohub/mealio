@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { createStyles, useStyles, useTheme } from "@/shared/ui/theme";
 import { Box, Text } from "@/shared/ui/styled";
 import { tokens } from "@/shared/ui/tokens";
-import * as Haptics from "expo-haptics";
+import { triggerHaptic } from "@/shared/lib/utils";
 
 interface SettingsLayoutProps {
   title: string;
@@ -19,11 +19,7 @@ export function SettingsLayout({ title, children, showBackButton = true }: Setti
   const { colors } = useTheme();
 
   const handleBack = () => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (error) {
-      console.warn("Haptics feedback failed:", error);
-    }
+    triggerHaptic("LIGHT");
     router.back();
   };
 

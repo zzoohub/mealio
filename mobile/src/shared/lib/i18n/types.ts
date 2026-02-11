@@ -229,6 +229,10 @@ export interface DiaryTranslations {
   allEntries: string;
   dateRangeFrom: string;
   dateRangeUntil: string;
+  recentMeals: string;
+  seeAll: string;
+  loadingMeals: string;
+  noMealsYet: string;
 }
 
 // Settings translations

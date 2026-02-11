@@ -3,6 +3,8 @@ import * as pulumi from "@pulumi/pulumi";
 import { gcpProject, gcpRegion, r2PublicUrl } from "./config";
 import { SecretResource } from "./gcp-secrets";
 
+// Placeholder image — CI/CD owns the actual image tag via `gcloud run deploy`.
+// ignoreChanges below prevents Pulumi from reverting CI/CD deployments.
 const image = `${gcpRegion}-docker.pkg.dev/${gcpProject}/services/api:latest`;
 
 export function createCloudRun(secretResources: SecretResource[]) {
@@ -60,7 +62,12 @@ export function createCloudRun(secretResources: SecretResource[]) {
         timeout: "30s",
       },
     },
-    { protect: true },
+    {
+      protect: true,
+      // CI/CD manages the container image via `gcloud run deploy --image`.
+      // Prevent Pulumi from reverting the image tag on every `pulumi up`.
+      ignoreChanges: ["template.containers[0].image"],
+    },
   );
 
   // Grant Cloud Run service agent access to read secrets

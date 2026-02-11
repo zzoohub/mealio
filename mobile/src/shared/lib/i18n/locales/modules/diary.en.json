@@ -101,5 +101,9 @@
   "rangeLowDensity": "Low (0-2)",
   "allEntries": "All Entries ({{label}})",
   "dateRangeFrom": "From {{date}}",
-  "dateRangeUntil": "Until {{date}}"
+  "dateRangeUntil": "Until {{date}}",
+  "recentMeals": "Recent Meals",
+  "seeAll": "See All",
+  "loadingMeals": "Loading meals...",
+  "noMealsYet": "No meals logged yet. Start by taking a photo of your meal!"
 }

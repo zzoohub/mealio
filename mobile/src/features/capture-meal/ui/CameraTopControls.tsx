@@ -1,7 +1,7 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { iconSizes } from "@/shared/ui/tokens";
+import { iconSizes, tokens } from "@/shared/ui/tokens";
 
 // =============================================================================
 // TYPES
@@ -11,15 +11,21 @@ export interface CameraTopControlsProps {
   flashIcon: "flash" | "flash-outline" | "flash-off";
   onToggleFlash: () => void;
   onSettingsPress: () => void;
+  /** Top safe area inset from parent (accounts for notch/Dynamic Island) */
+  topInset: number;
 }
 
 // =============================================================================
 // COMPONENT
 // =============================================================================
 
-export const CameraTopControls = memo(function CameraTopControls({ flashIcon, onToggleFlash, onSettingsPress }: CameraTopControlsProps) {
+export const CameraTopControls = memo(function CameraTopControls({ flashIcon, onToggleFlash, onSettingsPress, topInset }: CameraTopControlsProps) {
+  const dynamicStyle = useMemo(() => ({
+    paddingTop: topInset + tokens.spacing.component.sm,
+  }), [topInset]);
+
   return (
-    <View style={styles.topControls}>
+    <View style={[styles.topControls, dynamicStyle]}>
       <Pressable style={styles.controlButton} onPress={onSettingsPress}>
         <Ionicons name="settings-outline" size={iconSizes.md} color="white" />
       </Pressable>
@@ -40,8 +46,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 60,
-    paddingHorizontal: 20,
+    paddingHorizontal: tokens.spacing.component.lg,
     position: "absolute",
     top: 0,
     left: 0,
@@ -49,9 +54,9 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   controlButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: tokens.size.touchTarget.md,
+    height: tokens.size.touchTarget.md,
+    borderRadius: tokens.size.touchTarget.md / 2,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",

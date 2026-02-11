@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,7 @@ import {
   Pressable,
   TextInput,
   ActivityIndicator,
-  Dimensions,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FlashList } from "@shopify/flash-list";
@@ -29,10 +29,8 @@ import { useDiaryI18n, useCommonI18n } from "@/shared/lib/i18n";
 // CONSTANTS
 // =============================================================================
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GRID_GAP = 1;
 const NUM_COLUMNS = 3;
-const ITEM_SIZE = (SCREEN_WIDTH - GRID_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 
 // =============================================================================
 // MAIN COMPONENT
@@ -40,6 +38,11 @@ const ITEM_SIZE = (SCREEN_WIDTH - GRID_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 
 export default function DiarySearchScreen() {
   const { colors } = useTheme();
+  const { width: screenWidth } = useWindowDimensions();
+  const itemSize = useMemo(
+    () => (screenWidth - GRID_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS,
+    [screenWidth],
+  );
   const { bottomSheet } = useOverlayHelpers();
   const diaryI18n = useDiaryI18n();
   const commonI18n = useCommonI18n();
@@ -100,9 +103,9 @@ export default function DiarySearchScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: Entry }) => (
-      <SearchGridItem entry={item} size={ITEM_SIZE} onPress={handleEntryPress} />
+      <SearchGridItem entry={item} size={itemSize} onPress={handleEntryPress} />
     ),
-    [handleEntryPress]
+    [handleEntryPress, itemSize]
   );
 
   const renderFooter = useCallback(() => {
@@ -224,7 +227,7 @@ export default function DiarySearchScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           numColumns={NUM_COLUMNS}
-          estimatedItemSize={ITEM_SIZE}
+          estimatedItemSize={itemSize}
           ListEmptyComponent={renderEmpty}
           ListFooterComponent={renderFooter}
           onEndReached={loadMore}

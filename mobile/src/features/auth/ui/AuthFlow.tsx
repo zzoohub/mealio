@@ -102,7 +102,7 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
     <SafeAreaView style={s.container}>
       <View style={s.header}>
         <Pressable onPress={handleBack} style={s.backButton}>
-          <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
+          <Ionicons name="chevron-back" size={tokens.size.icon.md} color={colors.text.primary} />
         </Pressable>
       </View>
 
@@ -139,8 +139,8 @@ const styles = createStyles(colors => ({
     paddingVertical: tokens.spacing.component.sm,
   },
   backButton: {
-    width: 44,
-    height: 44,
+    width: tokens.size.touchTarget.md,
+    height: tokens.size.touchTarget.md,
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },

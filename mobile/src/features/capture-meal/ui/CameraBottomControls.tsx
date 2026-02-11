@@ -1,7 +1,7 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { iconSizes } from "@/shared/ui/tokens";
+import { iconSizes, tokens } from "@/shared/ui/tokens";
 
 // =============================================================================
 // TYPES
@@ -11,15 +11,21 @@ export interface CameraBottomControlsProps {
   onDiaryPress: () => void;
   onGalleryPress: () => void;
   diaryLabel: string;
+  /** Bottom safe area inset from parent (accounts for home indicator) */
+  bottomInset: number;
 }
 
 // =============================================================================
 // COMPONENT
 // =============================================================================
 
-export const CameraBottomControls = memo(function CameraBottomControls({ onDiaryPress, onGalleryPress, diaryLabel }: CameraBottomControlsProps) {
+export const CameraBottomControls = memo(function CameraBottomControls({ onDiaryPress, onGalleryPress, diaryLabel, bottomInset }: CameraBottomControlsProps) {
+  const dynamicStyle = useMemo(() => ({
+    bottom: Math.max(bottomInset, 16) + tokens.spacing.component.lg,
+  }), [bottomInset]);
+
   return (
-    <View style={styles.bottomControls}>
+    <View style={[styles.bottomControls, dynamicStyle]}>
       <Pressable style={styles.bottomButton} onPress={onDiaryPress}>
         <Ionicons name="book-outline" size={iconSizes.md} color="white" />
         <Text style={styles.bottomButtonText}>{diaryLabel}</Text>
@@ -39,22 +45,21 @@ export const CameraBottomControls = memo(function CameraBottomControls({ onDiary
 const styles = StyleSheet.create({
   bottomControls: {
     position: "absolute",
-    bottom: 40,
-    left: 20,
-    right: 20,
+    left: tokens.spacing.component.lg,
+    right: tokens.spacing.component.lg,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   bottomButton: {
     alignItems: "center",
-    padding: 8,
+    padding: tokens.spacing.component.sm,
     position: "relative",
   },
   bottomButtonText: {
     color: "white",
-    fontSize: 12,
-    fontWeight: "500",
-    marginTop: 4,
+    fontSize: tokens.typography.fontSize.caption,
+    fontWeight: tokens.typography.fontWeight.medium,
+    marginTop: tokens.spacing.component.xs,
   },
 });

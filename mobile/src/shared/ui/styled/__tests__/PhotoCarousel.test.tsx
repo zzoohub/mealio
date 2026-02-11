@@ -2,6 +2,7 @@
 jest.mock("react-native", () => ({
   View: "View",
   Dimensions: { get: jest.fn(() => ({ width: 375, height: 812 })) },
+  useWindowDimensions: jest.fn(() => ({ width: 375, height: 812 })),
   ActivityIndicator: "ActivityIndicator",
 }));
 jest.mock("react-native-gesture-handler", () => ({
@@ -24,6 +25,7 @@ jest.mock("@/shared/ui/theme", () => ({
 }));
 
 import React from "react";
+import { useWindowDimensions } from "react-native";
 import { render, fireEvent } from "@testing-library/react-native";
 import { PhotoCarousel } from "../PhotoCarousel";
 
@@ -32,6 +34,11 @@ import { PhotoCarousel } from "../PhotoCarousel";
 // =============================================================================
 
 describe("PhotoCarousel", () => {
+  beforeEach(() => {
+    // resetMocks: true in jest config clears factory implementations before each test
+    (useWindowDimensions as jest.Mock).mockReturnValue({ width: 375, height: 812 });
+  });
+
   describe("rendering with no photos", () => {
     it("renders placeholder icon when photoUris is empty", () => {
       const { UNSAFE_getByType } = render(

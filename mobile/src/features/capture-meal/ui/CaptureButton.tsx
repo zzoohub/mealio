@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -21,6 +21,8 @@ export interface CaptureButtonProps {
   /** Shared value for external animation control (0 = not pressed, 1 = pressed) */
   pressedState?: SharedValue<number>;
   disabled?: boolean;
+  /** Bottom safe area inset from parent (accounts for home indicator) */
+  bottomInset?: number;
 }
 
 // =============================================================================
@@ -32,6 +34,7 @@ export const CaptureButton = memo(function CaptureButton({
   isCapturing,
   pressedState,
   disabled,
+  bottomInset = 0,
 }: CaptureButtonProps) {
   const s = useStyles(captureButtonStyles);
 
@@ -60,9 +63,13 @@ export const CaptureButton = memo(function CaptureButton({
     };
   });
 
+  const captureAreaPosition = useMemo(() => ({
+    bottom: Math.max(bottomInset, 16) + CAPTURE_BUTTON_BOTTOM_OFFSET,
+  }), [bottomInset]);
+
   return (
     <GestureDetector gesture={tap}>
-      <Animated.View style={[styles.captureArea, animatedStyle]}>
+      <Animated.View style={[styles.captureArea, captureAreaPosition, animatedStyle]}>
         <View style={styles.captureButton}>
           <View style={[styles.captureRing, isCapturing && s.capturingRing]}>
             <View style={[styles.captureInner, isCapturing && s.capturingInner]} />
@@ -77,13 +84,15 @@ export const CaptureButton = memo(function CaptureButton({
 // STYLES
 // =============================================================================
 
+const CAPTURE_BUTTON_SIZE = 80;
+const CAPTURE_BUTTON_BOTTOM_OFFSET = 80;
+
 const styles = StyleSheet.create({
   captureArea: {
     position: "absolute",
-    bottom: 120,
     alignSelf: "center",
     left: "50%",
-    marginLeft: -40,
+    marginLeft: -(CAPTURE_BUTTON_SIZE / 2),
   },
   captureButton: {
     alignItems: "center",

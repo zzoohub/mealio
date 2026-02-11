@@ -38,6 +38,8 @@ export interface NutritionSectionProps {
 
 const ALL_NUTRIENTS: (keyof NutritionInfo)[] = ['calories', 'carbs', 'protein', 'fat', 'sugar', 'sodium'];
 
+const NUTRITION_INPUT_HEIGHT = 28;
+
 const EMPTY_NUTRITION: NutritionInfo = { calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0, sodium: 0 };
 
 function hasNutritionData(nutrition: NutritionInfo | null | undefined): boolean {
@@ -272,7 +274,7 @@ const styles = createStyles((colors) => ({
     flexDirection: 'row',
     alignItems: 'center',
     gap: tokens.spacing.component.xs,
-    height: 28,
+    height: NUTRITION_INPUT_HEIGHT,
   },
   nutritionInput: {
     fontSize: tokens.typography.fontSize.body,
@@ -283,7 +285,7 @@ const styles = createStyles((colors) => ({
     paddingHorizontal: tokens.spacing.component.sm,
     paddingVertical: 0,
     minWidth: 50,
-    height: 28,
+    height: NUTRITION_INPUT_HEIGHT,
     textAlign: 'right',
   },
   nutritionInputDisabled: {

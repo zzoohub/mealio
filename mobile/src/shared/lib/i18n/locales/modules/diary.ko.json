@@ -101,5 +101,9 @@
   "rangeLowDensity": "낮음 (0-2)",
   "allEntries": "전체 기록 ({{label}})",
   "dateRangeFrom": "{{date}}부터",
-  "dateRangeUntil": "{{date}}까지"
+  "dateRangeUntil": "{{date}}까지",
+  "recentMeals": "최근 식사",
+  "seeAll": "모두 보기",
+  "loadingMeals": "식사 불러오는 중...",
+  "noMealsYet": "아직 식사 기록이 없습니다. 식사 사진을 찍어보세요!"
 }

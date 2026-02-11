@@ -1,10 +1,10 @@
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { createStyles, useStyles } from "@/shared/ui/theme";
-import { iconSizes } from "@/shared/ui/tokens";
+import { iconSizes, tokens } from "@/shared/ui/tokens";
 
 // =============================================================================
 // TYPES
@@ -16,6 +16,8 @@ export interface PhotoStripProps {
   onDone: () => void;
   onPickFromGallery: () => void;
   photoCount: number;
+  /** Bottom safe area inset from parent (accounts for home indicator) */
+  bottomInset: number;
 }
 
 interface PhotoItemProps {
@@ -50,8 +52,16 @@ const PhotoItem = memo(function PhotoItem({ uri, index, onRemove }: PhotoItemPro
 // COMPONENT
 // =============================================================================
 
-export function PhotoStrip({ photos, onRemovePhoto, onDone, onPickFromGallery, photoCount }: PhotoStripProps) {
+export function PhotoStrip({ photos, onRemovePhoto, onDone, onPickFromGallery, photoCount, bottomInset }: PhotoStripProps) {
   const s = useStyles(photoStripStyles);
+
+  const bottomOffset = Math.max(bottomInset, 16);
+  const dynamicGalleryStyle = useMemo(() => ({
+    bottom: bottomOffset + CAPTURE_AREA_HEIGHT,
+  }), [bottomOffset]);
+  const dynamicStripStyle = useMemo(() => ({
+    bottom: bottomOffset + tokens.spacing.component.lg,
+  }), [bottomOffset]);
 
   const renderItem = useCallback(
     ({ item, index }: { item: string; index: number }) => (
@@ -65,7 +75,7 @@ export function PhotoStrip({ photos, onRemovePhoto, onDone, onPickFromGallery, p
   return (
     <>
       {/* Gallery Button - Right side */}
-      <Pressable style={styles.galleryButtonFloating} onPress={onPickFromGallery}>
+      <Pressable style={[styles.galleryButtonFloating, dynamicGalleryStyle]} onPress={onPickFromGallery}>
         <Ionicons name="images-outline" size={iconSizes.md} color="white" />
         <View style={[styles.photoCountBadge, s.photoCountBadge]}>
           <Text style={styles.photoCountText}>{photoCount}</Text>
@@ -73,7 +83,7 @@ export function PhotoStrip({ photos, onRemovePhoto, onDone, onPickFromGallery, p
       </Pressable>
 
       {/* Thumbnail Strip - Bottom */}
-      <View style={styles.thumbnailContainer}>
+      <View style={[styles.thumbnailContainer, dynamicStripStyle]}>
         <View style={styles.thumbnailListContainer}>
           <FlashList
             data={photos}
@@ -97,14 +107,18 @@ export function PhotoStrip({ photos, onRemovePhoto, onDone, onPickFromGallery, p
 // STYLES
 // =============================================================================
 
+/** Height reserved for the capture button area above the strip */
+const CAPTURE_AREA_HEIGHT = 80;
+
+const THUMBNAIL_SIZE = 52;
+
 const styles = StyleSheet.create({
   galleryButtonFloating: {
     position: "absolute",
-    bottom: 120,
-    right: 24,
-    padding: 12,
+    right: tokens.spacing.layout.md,
+    padding: tokens.spacing.component.md,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    borderRadius: 24,
+    borderRadius: tokens.radius.full,
   },
   photoCountBadge: {
     position: "absolute",
@@ -123,9 +137,8 @@ const styles = StyleSheet.create({
   },
   thumbnailContainer: {
     position: "absolute",
-    bottom: 40,
-    left: 16,
-    right: 16,
+    left: tokens.spacing.component.lg,
+    right: tokens.spacing.component.lg,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.6)",
@@ -148,8 +161,8 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   thumbnail: {
-    width: 52,
-    height: 52,
+    width: THUMBNAIL_SIZE,
+    height: THUMBNAIL_SIZE,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",

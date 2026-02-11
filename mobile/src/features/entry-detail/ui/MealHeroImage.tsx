@@ -14,7 +14,7 @@
  */
 
 import React, { memo } from 'react';
-import { View, Pressable, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Pressable, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
@@ -36,13 +36,6 @@ export interface MealHeroImageProps {
 }
 
 // =============================================================================
-// CONSTANTS
-// =============================================================================
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const IMAGE_HEIGHT = SCREEN_WIDTH; // 1:1 square aspect ratio
-
-// =============================================================================
 // COMPONENT
 // =============================================================================
 
@@ -53,6 +46,9 @@ export const MealHeroImage = memo(function MealHeroImage({
   testID,
 }: MealHeroImageProps) {
   const s = useStyles(styles);
+  const { width: screenWidth } = useWindowDimensions();
+  const imageHeight = screenWidth; // 1:1 square aspect ratio
+  const sizeStyle = { width: screenWidth, height: imageHeight };
 
   // Render placeholder when loading or no image
   const renderPlaceholder = () => (
@@ -89,7 +85,7 @@ export const MealHeroImage = memo(function MealHeroImage({
   if (onPress) {
     return (
       <Pressable
-        style={s.container}
+        style={[s.container, sizeStyle]}
         onPress={onPress}
         accessibilityLabel={photoUri ? 'View meal photo in fullscreen' : 'No meal photo'}
         accessibilityRole="imagebutton"
@@ -101,7 +97,7 @@ export const MealHeroImage = memo(function MealHeroImage({
   }
 
   return (
-    <View style={s.container} testID={testID}>
+    <View style={[s.container, sizeStyle]} testID={testID}>
       {content}
     </View>
   );
@@ -115,8 +111,7 @@ export default MealHeroImage;
 
 const styles = createStyles((colors) => ({
   container: {
-    width: SCREEN_WIDTH,
-    height: IMAGE_HEIGHT,
+    // width and height set dynamically via sizeStyle
     backgroundColor: colors.bg.secondary,
   },
   image: {

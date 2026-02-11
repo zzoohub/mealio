@@ -6,7 +6,7 @@
  */
 
 import React, { memo, useCallback, useState } from "react";
-import { View, Dimensions, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator, useWindowDimensions } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 import PagerView from "react-native-pager-view";
 import { Image } from "expo-image";
@@ -30,13 +30,6 @@ export interface PhotoCarouselProps {
   /** Test ID for testing */
   testID?: string;
 }
-
-// =============================================================================
-// CONSTANTS
-// =============================================================================
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const IMAGE_HEIGHT = SCREEN_WIDTH; // 1:1 square aspect ratio
 
 // =============================================================================
 // SUB-COMPONENTS
@@ -79,6 +72,8 @@ export const PhotoCarousel = memo(function PhotoCarousel({
   testID,
 }: PhotoCarouselProps) {
   const s = useStyles(styles);
+  const { width: screenWidth } = useWindowDimensions();
+  const imageHeight = screenWidth; // 1:1 square aspect ratio
   const [activeIndex, setActiveIndex] = useState(0);
 
   const handlePageSelected = useCallback(
@@ -90,10 +85,12 @@ export const PhotoCarousel = memo(function PhotoCarousel({
 
   const totalPages = photoUris.length + (onAddPhotoPress ? 1 : 0);
 
+  const sizeStyle = { width: screenWidth, height: imageHeight };
+
   // Placeholder when loading or no images
   if (loading || photoUris.length === 0) {
     return (
-      <View style={s.container} testID={testID}>
+      <View style={[s.container, sizeStyle]} testID={testID}>
         <View style={s.placeholder}>
           {loading ? (
             <ActivityIndicator
@@ -116,11 +113,11 @@ export const PhotoCarousel = memo(function PhotoCarousel({
   // Single photo without add button — no pager needed, just a tappable image
   if (photoUris.length === 1 && !onAddPhotoPress) {
     return (
-      <View style={s.container} testID={testID}>
+      <View style={[s.container, sizeStyle]} testID={testID}>
         <Pressable
           onPress={() => onPhotoPress?.(0)}
           disabled={!onPhotoPress}
-          style={s.slide}
+          style={[s.slide, sizeStyle]}
         >
           <Image
             source={{ uri: photoUris[0] }}
@@ -140,7 +137,7 @@ export const PhotoCarousel = memo(function PhotoCarousel({
       collapsable={false}
       onPress={() => onPhotoPress?.(index)}
       disabled={!onPhotoPress}
-      style={s.slide}
+      style={[s.slide, sizeStyle]}
     >
       <Image
         source={{ uri }}
@@ -157,7 +154,7 @@ export const PhotoCarousel = memo(function PhotoCarousel({
         key="add-photo"
         collapsable={false}
         onPress={onAddPhotoPress}
-        style={s.slide}
+        style={[s.slide, sizeStyle]}
         testID="add-photo-page"
         accessibilityLabel="Add photo"
         accessibilityRole="button"
@@ -174,7 +171,7 @@ export const PhotoCarousel = memo(function PhotoCarousel({
   }
 
   return (
-    <View style={s.container} testID={testID}>
+    <View style={[s.container, sizeStyle]} testID={testID}>
       <PagerView
         style={s.pager}
         initialPage={0}
@@ -196,16 +193,13 @@ export default PhotoCarousel;
 
 const styles = createStyles((colors) => ({
   container: {
-    width: SCREEN_WIDTH,
-    height: IMAGE_HEIGHT,
     backgroundColor: colors.bg.secondary,
   },
   pager: {
     flex: 1,
   },
   slide: {
-    width: SCREEN_WIDTH,
-    height: IMAGE_HEIGHT,
+    // width and height set dynamically via sizeStyle
   },
   image: {
     width: "100%",

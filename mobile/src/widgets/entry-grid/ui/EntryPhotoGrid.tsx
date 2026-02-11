@@ -27,7 +27,7 @@
  */
 
 import React, { useCallback } from 'react';
-import { View, Dimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { MealPhotoCard, type MealPhotoData } from '@/entities/meal';
 import type { BaseComponentProps } from '@/shared/types';
@@ -54,7 +54,6 @@ export interface EntryPhotoGridProps extends BaseComponentProps {
 // CONSTANTS
 // =============================================================================
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GAP = tokens.spacing.component.md;
 
 // =============================================================================
@@ -70,6 +69,7 @@ export function EntryPhotoGrid({
   testID,
   style,
 }: EntryPhotoGridProps) {
+  const { width: screenWidth } = useWindowDimensions();
   const renderItem = useCallback(
     ({ item }: { item: MealPhotoData }) => (
       <MealPhotoCard
@@ -98,7 +98,7 @@ export function EntryPhotoGrid({
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         numColumns={columns}
-        estimatedItemSize={(SCREEN_WIDTH - GAP * (columns - 1)) / columns}
+        estimatedItemSize={(screenWidth - GAP * (columns - 1)) / columns}
         contentContainerStyle={{ padding: GAP / 2 }}
       />
     </View>

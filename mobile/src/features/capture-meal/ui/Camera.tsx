@@ -2,6 +2,7 @@ import React, { useCallback } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCameraI18n, useNavigationI18n } from "@/shared/lib/i18n";
 import { createStyles, useStyles } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
@@ -34,6 +35,7 @@ export default function Camera({ initialPhotos, targetDate }: CameraProps) {
   const s = useStyles(cameraStyles);
   const [permission, requestPermission] = useCameraPermissions();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const t = useCameraI18n();
   const nav = useNavigationI18n();
 
@@ -127,6 +129,7 @@ export default function Camera({ initialPhotos, targetDate }: CameraProps) {
         flashIcon={getFlashIcon()}
         onToggleFlash={toggleFlash}
         onSettingsPress={() => router.push("/settings")}
+        topInset={insets.top}
       />
 
       {/* Capture Button */}
@@ -135,6 +138,7 @@ export default function Camera({ initialPhotos, targetDate }: CameraProps) {
         isCapturing={isCapturing}
         pressedState={captureButtonPressed}
         disabled={isCapturing || isAtGuestLimit}
+        bottomInset={insets.bottom}
       />
 
       {/* Bottom Controls - Changes based on photo state */}
@@ -143,6 +147,7 @@ export default function Camera({ initialPhotos, targetDate }: CameraProps) {
           onDiaryPress={() => router.push("/diary")}
           onGalleryPress={pickFromGallery}
           diaryLabel={nav.diary}
+          bottomInset={insets.bottom}
         />
       ) : (
         <PhotoStrip
@@ -151,6 +156,7 @@ export default function Camera({ initialPhotos, targetDate }: CameraProps) {
           onDone={handleDone}
           onPickFromGallery={pickFromGallery}
           photoCount={capturedPhotos.length}
+          bottomInset={insets.bottom}
         />
       )}
     </View>

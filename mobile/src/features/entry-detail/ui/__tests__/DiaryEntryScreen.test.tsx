@@ -2,6 +2,7 @@
 jest.mock("react-native", () => ({
   View: "View",
   ScrollView: "ScrollView",
+  KeyboardAvoidingView: "KeyboardAvoidingView",
   useWindowDimensions: jest.fn(() => ({ width: 375, height: 812 })),
   Platform: {
     OS: "ios",

@@ -14,11 +14,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Modal,
-  Dimensions,
   Pressable,
   StyleSheet,
   ViewStyle,
   ModalProps,
+  useWindowDimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -58,8 +58,6 @@ interface BottomSheetProps extends Omit<ModalProps, 'animationType' | 'transpare
   onDismiss?: () => void;
 }
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-
 // Animation defaults using tokens
 const DEFAULT_DIM_OPACITY = tokens.opacity.overlay;
 const DEFAULT_FADE_DURATION = tokens.duration.normal;
@@ -82,8 +80,9 @@ export function BottomSheet({
 }: BottomSheetProps) {
   const { colors } = useTheme();
   const s = useStyles(styles);
+  const { height: screenHeight } = useWindowDimensions();
   const fadeAnim = useSharedValue(0);
-  const slideAnim = useSharedValue(SCREEN_HEIGHT);
+  const slideAnim = useSharedValue(screenHeight);
   const [modalVisible, setModalVisible] = useState(false);
   const modalVisibleRef = useRef(false);
 
@@ -95,7 +94,7 @@ export function BottomSheet({
       modalVisibleRef.current = true;
       setModalVisible(true);
       fadeAnim.value = 0;
-      slideAnim.value = SCREEN_HEIGHT;
+      slideAnim.value = screenHeight;
 
       fadeAnim.value = withTiming(dimOpacity, { duration: fadeAnimationDuration });
       slideAnim.value = withSpring(0, {
@@ -112,7 +111,7 @@ export function BottomSheet({
         duration: fadeAnimationDuration * 0.7,
       });
       slideAnim.value = withTiming(
-        SCREEN_HEIGHT,
+        screenHeight,
         { duration: closeDuration },
         (finished) => {
           if (finished) {
@@ -177,7 +176,7 @@ export function BottomSheet({
           <View
             style={[
               s.overshootFill,
-              { backgroundColor: colors.bg.secondary },
+              { backgroundColor: colors.bg.secondary, bottom: -screenHeight, height: screenHeight },
             ]}
           />
         </Animated.View>
@@ -207,7 +206,6 @@ const styles = createStyles(() => ({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: -SCREEN_HEIGHT,
-    height: SCREEN_HEIGHT,
+    // bottom and height set dynamically
   },
 }));

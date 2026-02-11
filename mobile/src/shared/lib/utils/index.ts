@@ -5,6 +5,10 @@ import { HAPTIC_TYPES } from "@/shared/config";
 // Date utilities
 export * from './dateUtils';
 
+// Responsive utilities
+export { useResponsive, responsiveValue } from './responsive';
+export type { ResponsiveInfo } from './responsive';
+
 const isIOS = Platform.OS === "ios";
 
 // Haptic feedback utility

@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useEffect, useMemo, useState, memo } from "react";
-import { View, Text, StyleSheet, Dimensions, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
 import PagerView from "react-native-pager-view";
 import { useTheme } from "@/shared/ui/theme";
@@ -33,13 +33,13 @@ interface DayItemProps {
   isFuture: boolean;
   thumbnailUrl: string | null;
   onPress: (date: Date) => void;
+  dayWidth: number;
 }
 
 // =============================================================================
 // CONSTANTS
 // =============================================================================
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const WEEKS_BEFORE = 104; // 2 years back
 const WEEKS_AFTER = 0; // No future dates
 const INITIAL_INDEX = WEEKS_BEFORE; // Start at "today" week
@@ -93,6 +93,7 @@ const DayItem = memo(function DayItem({
   isFuture,
   thumbnailUrl,
   onPress,
+  dayWidth,
 }: DayItemProps) {
   const { colors } = useTheme();
 
@@ -108,6 +109,7 @@ const DayItem = memo(function DayItem({
     <Pressable
       style={[
         styles.dayItem,
+        { width: dayWidth },
         hasThumbnail && styles.dayItemWithThumbnail,
       ]}
       onPress={handlePress}
@@ -165,6 +167,7 @@ interface WeekRowProps {
   todayTime: number;
   onDateSelect: (date: Date) => void;
   dateThumbnails: Map<string, string | null>;
+  screenWidth: number;
 }
 
 const WeekRow = memo(function WeekRow({
@@ -174,9 +177,12 @@ const WeekRow = memo(function WeekRow({
   todayTime,
   onDateSelect,
   dateThumbnails,
+  screenWidth,
 }: WeekRowProps) {
+  const dayWidth = (screenWidth - GAP * 6) / 7;
+
   return (
-    <View style={styles.weekContainer}>
+    <View style={[styles.weekContainer, { width: screenWidth }]}>
       {days.map((date, index) => {
         const dateStr = formatDateToString(date);
         const isSelected = dateStr === selectedDateStr;
@@ -194,6 +200,7 @@ const WeekRow = memo(function WeekRow({
             isFuture={isFuture}
             thumbnailUrl={thumbnailUrl}
             onPress={onDateSelect}
+            dayWidth={dayWidth}
           />
         );
       })}
@@ -212,6 +219,7 @@ export const WeekDaySelector = memo(function WeekDaySelector({
   onVisibleWeekChange,
   dateThumbnails,
 }: WeekDaySelectorProps) {
+  const { width: screenWidth } = useWindowDimensions();
   const pagerRef = useRef<PagerView>(null);
   const currentIndexRef = useRef(INITIAL_INDEX);
   const lastNotifiedIdRef = useRef<string | null>(null);
@@ -283,6 +291,7 @@ export const WeekDaySelector = memo(function WeekDaySelector({
                 todayTime={todayTime}
                 onDateSelect={onDateSelect}
                 dateThumbnails={dateThumbnails}
+                screenWidth={screenWidth}
               />
             ) : null}
           </View>
@@ -297,8 +306,6 @@ export const WeekDaySelector = memo(function WeekDaySelector({
 // =============================================================================
 
 const GAP = 2;
-const TOTAL_GAP = GAP * 6; // 2px gap × 6 gaps between 7 items
-const DAY_WIDTH = (SCREEN_WIDTH - TOTAL_GAP) / 7;
 
 const styles = StyleSheet.create({
   container: {
@@ -309,12 +316,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   weekContainer: {
-    width: SCREEN_WIDTH,
     flexDirection: "row",
     gap: GAP,
   },
   dayItem: {
-    width: DAY_WIDTH,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: tokens.spacing.component.md,

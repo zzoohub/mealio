@@ -17,7 +17,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Pressable } from 'react-native';
+import { Pressable, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
@@ -25,6 +25,8 @@ import { useRouter } from 'expo-router';
 import { Box, Text, HStack, VStack, Card } from '@/shared/ui/styled';
 import { createStyles, useStyles } from '@/shared/ui/theme';
 import { tokens } from '@/shared/ui/tokens';
+import { responsiveValue } from '@/shared/lib/utils';
+import { useDiaryI18n } from '@/shared/lib/i18n';
 import type { Entry } from '@/entities/entry';
 import { entryStorageUtils } from '@/entities/entry';
 
@@ -44,6 +46,8 @@ interface EntryCardItemProps {
   entry: Entry;
   onPress: () => void;
   formatTime: (date: Date) => string;
+  cardWidth: number;
+  imageHeight: number;
 }
 
 const getMealTypeLabel = (mealType: string): string => {
@@ -61,7 +65,7 @@ const getMealTypeLabel = (mealType: string): string => {
   }
 };
 
-function EntryCardItem({ entry, onPress, formatTime }: EntryCardItemProps) {
+function EntryCardItem({ entry, onPress, formatTime, cardWidth, imageHeight }: EntryCardItemProps) {
   const s = useStyles(entryCardStyles);
 
   return (
@@ -69,9 +73,9 @@ function EntryCardItem({ entry, onPress, formatTime }: EntryCardItemProps) {
       variant="elevated"
       pressable
       onPress={onPress}
-      style={s.card}
+      style={[s.card, { width: cardWidth }]}
     >
-      <Image source={{ uri: entry.meal.photoUri }} style={s.image} />
+      <Image source={{ uri: entry.meal.photoUri }} style={[s.image, { height: imageHeight }]} />
       <VStack gap="xs" style={s.content}>
         <Text variant="bodySmall" weight="medium" numberOfLines={2}>
           {getMealTypeLabel(entry.meal.mealType)}
@@ -91,21 +95,23 @@ function EntryCardItem({ entry, onPress, formatTime }: EntryCardItemProps) {
 
 interface HeaderProps {
   onSeeAll?: (() => void) | undefined;
+  title: string;
+  seeAllLabel: string;
 }
 
-function Header({ onSeeAll }: HeaderProps) {
+function Header({ onSeeAll, title, seeAllLabel }: HeaderProps) {
   const s = useStyles(headerStyles);
 
   return (
     <HStack justify="space-between" align="center" style={{ marginBottom: tokens.spacing.component.lg }}>
       <Text variant="h3" weight="semibold">
-        Recent Meals
+        {title}
       </Text>
       {onSeeAll && (
         <Pressable onPress={onSeeAll}>
           <HStack gap="xs" align="center">
             <Text variant="bodySmall" color="link">
-              See All
+              {seeAllLabel}
             </Text>
             <Ionicons
               name="chevron-forward"
@@ -124,26 +130,26 @@ function Header({ onSeeAll }: HeaderProps) {
 // This minHeight ensures loading/empty states match the scrollable content area
 const CONTENT_MIN_HEIGHT = 184;
 
-function LoadingState() {
+function LoadingState({ title, seeAllLabel }: { title: string; seeAllLabel: string }) {
   return (
     <Box mb="lg">
-      <Header />
+      <Header title={title} seeAllLabel={seeAllLabel} />
       <Box minHeight={CONTENT_MIN_HEIGHT} center>
         <Text variant="bodySmall" color="secondary">
-          Loading meals...
+          {title}
         </Text>
       </Box>
     </Box>
   );
 }
 
-function EmptyState() {
+function EmptyState({ title, seeAllLabel, message }: { title: string; seeAllLabel: string; message: string }) {
   return (
     <Box mb="lg">
-      <Header />
+      <Header title={title} seeAllLabel={seeAllLabel} />
       <Box minHeight={CONTENT_MIN_HEIGHT} center>
         <Text variant="bodySmall" color="secondary" align="center">
-          No meals logged yet. Start by taking a photo of your meal!
+          {message}
         </Text>
       </Box>
     </Box>
@@ -158,6 +164,11 @@ export default function RecentEntries({ onSeeAll }: RecentEntriesProps) {
   const [recentEntries, setRecentEntries] = useState<Entry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const { width: screenWidth } = useWindowDimensions();
+  const diary = useDiaryI18n();
+
+  const cardWidth = responsiveValue(screenWidth, { small: 120, medium: 140, large: 160 });
+  const imageHeight = responsiveValue(screenWidth, { small: 80, medium: 100, large: 120 });
 
   useEffect(() => {
     loadRecentEntries();
@@ -197,16 +208,16 @@ export default function RecentEntries({ onSeeAll }: RecentEntriesProps) {
   };
 
   if (isLoading) {
-    return <LoadingState />;
+    return <LoadingState title={diary.loadingMeals} seeAllLabel={diary.seeAll} />;
   }
 
   if (recentEntries.length === 0) {
-    return <EmptyState />;
+    return <EmptyState title={diary.recentMeals} seeAllLabel={diary.seeAll} message={diary.noMealsYet} />;
   }
 
   return (
     <Box mb="lg">
-      <Header onSeeAll={onSeeAll} />
+      <Header onSeeAll={onSeeAll} title={diary.recentMeals} seeAllLabel={diary.seeAll} />
       <FlashList
         horizontal
         data={recentEntries}
@@ -215,10 +226,12 @@ export default function RecentEntries({ onSeeAll }: RecentEntriesProps) {
             entry={item}
             onPress={() => handleEntryPress(item)}
             formatTime={formatRelativeTime}
+            cardWidth={cardWidth}
+            imageHeight={imageHeight}
           />
         )}
         keyExtractor={(item) => item.id}
-        estimatedItemSize={140}
+        estimatedItemSize={cardWidth}
         showsHorizontalScrollIndicator={false}
       />
     </Box>
@@ -231,13 +244,13 @@ export default function RecentEntries({ onSeeAll }: RecentEntriesProps) {
 
 const entryCardStyles = createStyles((colors) => ({
   card: {
-    width: 140,
+    // width set dynamically via cardWidth prop
     marginRight: tokens.spacing.component.md,
     overflow: 'hidden' as const,
   },
   image: {
     width: '100%' as const,
-    height: 100,
+    // height set dynamically via imageHeight prop
     backgroundColor: colors.border.default,
   },
   content: {
