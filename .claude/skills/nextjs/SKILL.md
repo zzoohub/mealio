@@ -98,22 +98,43 @@ async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
 **Rule: Don't block on slow data. Stream progressively.**
 
 ```tsx
+// Parent is NOT async — children fetch independently and stream in parallel
 export default function DashboardPage() {
   return (
     <div>
       <h1>Dashboard</h1>  {/* Renders immediately */}
-      
+
       <Suspense fallback={<StatsSkeleton />}>
-        <StatsCards />  {/* Streams when ready */}
+        <StatsCards />  {/* async SC — streams when ready */}
       </Suspense>
-      
+
       <Suspense fallback={<ChartSkeleton />}>
-        <RevenueChart />  {/* Streams when ready */}
+        <RevenueChart />  {/* async SC — streams when ready */}
       </Suspense>
     </div>
   );
 }
 ```
+
+**Share a single fetch across components with `use()`:**
+
+```tsx
+function Page() {
+  const dataPromise = fetchData(); // start immediately, don't await
+  return (
+    <Suspense fallback={<Skeleton />}>
+      <DataDisplay dataPromise={dataPromise} />
+      <DataSummary dataPromise={dataPromise} /> {/* same fetch, no duplication */}
+    </Suspense>
+  );
+}
+function DataDisplay({ dataPromise }: { dataPromise: Promise<Data> }) {
+  const data = use(dataPromise);
+  return <div>{data.content}</div>;
+}
+```
+
+**Skip Suspense when:** SEO-critical above-fold content, layout-shift-sensitive areas, fast queries where overhead isn't worth it.
 
 ---
 
@@ -190,12 +211,49 @@ See `examples.md` for full implementation.
 
 | Pattern | Use for |
 |---------|---------|
-| `cache()` from React | Request deduplication (same render) |
-| `unstable_cache()` | Cross-request caching with revalidation |
+| `React.cache()` | Per-request deduplication (multiple components, one DB query) |
+| LRU cache (`lru-cache`) | Cross-request caching with TTL (preferred for stability) |
 | `revalidatePath()` | Invalidate specific path |
 | `revalidateTag()` | Invalidate by tag |
+| `after()` | Non-blocking post-response work (logging, analytics, cache invalidation) |
 
 **Rule: Always set revalidation strategy. Don't cache indefinitely.**
+
+---
+
+## Performance Rules
+
+*Details and code examples: see `vercel-react-best-practices` skill.*
+
+### Eliminating Waterfalls (CRITICAL)
+
+- **Parallel fetching via composition**: Non-async parent + async child Server Components (NOT `Promise.all()` in one component)
+- **Defer await**: Move `await` into branches where actually used; early return before expensive fetches
+- **Start promises early**: `const p = fetch()` immediately, `await p` later when needed
+- **`Promise.all()`**: For truly independent operations that must all complete before rendering
+
+### Bundle Optimization (CRITICAL)
+
+- **Avoid barrel imports**: Import directly (`lucide-react/dist/esm/icons/check`), or use `optimizePackageImports` in `next.config.js`
+- **Dynamic imports**: `next/dynamic` with `{ ssr: false }` for heavy components (editors, charts)
+- **Defer third-party**: Load analytics/error tracking via dynamic import after hydration
+- **Preload on intent**: `void import('./heavy')` on `onMouseEnter`/`onFocus`
+
+### RSC Performance (HIGH)
+
+- **Minimize serialization**: Only pass fields the client component uses, not entire objects
+- **`React.cache()`**: Wrap DB queries for per-request dedup across components
+- **`after()`**: Schedule logging/analytics/cache invalidation after response is sent
+
+### Client Performance
+
+- **Functional setState**: `setState(prev => ...)` to avoid stale closures and enable stable callbacks
+- **Lazy state init**: `useState(() => expensive())` not `useState(expensive())`
+- **Derived selectors**: Subscribe to booleans (`useMediaQuery`) not raw values (`useWindowWidth`)
+- **Narrow deps**: `[user.id]` not `[user]` in effect dependency arrays
+- **`startTransition`**: Wrap non-urgent updates (scroll tracking, search filtering)
+- **Ternary over `&&`**: `{count > 0 ? <Badge /> : null}` to avoid rendering `0`
+- **Hydration no-flicker**: Inline `<script>` for client-only data (theme, prefs) before React hydrates
 
 ---
 
@@ -211,12 +269,19 @@ See `examples.md` for full implementation.
 - [ ] Server Components by default
 - [ ] 'use client' only when needed (useState, onClick, browser APIs)
 - [ ] Client components are leaf nodes
+- [ ] Only needed fields passed across RSC→Client boundary
 
 ### Data
 - [ ] Server data fetched in Server Components
-- [ ] Slow data wrapped in Suspense
+- [ ] Slow data wrapped in Suspense (async child SCs, non-async parent)
 - [ ] Forms use Server Actions + useActionState
 - [ ] Proper cache invalidation (revalidatePath/revalidateTag)
+- [ ] `React.cache()` for repeated queries within a request
+
+### Bundle
+- [ ] No barrel file imports (or `optimizePackageImports` configured)
+- [ ] Heavy components use `next/dynamic`
+- [ ] Analytics/logging deferred after hydration
 
 ### Design System
 - [ ] Using tokens from design-system (no hardcoded values)

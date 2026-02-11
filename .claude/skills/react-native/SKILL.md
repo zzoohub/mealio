@@ -70,7 +70,7 @@ src/
 | State (client) | Zustand | Simple, no boilerplate |
 | Storage | MMKV | 10x faster than AsyncStorage |
 | Forms | TanStack Form + Zod | Type-safe, good validation |
-| Lists | FlashList | Recycling, better perf than FlatList |
+| Lists | LegendList | Virtualization, only renders visible items. Add `recycleItems` for stateless items (reuses instances like FlashList). Omit for items with internal state. |
 | Animation | Reanimated + Gesture Handler | 60fps, runs on UI thread |
 | Images | Expo Image | Fast, supports caching |
 
@@ -121,13 +121,15 @@ const { selected, toggle, clear } = useSelection();
 
 | Rule | Why |
 |------|-----|
-| FlashList over FlatList | Recycling, handles 10k+ items |
-| Memoize components with callbacks | Prevent unnecessary re-renders |
-| `useCallback` for handlers passed down | Stable references |
+| LegendList over FlatList/ScrollView | Virtualization — only renders visible items, even for short lists |
+| Memoize components with callbacks (without React Compiler) | Prevent unnecessary re-renders |
+| `useCallback` for handlers passed down (without React Compiler) | Stable references |
 | `InteractionManager.runAfterInteractions` | Defer heavy work until after navigation |
 | Test on physical device | Simulators hide real performance issues |
 
-**Rule: If it scrolls, use FlashList. If it's slow, profile on real device.**
+**Rule: If it scrolls, use LegendList. If it's slow, profile on real device.**
+
+**React Compiler note:** With React Compiler enabled, `memo()` and `useCallback()` are handled automatically — do not add them manually. Object reference stability still matters regardless.
 
 ---
 
@@ -136,11 +138,11 @@ const { selected, toggle, clear } = useSelection();
 | Rule | Detail |
 |------|--------|
 | No fixed container widths | Use flex, `%`, or `useWindowDimensions()` derived values |
-| `Platform.select` for styles | Shadows: iOS `shadow*` props vs Android `elevation` |
+| `boxShadow` for shadows | Unified CSS syntax: `{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }`. Do NOT use legacy `shadowColor`/`shadowOffset`/`shadowOpacity` or `elevation`. |
 | `Platform.OS` for behavior | Action sheets, pickers, keyboard behavior differ per OS |
 | Optional chaining in Alert handlers | Android `Alert.alert` onPress callbacks need `cb?.()` |
-| `useSafeAreaInsets` for notches | Never hardcode status bar heights |
-| FlashList needs `estimatedItemSize` | Without it, falls back to ScrollView — may crash Android |
+| `contentInsetAdjustmentBehavior="automatic"` on ScrollViews | Native safe area handling for scrollable screens. Use `useSafeAreaInsets` only for non-scrolling views (fixed headers). |
+| LegendList needs `estimatedItemSize` | Without it, falls back to ScrollView — may crash Android |
 | Fixed-height + `overflow: "hidden"` | Use `allowFontScaling={false}` or scale height with `fontScale` |
 | Compact UI chrome (tabs, selectors, badges) | `allowFontScaling={false}` — these are visual chrome, not readable content |
 | Detect device locale on first launch | `Localization.getLocales()[0]?.languageCode` — never hardcode default language |
@@ -154,7 +156,7 @@ const { selected, toggle, clear } = useSelection();
 | Date/time pickers | BottomSheet + spinner | Native dialog |
 | OAuth providers | Apple + Google | Google only (needs SHA-1 in console) |
 | Keyboard avoidance | `behavior="padding"` | `behavior="height"` or manifest config |
-| Shadows | `shadow*` props | `elevation` only |
+| Gradients | `experimental_backgroundImage` | `experimental_backgroundImage` |
 | `overflow: "hidden"` | Clips as expected | May not clip absolute children |
 
 ---
@@ -167,8 +169,8 @@ const { selected, toggle, clear } = useSelection();
 - [ ] Hook interfaces are clean and predictable
 
 ### Performance
-- [ ] Using FlashList with `estimatedItemSize` (not FlatList)
-- [ ] Components memoized where needed
+- [ ] Using LegendList with `estimatedItemSize` (not FlatList/FlashList/ScrollView)
+- [ ] Components memoized where needed (skip if React Compiler enabled)
 - [ ] Heavy work deferred with InteractionManager
 - [ ] Tested on physical device (not just simulator)
 
@@ -180,7 +182,8 @@ const { selected, toggle, clear } = useSelection();
 ### Cross-Platform & Devices
 - [ ] Works on both iOS and Android
 - [ ] Platform-specific behavior branched with `Platform.OS`
-- [ ] Safe areas handled, keyboard doesn't cover inputs
+- [ ] ScrollViews use `contentInsetAdjustmentBehavior="automatic"` for safe areas
+- [ ] Keyboard doesn't cover inputs
 - [ ] No fixed pixel widths — flex or dimension-derived
 - [ ] Large font sizes (~1.35x) don't clip fixed-height components
 - [ ] Compact UI chrome uses `allowFontScaling={false}`
@@ -189,6 +192,62 @@ const { selected, toggle, clear } = useSelection();
 ### Design System
 - [ ] Using tokens from design-system (no hardcoded values)
 - [ ] Touch targets 44pt+
+
+---
+
+## Modern RN Patterns (override defaults)
+
+These patterns differ from what LLM training data typically produces. Always use these instead of the legacy alternatives.
+
+### Styling
+
+```tsx
+// Shadows — unified CSS syntax (NOT shadowColor/shadowOffset/elevation)
+{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }
+
+// Border radius — always pair with continuous curve
+{ borderRadius: 12, borderCurve: 'continuous' }
+
+// Gradients — native CSS syntax (NOT LinearGradient from third-party)
+{ experimental_backgroundImage: 'linear-gradient(to bottom, #000, #fff)' }
+```
+
+### Menus & Modals
+
+```tsx
+// Dropdown/context menus — use zeego (NOT custom JS dropdowns)
+import * as DropdownMenu from 'zeego/dropdown-menu'
+import * as ContextMenu from 'zeego/context-menu'
+
+// Image lightbox — use Galeria (NOT custom Modal + Image)
+import { Galeria } from '@nandorojo/galeria'
+<Galeria urls={urls}>
+  <Galeria.Image index={0}>
+    <Image source={{ uri: url }} />
+  </Galeria.Image>
+</Galeria>
+```
+
+### Reanimated (React Compiler compatible)
+
+```tsx
+// Shared values — use .get()/.set() (NOT .value)
+const pressed = useSharedValue(0)
+pressed.set(withTiming(1))    // not pressed.value = withTiming(1)
+const current = pressed.get() // not pressed.value
+
+// Destructure hook returns early for stable references
+const { push } = useRouter()  // not router.push()
+```
+
+### React Compiler
+
+With React Compiler enabled:
+- Do NOT manually add `memo()`, `useCallback()`, or `useMemo()` — the compiler handles this
+- Object reference stability still matters for list data
+- Destructure functions from hooks at top of render scope
+
+---
 
 ## Security Configuration
 

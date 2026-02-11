@@ -170,50 +170,25 @@ export function DeleteButton({ postId }: { postId: string }) {
 
 ## Data Fetching
 
-### Parallel Data Fetching
+### Parallel Data Fetching (Composition Pattern)
 
 ```tsx
-// app/dashboard/page.tsx
-async function DashboardPage() {
-  // Parallel fetching - all start immediately
-  const [stats, recentOrders, topProducts] = await Promise.all([
-    getStats(),
-    getRecentOrders(),
-    getTopProducts(),
-  ]);
-
-  return (
-    <div>
-      <StatsCards stats={stats} />
-      <RecentOrders orders={recentOrders} />
-      <TopProducts products={topProducts} />
-    </div>
-  );
-}
-```
-
-### Streaming with Suspense
-
-```tsx
-// app/dashboard/page.tsx
+// app/dashboard/page.tsx — non-async parent, async children fetch in parallel
 import { Suspense } from 'react';
 
 export default function DashboardPage() {
   return (
     <div>
       <h1>Dashboard</h1>
-      
-      {/* Fast data - renders quickly */}
+
       <Suspense fallback={<StatsSkeleton />}>
         <StatsSection />
       </Suspense>
-      
-      {/* Slow data - streams in later */}
+
       <Suspense fallback={<ChartSkeleton />}>
         <RevenueChart />
       </Suspense>
-      
-      {/* Independent section */}
+
       <Suspense fallback={<TableSkeleton />}>
         <RecentOrdersTable />
       </Suspense>
@@ -221,16 +196,28 @@ export default function DashboardPage() {
   );
 }
 
-// Each section is a separate Server Component
+// Each async SC fetches independently — no waterfall
 async function StatsSection() {
   const stats = await getStats();
   return <StatsCards stats={stats} />;
 }
 
 async function RevenueChart() {
-  const data = await getRevenueData(); // Slow query
+  const data = await getRevenueData();
   return <Chart data={data} />;
 }
+
+async function RecentOrdersTable() {
+  const orders = await getRecentOrders();
+  return <OrdersTable orders={orders} />;
+}
+```
+
+Use `Promise.all()` only when all data must be available before any rendering:
+
+```tsx
+// API route or Server Action — not components
+const [session, config] = await Promise.all([auth(), fetchConfig()]);
 ```
 
 ### Data with Caching
@@ -238,32 +225,41 @@ async function RevenueChart() {
 ```typescript
 // entities/user/api/getUser.ts
 import { cache } from 'react';
-import { unstable_cache } from 'next/cache';
+import { LRUCache } from 'lru-cache';
 
-// Request-level deduplication (within same render)
+// Per-request deduplication — multiple components calling getUser() share one query
 export const getUser = cache(async (id: string) => {
   return db.user.findUnique({ where: { id } });
 });
 
-// Cross-request cache with revalidation
-export const getCachedUser = unstable_cache(
-  async (id: string) => {
-    return db.user.findUnique({
-      where: { id },
-      include: { profile: true },
-    });
-  },
-  ['user-by-id'],
-  {
-    revalidate: 3600, // 1 hour
-    tags: ['users'],
-  }
-);
+// Cross-request LRU cache — persists across sequential requests
+const userCache = new LRUCache<string, User>({ max: 500, ttl: 5 * 60 * 1000 });
 
-// Revalidate when user updates
-export async function updateUser(id: string, data: UpdateUserData) {
-  await db.user.update({ where: { id }, data });
-  revalidateTag('users');
+export async function getCachedUser(id: string) {
+  const cached = userCache.get(id);
+  if (cached) return cached;
+  const user = await db.user.findUnique({ where: { id }, include: { profile: true } });
+  if (user) userCache.set(id, user);
+  return user;
+}
+```
+
+### Non-Blocking Side Effects with after()
+
+```typescript
+// features/post/actions/createPost.ts
+import { after } from 'next/server';
+
+export async function POST(request: Request) {
+  const post = await createPost(await request.json());
+
+  // Runs after response is sent — doesn't slow down the user
+  after(async () => {
+    await logActivity({ action: 'post_created', postId: post.id });
+    await notifySubscribers(post);
+  });
+
+  return Response.json(post, { status: 201 });
 }
 ```
 
