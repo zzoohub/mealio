@@ -120,6 +120,7 @@ export const CalendarSheetContent = memo(function CalendarSheetContent({
             />
           )}
           <Text
+            allowFontScaling={false}
             style={[
               styles.calendarDayText,
               { color: hasThumbnail ? "white" : colors.text.primary },

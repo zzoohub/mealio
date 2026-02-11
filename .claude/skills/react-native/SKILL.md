@@ -131,6 +131,34 @@ const { selected, toggle, clear } = useSelection();
 
 ---
 
+## Cross-Platform & Multi-Device
+
+| Rule | Detail |
+|------|--------|
+| No fixed container widths | Use flex, `%`, or `useWindowDimensions()` derived values |
+| `Platform.select` for styles | Shadows: iOS `shadow*` props vs Android `elevation` |
+| `Platform.OS` for behavior | Action sheets, pickers, keyboard behavior differ per OS |
+| Optional chaining in Alert handlers | Android `Alert.alert` onPress callbacks need `cb?.()` |
+| `useSafeAreaInsets` for notches | Never hardcode status bar heights |
+| FlashList needs `estimatedItemSize` | Without it, falls back to ScrollView — may crash Android |
+| Fixed-height + `overflow: "hidden"` | Use `allowFontScaling={false}` or scale height with `fontScale` |
+| Compact UI chrome (tabs, selectors, badges) | `allowFontScaling={false}` — these are visual chrome, not readable content |
+| Detect device locale on first launch | `Localization.getLocales()[0]?.languageCode` — never hardcode default language |
+| Font scale design target | Design for up to ~1.35x `fontScale`. Must not crash at 2.0x |
+
+### iOS vs Android Differences
+
+| Concern | iOS | Android |
+|---------|-----|---------|
+| Action sheets | `ActionSheetIOS` | `Alert.alert` with buttons |
+| Date/time pickers | BottomSheet + spinner | Native dialog |
+| OAuth providers | Apple + Google | Google only (needs SHA-1 in console) |
+| Keyboard avoidance | `behavior="padding"` | `behavior="height"` or manifest config |
+| Shadows | `shadow*` props | `elevation` only |
+| `overflow: "hidden"` | Clips as expected | May not clip absolute children |
+
+---
+
 ## Quick Checklist
 
 ### Architecture
@@ -139,7 +167,7 @@ const { selected, toggle, clear } = useSelection();
 - [ ] Hook interfaces are clean and predictable
 
 ### Performance
-- [ ] Using FlashList for lists (not FlatList)
+- [ ] Using FlashList with `estimatedItemSize` (not FlatList)
 - [ ] Components memoized where needed
 - [ ] Heavy work deferred with InteractionManager
 - [ ] Tested on physical device (not just simulator)
@@ -149,10 +177,14 @@ const { selected, toggle, clear } = useSelection();
 - [ ] Client state in Zustand
 - [ ] Persistent state uses MMKV (not AsyncStorage)
 
-### Platform
+### Cross-Platform & Devices
 - [ ] Works on both iOS and Android
-- [ ] Safe areas handled
-- [ ] Keyboard doesn't cover inputs
+- [ ] Platform-specific behavior branched with `Platform.OS`
+- [ ] Safe areas handled, keyboard doesn't cover inputs
+- [ ] No fixed pixel widths — flex or dimension-derived
+- [ ] Large font sizes (~1.35x) don't clip fixed-height components
+- [ ] Compact UI chrome uses `allowFontScaling={false}`
+- [ ] Device locale detected on first launch
 
 ### Design System
 - [ ] Using tokens from design-system (no hardcoded values)

@@ -107,7 +107,7 @@ Rate limiting (auth: 10/min, global: 60/min via `tower_governor`), 30s request t
 
 ### Workflow
 1. **react-native** (implementation)
-2. **vercel-react-native-skills** (review)
+2. **vercel-react-native-skills** (review) (must be reviewed)
 
 ### Dual-Mode Architecture
 The app runs in **auth mode** (API + TanStack Query) or **guest mode** (MMKV local storage + Zustand).
