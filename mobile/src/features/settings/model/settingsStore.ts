@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import * as Localization from 'expo-localization';
 import { STORAGE_KEYS } from '@/shared/config';
 import { storage } from '@/shared/lib/storage';
 import { settingsApi } from './settingsApi';
@@ -145,6 +146,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         }
         if (displayItem?.value) {
           updates.display = { ...defaultDisplay, ...displayItem.value };
+        } else {
+          // No stored display settings — detect device language on first open
+          const deviceLocale = Localization.getLocales()[0];
+          const detectedLang: SupportedLanguage = deviceLocale?.languageCode === 'ko' ? 'ko' : 'en';
+          updates.display = { ...defaultDisplay, language: detectedLang };
         }
         if (cameraItem?.value) {
           updates.camera = { ...defaultCamera, ...cameraItem.value };

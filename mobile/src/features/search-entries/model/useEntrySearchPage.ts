@@ -7,6 +7,7 @@ import { useEntrySearch } from "./useEntrySearch";
 import type { UseEntrySearchParams } from "./useEntrySearch";
 import type { DatePreset } from "../ui/DateQuickFilters";
 import { useDiaryI18n, useCommonI18n, getCurrentLanguage } from "@/shared/lib/i18n";
+import { useIsAuthenticated } from "@/shared/lib/auth";
 import type { ApiMealType } from "@/shared/api";
 
 // =============================================================================
@@ -76,6 +77,7 @@ export function useEntrySearchPage(): UseEntrySearchPageReturn {
   const router = useRouter();
   const diary = useDiaryI18n();
   const common = useCommonI18n();
+  const isAuthenticated = useIsAuthenticated();
 
   const SORT_OPTIONS: readonly SortOptionConfig[] = useMemo(() => [
     { value: "date-desc", label: diary.sortNewest },
@@ -127,15 +129,16 @@ export function useEntrySearchPage(): UseEntrySearchPageReturn {
   // =============================================================================
 
   const filteredEntries = useMemo(() => {
-    // Client-side meal type filter for multi-select (>1 type)
-    // When exactly 1 type is selected, it's already filtered server-side
-    // Sorting is handled server-side via order_by param
-    if (selectedMealTypes.length > 1) {
+    // Client-side meal type filter:
+    // - Multi-select (>1 type): always filter client-side
+    // - Single select for guest mode: also filter client-side (no server-side filtering)
+    // - Single select for auth mode: already filtered server-side via API param
+    if (selectedMealTypes.length > 1 || (selectedMealTypes.length === 1 && !isAuthenticated)) {
       return entries.filter((entry) => selectedMealTypes.includes(entry.meal.mealType));
     }
 
     return entries;
-  }, [entries, selectedMealTypes]);
+  }, [entries, selectedMealTypes, isAuthenticated]);
 
   // =============================================================================
   // DERIVED VALUES

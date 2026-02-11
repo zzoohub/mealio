@@ -163,6 +163,10 @@ export const entryStorageUtils = {
         entries = entries.filter((e) => e.meal.mealType === filter.mealType);
       }
 
+      if (filter.wouldEatAgain !== undefined) {
+        entries = entries.filter((e) => e.wouldEatAgain === filter.wouldEatAgain);
+      }
+
       if (filter.searchQuery) {
         const query = filter.searchQuery.toLowerCase();
         entries = entries.filter(

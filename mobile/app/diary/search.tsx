@@ -224,6 +224,7 @@ export default function DiarySearchScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           numColumns={NUM_COLUMNS}
+          estimatedItemSize={ITEM_SIZE}
           ListEmptyComponent={renderEmpty}
           ListFooterComponent={renderFooter}
           onEndReached={loadMore}

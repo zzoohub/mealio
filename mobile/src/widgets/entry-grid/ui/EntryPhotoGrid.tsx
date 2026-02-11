@@ -98,6 +98,7 @@ export function EntryPhotoGrid({
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         numColumns={columns}
+        estimatedItemSize={(SCREEN_WIDTH - GAP * (columns - 1)) / columns}
         contentContainerStyle={{ padding: GAP / 2 }}
       />
     </View>

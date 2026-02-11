@@ -87,6 +87,9 @@ function getMealTypeIcon(mealType: string): string {
  * Format timestamp to 12-hour format with AM/PM
  */
 function formatTime(date: Date): string {
+  if (!(date instanceof Date) || isNaN(date.getTime())) {
+    return '--:--';
+  }
   return date.toLocaleTimeString(getCurrentLanguage(), {
     hour: 'numeric',
     minute: '2-digit',
@@ -173,7 +176,7 @@ export function EntryContextBar({
         [
           ...MEAL_TYPE_OPTIONS.map((opt) => ({
             text: opt.label,
-            onPress: () => onMealTypeChange(opt.value),
+            onPress: () => onMealTypeChange?.(opt.value),
           })),
           { text: common.cancel, style: 'cancel' as const },
         ]

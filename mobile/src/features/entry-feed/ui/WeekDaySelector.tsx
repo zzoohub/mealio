@@ -128,6 +128,7 @@ const DayItem = memo(function DayItem({
         <View style={[styles.selectionBorder, { borderColor: colors.interactive.primary }]} pointerEvents="none" />
       )}
       <Text
+        allowFontScaling={false}
         style={[
           styles.dayName,
           { color: hasThumbnail ? "white" : colors.text.secondary },
@@ -138,6 +139,7 @@ const DayItem = memo(function DayItem({
         {getDayName(dayIndex, getCurrentLanguage())}
       </Text>
       <Text
+        allowFontScaling={false}
         style={[
           styles.dayNumber,
           { color: hasThumbnail ? "white" : colors.text.primary },

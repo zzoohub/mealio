@@ -108,6 +108,10 @@ export function useGoogleAuth(): UseGoogleAuthReturn {
 
       return null;
     } catch (err) {
+      if (__DEV__) {
+        console.error("Google Sign-In error:", JSON.stringify(err, null, 2));
+      }
+
       if (isErrorWithCode(err)) {
         switch (err.code) {
           case statusCodes.IN_PROGRESS:
@@ -120,10 +124,11 @@ export function useGoogleAuth(): UseGoogleAuthReturn {
             // User cancelled - not an error
             break;
           default:
-            setError(err.message || "Google sign in failed");
+            setError(err.message || `Google sign in failed (code: ${err.code})`);
         }
       } else {
-        setError("An unexpected error occurred");
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
+        setError(message);
       }
       return null;
     } finally {

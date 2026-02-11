@@ -59,6 +59,7 @@ export interface EntryFilter {
   endDate?: Date;
   mealType?: MealType;
   searchQuery?: string;
+  wouldEatAgain?: boolean;
 }
 
 export interface EntryStatistics {

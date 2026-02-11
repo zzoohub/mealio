@@ -286,6 +286,8 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
           if (debouncedQuery) filter.searchQuery = debouncedQuery;
           if (datePeriod.startDate) filter.startDate = datePeriod.startDate;
           if (datePeriod.endDate) filter.endDate = datePeriod.endDate;
+          if (params?.mealType) filter.mealType = mealTypeMap[params.mealType] ?? undefined;
+          if (params?.wouldEatAgain) filter.wouldEatAgain = params.wouldEatAgain;
 
           const loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
           if (stale) return;
@@ -395,6 +397,8 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
         if (debouncedQuery) filter.searchQuery = debouncedQuery;
         if (datePeriod.startDate) filter.startDate = datePeriod.startDate;
         if (datePeriod.endDate) filter.endDate = datePeriod.endDate;
+        if (params?.mealType) filter.mealType = mealTypeMap[params.mealType] ?? undefined;
+        if (params?.wouldEatAgain) filter.wouldEatAgain = params.wouldEatAgain;
 
         const loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
         if (loadVersionRef.current !== version) return;

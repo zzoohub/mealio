@@ -30,6 +30,10 @@ jest.mock("@/entities/meal", () => ({
 jest.mock("../useEntrySearch", () => ({
   useEntrySearch: jest.fn(),
 }));
+jest.mock("@/shared/lib/auth", () => ({
+  useIsAuthenticated: jest.fn(() => false),
+  isAuthenticated: jest.fn(() => false),
+}));
 
 import { renderHook, act, waitFor } from "@testing-library/react-native";
 import { ActionSheetIOS, Alert } from "react-native";
@@ -987,8 +991,8 @@ describe("useEntrySearchPage", () => {
         result.current.setSelectedMealTypes([MealType.BREAKFAST]);
       });
 
-      // Single meal type: server-side filtering (returns all)
-      expect(result.current.filteredEntries.length).toBe(4);
+      // Single meal type in guest mode: client-side filtering (isAuthenticated = false)
+      expect(result.current.filteredEntries.length).toBe(2); // IDs 1, 3
 
       act(() => {
         result.current.setSelectedMealTypes([MealType.BREAKFAST, MealType.SNACK]);
