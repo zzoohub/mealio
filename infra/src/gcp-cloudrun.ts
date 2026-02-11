@@ -70,19 +70,31 @@ export function createCloudRun(secretResources: SecretResource[]) {
     },
   );
 
-  // Grant Cloud Run service agent access to read secrets
+  // Grant secret access to both:
+  // - Cloud Run service agent (pulls secrets during revision creation)
+  // - Default compute SA (runtime secret injection)
   const projectNumber = gcp.organizations
     .getProject({ projectId: gcpProject })
     .then((p) => p.number);
 
   for (const sr of secretResources) {
     new gcp.secretmanager.SecretIamMember(
-      `${sr.envVar.toLowerCase()}-accessor`,
+      `${sr.envVar.toLowerCase()}-agent-accessor`,
       {
         project: gcpProject,
         secretId: sr.secret.secretId,
         role: "roles/secretmanager.secretAccessor",
         member: pulumi.interpolate`serviceAccount:service-${projectNumber}@serverless-robot-prod.iam.gserviceaccount.com`,
+      },
+    );
+
+    new gcp.secretmanager.SecretIamMember(
+      `${sr.envVar.toLowerCase()}-compute-accessor`,
+      {
+        project: gcpProject,
+        secretId: sr.secret.secretId,
+        role: "roles/secretmanager.secretAccessor",
+        member: pulumi.interpolate`serviceAccount:${projectNumber}-compute@developer.gserviceaccount.com`,
       },
     );
   }
