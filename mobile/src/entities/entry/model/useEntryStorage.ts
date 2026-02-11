@@ -152,11 +152,15 @@ export const entryStorageUtils = {
       );
 
       if (filter.startDate) {
-        entries = entries.filter((e) => e.timestamp >= filter.startDate!);
+        const start = new Date(filter.startDate);
+        start.setHours(0, 0, 0, 0);
+        entries = entries.filter((e) => e.timestamp >= start);
       }
 
       if (filter.endDate) {
-        entries = entries.filter((e) => e.timestamp <= filter.endDate!);
+        const end = new Date(filter.endDate);
+        end.setHours(23, 59, 59, 999);
+        entries = entries.filter((e) => e.timestamp <= end);
       }
 
       if (filter.mealType) {

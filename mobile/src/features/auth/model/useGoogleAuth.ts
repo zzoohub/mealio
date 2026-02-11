@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Platform } from "react-native";
 import type { AuthCredential } from "@/entities/user";
 
 // =============================================================================
@@ -20,6 +21,7 @@ interface UseGoogleAuthReturn {
 
 const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+const ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 
 let GoogleSignin: typeof import("@react-native-google-signin/google-signin").GoogleSignin | null = null;
 let statusCodes: typeof import("@react-native-google-signin/google-signin").statusCodes | null = null;
@@ -48,6 +50,7 @@ export const configureGoogleSignIn = async () => {
   GoogleSignin.configure({
     webClientId: WEB_CLIENT_ID,
     iosClientId: IOS_CLIENT_ID,
+    androidClientId: ANDROID_CLIENT_ID,
     offlineAccess: true,
     scopes: ["profile", "email"],
   });
@@ -83,7 +86,9 @@ export function useGoogleAuth(): UseGoogleAuthReturn {
       setIsSigningIn(true);
       setError(null);
 
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      if (Platform.OS === "android") {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      }
 
       const response = await GoogleSignin.signIn();
 

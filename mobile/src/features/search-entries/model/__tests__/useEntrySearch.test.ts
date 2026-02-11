@@ -570,7 +570,7 @@ describe("useEntrySearch", () => {
       const daysDiff = Math.round(
         (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
       );
-      expect(daysDiff).toBe(6); // 7 days means 6 days difference
+      expect(daysDiff).toBe(7); // 7 days preset gives 7 full days (start of day 1 to end of day 7)
     });
 
     it("clearDateRange clears all calendar state", async () => {

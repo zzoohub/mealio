@@ -337,9 +337,10 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
 
   const setDateRangePreset = useCallback(
     (days: number) => {
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(endDate.getDate() - days + 1);
+      const now = new Date();
+
+      const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - days + 1, 0, 0, 0, 0);
+      const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
       setCalendarRange({ startDate, endDate, markedDates: {} });
       setDatePeriod({ type: "custom", startDate, endDate });

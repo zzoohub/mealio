@@ -13,7 +13,7 @@
   "welcome": {
     "title": "식사일기에 오신 것을 환영합니다",
     "message": "원터치로 식사를 즉시 기록하세요. 시작하려면 카메라 접근을 허용해 주세요.",
-    "enableCamera": "카메라 활성화"
+    "enableCamera": "계속"
   },
   "permissions": {
     "title": "카메라 권한이 필요합니다",
