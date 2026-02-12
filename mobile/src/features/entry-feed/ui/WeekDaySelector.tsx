@@ -309,7 +309,8 @@ const GAP = 2;
 
 const styles = StyleSheet.create({
   container: {
-    height: 64,
+    height: 66,
+    paddingVertical: 1,
     overflow: "hidden",
   },
   pager: {

@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 // App configuration constants
 export const APP_CONFIG = {
   NAME: "Meal Log",
@@ -14,7 +16,9 @@ export const GUEST_LIMITS = {
 
 // API configuration
 export const API_CONFIG = {
-  BASE_URL: __DEV__ ? "http://localhost:3000/api" : "https://mealio-api-1081857794554.us-east4.run.app/api",
+  BASE_URL: __DEV__
+    ? `http://${Platform.OS === "android" ? "10.0.2.2" : "localhost"}:3000/api`
+    : "https://mealio-api-1081857794554.us-east4.run.app/api",
   TIMEOUT: 10000,
   RETRY_ATTEMPTS: 3,
   CACHE_DURATION: 5 * 60 * 1000, // 5 minutes

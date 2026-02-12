@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
   message: {
     fontSize: tokens.typography.fontSize.body,
     textAlign: "center",
-    lineHeight: tokens.typography.lineHeight.body,
+    lineHeight: tokens.typography.fontSize.body * tokens.typography.lineHeight.body,
     marginBottom: tokens.spacing.layout.md,
   },
   button: {
