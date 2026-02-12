@@ -111,6 +111,9 @@ const DayItem = memo(function DayItem({
         styles.dayItem,
         { width: dayWidth },
         hasThumbnail && styles.dayItemWithThumbnail,
+        isSelected
+          ? { borderColor: colors.interactive.primary }
+          : { borderColor: "transparent" },
       ]}
       onPress={handlePress}
       disabled={isFuture}
@@ -125,9 +128,6 @@ const DayItem = memo(function DayItem({
           />
           <View style={styles.thumbnailOverlay} />
         </>
-      )}
-      {isSelected && (
-        <View style={[styles.selectionBorder, { borderColor: colors.interactive.primary }]} pointerEvents="none" />
       )}
       <Text
         allowFontScaling={false}
@@ -309,8 +309,7 @@ const GAP = 2;
 
 const styles = StyleSheet.create({
   container: {
-    height: 66,
-    paddingVertical: 1,
+    height: 72,
     overflow: "hidden",
   },
   pager: {
@@ -319,22 +318,19 @@ const styles = StyleSheet.create({
   weekContainer: {
     flexDirection: "row",
     gap: GAP,
+    paddingVertical: 4,
   },
   dayItem: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: tokens.spacing.component.md,
     borderRadius: tokens.radius.sm,
+    borderWidth: 2,
+    borderColor: "transparent",
     overflow: "hidden",
   },
   dayItemWithThumbnail: {
     position: "relative",
-  },
-  selectionBorder: {
-    ...StyleSheet.absoluteFillObject,
-    borderWidth: 1,
-    borderRadius: tokens.radius.sm,
-    zIndex: 2,
   },
   thumbnailImage: {
     ...StyleSheet.absoluteFillObject,

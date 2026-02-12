@@ -115,8 +115,8 @@ export const useAuthStore = create<AuthStore>()(
       try {
         set({ isLoading: true, error: null });
 
-        // Hydrate tokens from MMKV
-        useTokenStore.getState().loadFromStorage();
+        // Hydrate tokens from SecureStore
+        await useTokenStore.getState().loadFromStorage();
 
         const userData = storage.get<User>(STORAGE_KEYS.USER_DATA);
         const hasTokens = !!useTokenStore.getState().accessToken;

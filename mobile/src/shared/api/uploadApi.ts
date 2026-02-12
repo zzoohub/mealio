@@ -25,18 +25,21 @@ async function uploadToR2(
   fileUri: string,
   contentType: string,
 ): Promise<void> {
-  const response = await fetch(fileUri);
-  const blob = await response.blob();
-
-  const uploadResponse = await fetch(presignedUrl, {
-    method: "PUT",
-    headers: { "Content-Type": contentType },
-    body: blob,
+  // Use XHR-based upload for reliable file:// URI support on Android
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        reject(new Error(`R2 upload failed with status ${xhr.status}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error("R2 upload network error"));
+    xhr.open("PUT", presignedUrl);
+    xhr.setRequestHeader("Content-Type", contentType);
+    xhr.send({ uri: fileUri, type: contentType, name: "photo" } as never);
   });
-
-  if (!uploadResponse.ok) {
-    throw new Error(`R2 upload failed with status ${uploadResponse.status}`);
-  }
 }
 
 /**

@@ -20,15 +20,29 @@ export function useDeviceLocation() {
 
       if (!permissionRef.current) return undefined;
 
-      const position = await ExpoLocation.getCurrentPositionAsync({
-        accuracy: ExpoLocation.Accuracy.Balanced,
-      });
+      // Use last known location for instant response, fall back to fresh GPS with timeout
+      const position =
+        await ExpoLocation.getLastKnownPositionAsync() ??
+        await Promise.race([
+          ExpoLocation.getCurrentPositionAsync({
+            accuracy: ExpoLocation.Accuracy.Low,
+          }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Location timeout")), 2000),
+          ),
+        ]);
 
       const { latitude, longitude } = position.coords;
 
+      // Reverse geocode in background — don't block the save
       let address: string | undefined;
       try {
-        const [result] = await ExpoLocation.reverseGeocodeAsync({ latitude, longitude });
+        const [result] = await Promise.race([
+          ExpoLocation.reverseGeocodeAsync({ latitude, longitude }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Geocode timeout")), 1000),
+          ),
+        ]);
         if (result) {
           const parts = [result.name, result.street, result.city, result.region].filter(Boolean);
           address = parts.join(", ") || undefined;

@@ -17,7 +17,7 @@ interface TokenActions {
   setTokens: (access: string, refresh: string, expiresIn: number) => void;
   clearTokens: () => void;
   isExpired: () => boolean;
-  loadFromStorage: () => void;
+  loadFromStorage: () => Promise<void>;
 }
 
 type TokenStore = TokenState & TokenActions;
@@ -66,20 +66,19 @@ export const useTokenStore = create<TokenStore>()((set, get) => ({
     return Date.now() >= expiresAt - EXPIRY_BUFFER_MS;
   },
 
-  loadFromStorage: () => {
-    // SecureStore is async, but we need sync hydration for Zustand.
-    // Read synchronously from MMKV for expiry, async-hydrate tokens.
+  loadFromStorage: async () => {
     const expiresAt = storage.get<number>(STORAGE_KEYS.TOKEN_EXPIRES_AT);
 
-    Promise.all([
-      SecureStore.getItemAsync(SECURE_KEY_ACCESS),
-      SecureStore.getItemAsync(SECURE_KEY_REFRESH),
-    ]).then(([accessToken, refreshToken]) => {
+    try {
+      const [accessToken, refreshToken] = await Promise.all([
+        SecureStore.getItemAsync(SECURE_KEY_ACCESS),
+        SecureStore.getItemAsync(SECURE_KEY_REFRESH),
+      ]);
       if (accessToken && refreshToken) {
         set({ accessToken, refreshToken, expiresAt });
       }
-    }).catch(() => {
+    } catch {
       // SecureStore read failed — stay logged out
-    });
+    }
   },
 }));
