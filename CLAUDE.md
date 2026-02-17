@@ -46,11 +46,11 @@ Swagger UI available at `http://localhost:3000/swagger-ui` when running.
 
 ## Principles (MUST CONFORM TO)
 1. All implementation must use skills (even if after plan mode.)
-   - mobile: Use **react-native** skill
-   - api: Use **axum** skill + **postgresql** skill for queries
+   - mobile: Use **z-react-native** skill
+   - api: Use **z-axum** skill + **z-postgresql** skill for queries
 2. Once the implementation is complete, run the two sub-agents below in parallel.
-   - Run a **security-reviewer** sub-agent for security audit → fix
-   - Run a **tester** sub-agent for testing only changed code → fix
+   - Run a **z-security-reviewer** sub-agent for security audit → fix
+   - Run a **z-tester** sub-agent for testing only changed code → fix
 
 ## API
 
@@ -59,8 +59,8 @@ All routes are nested under `/api/v1` (e.g. `/api/v1/auth/login`, `/api/v1/diary
 Additional top-level routes: `/health` (DB check), `/diary/{id}` (deep link fallback), `/.well-known/apple-app-site-association`, `/.well-known/assetlinks.json`.
 
 ### Workflow
-1. **data-modeling** → **database-reviewer** (agent) → **api-design** (plan)
-2. **axum** (implementation) + **postgresql** (queries)
+1. **z-database-design** → **z-api-design** (plan)
+2. **z-axum** (implementation) + **z-postgresql** (queries)
 3. `cargo build --release`
 
 ### Folder Structure (`api/src/`)
@@ -106,7 +106,7 @@ Rate limiting (auth: 10/min, global: 60/min via `tower_governor`), 30s request t
 ## Mobile
 
 ### Workflow
-1. **react-native** (implementation)
+1. **z-react-native** (implementation)
 2. **vercel-react-native-skills** (review) (must be reviewed)
 
 ### Dual-Mode Architecture
