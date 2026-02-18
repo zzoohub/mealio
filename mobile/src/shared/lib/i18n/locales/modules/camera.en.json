@@ -12,7 +12,7 @@
   "aiAnalysisDesc": "Identifying meal items and calculating nutrition...",
   "welcome": {
     "title": "Welcome to Mealio",
-    "message": "Capture your meals instantly with one tap. Enable camera access to get started.",
+    "message": "Capture your meals instantly with one tap. Camera access is used to log your meals.",
     "enableCamera": "Continue"
   },
   "permissions": {

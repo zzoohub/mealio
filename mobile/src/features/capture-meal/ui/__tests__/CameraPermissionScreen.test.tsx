@@ -50,7 +50,7 @@ describe('CameraPermissionScreen', () => {
     labels: {
       title: 'Camera Access',
       message: 'We need camera access to take meal photos',
-      buttonText: 'Enable Camera',
+      buttonText: 'Continue',
     },
   };
 
@@ -63,13 +63,13 @@ describe('CameraPermissionScreen', () => {
 
     expect(getByText('Camera Access')).toBeTruthy();
     expect(getByText('We need camera access to take meal photos')).toBeTruthy();
-    expect(getByText('Enable Camera')).toBeTruthy();
+    expect(getByText('Continue')).toBeTruthy();
   });
 
   it('calls onRequestPermission when button pressed', () => {
     const { getByText } = render(<CameraPermissionScreen {...defaultProps} />);
 
-    fireEvent.press(getByText('Enable Camera'));
+    fireEvent.press(getByText('Continue'));
     expect(defaultProps.onRequestPermission).toHaveBeenCalledTimes(1);
   });
 
