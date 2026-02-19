@@ -20,6 +20,15 @@ impl<T: Serialize> IntoResponse for Created<T> {
     }
 }
 
+/// 202 Accepted with JSON body
+pub struct Accepted<T>(pub T);
+
+impl<T: Serialize> IntoResponse for Accepted<T> {
+    fn into_response(self) -> Response {
+        (StatusCode::ACCEPTED, axum::Json(self.0)).into_response()
+    }
+}
+
 /// 204 No Content
 pub struct NoContent;
 

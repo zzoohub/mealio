@@ -233,6 +233,9 @@ export interface DiaryTranslations {
   seeAll: string;
   loadingMeals: string;
   noMealsYet: string;
+  aiAnalyzing: string;
+  aiAnalysisFailed: string;
+  aiRetry: string;
 }
 
 // Settings translations

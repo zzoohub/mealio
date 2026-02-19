@@ -135,6 +135,9 @@ export const queryKeys = {
     weekThumbnails: (params: { startDate: string; endDate: string }) => ["diary", "weekThumbnails", params] as const,
     monthThumbnails: (params: { startDate: string; endDate: string }) => ["diary", "monthThumbnails", params] as const,
   },
+  aiAnalysis: {
+    detail: (entryId: number) => ["aiAnalysis", "detail", entryId] as const,
+  },
   statistics: {
     all: () => ["statistics"] as const,
     overview: (params?: { startDate?: string; endDate?: string }) => ["statistics", "overview", params] as const,

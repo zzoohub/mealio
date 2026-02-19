@@ -26,6 +26,8 @@ pub struct AiAnalysis {
     pub confidence_score: Option<BigDecimal>,
     pub raw_response: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
+    pub status: String,
+    pub error_message: Option<String>,
 }
 
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
@@ -54,7 +56,7 @@ impl AiAnalysis {
     pub async fn find_by_entry_id(db: &PgPool, entry_id: i64) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as!(
             AiAnalysis,
-            "SELECT id, entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, description, confidence_score, raw_response, created_at
+            "SELECT id, entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, description, confidence_score, raw_response, created_at, status, error_message
              FROM ai_analyses WHERE entry_id = $1 ORDER BY created_at DESC LIMIT 1",
             entry_id,
         )
@@ -65,9 +67,9 @@ impl AiAnalysis {
     pub async fn create(db: &PgPool, entry_id: i64, req: &CreateAnalysisRequest) -> Result<Self, sqlx::Error> {
         sqlx::query_as!(
             AiAnalysis,
-            "INSERT INTO ai_analyses (entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, description, confidence_score, raw_response)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-             RETURNING id, entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, description, confidence_score, raw_response, created_at",
+            "INSERT INTO ai_analyses (entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, description, confidence_score, raw_response, status)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'completed')
+             RETURNING id, entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, description, confidence_score, raw_response, created_at, status, error_message",
             entry_id,
             req.calories.as_ref() as Option<&BigDecimal>,
             req.protein_grams.as_ref() as Option<&BigDecimal>,
@@ -81,6 +83,99 @@ impl AiAnalysis {
             req.raw_response.as_ref() as Option<&serde_json::Value>,
         )
         .fetch_one(db)
+        .await
+    }
+
+    pub async fn create_pending(db: &PgPool, entry_id: i64) -> Result<Self, sqlx::Error> {
+        sqlx::query_as!(
+            AiAnalysis,
+            "INSERT INTO ai_analyses (entry_id, status)
+             VALUES ($1, 'pending')
+             RETURNING id, entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, description, confidence_score, raw_response, created_at, status, error_message",
+            entry_id,
+        )
+        .fetch_one(db)
+        .await
+    }
+
+    pub async fn mark_processing(db: &PgPool, id: i64) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            "UPDATE ai_analyses SET status = 'processing' WHERE id = $1",
+            id,
+        )
+        .execute(db)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn mark_completed(
+        db: &PgPool,
+        id: i64,
+        calories: Option<&BigDecimal>,
+        protein_grams: Option<&BigDecimal>,
+        fat_grams: Option<&BigDecimal>,
+        carbs_grams: Option<&BigDecimal>,
+        fiber_grams: Option<&BigDecimal>,
+        sugar_grams: Option<&BigDecimal>,
+        sodium_mg: Option<&BigDecimal>,
+        description: Option<&str>,
+        confidence_score: Option<&BigDecimal>,
+        raw_response: Option<&serde_json::Value>,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            "UPDATE ai_analyses
+             SET status = 'completed',
+                 calories = $2, protein_grams = $3, fat_grams = $4, carbs_grams = $5,
+                 fiber_grams = $6, sugar_grams = $7, sodium_mg = $8,
+                 description = $9, confidence_score = $10, raw_response = $11
+             WHERE id = $1",
+            id,
+            calories,
+            protein_grams,
+            fat_grams,
+            carbs_grams,
+            fiber_grams,
+            sugar_grams,
+            sodium_mg,
+            description,
+            confidence_score,
+            raw_response,
+        )
+        .execute(db)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn mark_failed(db: &PgPool, id: i64, error_message: &str) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            "UPDATE ai_analyses SET status = 'failed', error_message = $2 WHERE id = $1",
+            id,
+            error_message,
+        )
+        .execute(db)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn delete_by_id(db: &PgPool, id: i64) -> Result<(), sqlx::Error> {
+        sqlx::query!("DELETE FROM ai_analyses WHERE id = $1", id)
+            .execute(db)
+            .await?;
+        Ok(())
+    }
+
+    /// Find analyses stuck in pending/processing for more than `minutes` minutes.
+    pub async fn find_stuck(db: &PgPool, minutes: i32) -> Result<Vec<Self>, sqlx::Error> {
+        sqlx::query_as!(
+            AiAnalysis,
+            "SELECT id, entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, description, confidence_score, raw_response, created_at, status, error_message
+             FROM ai_analyses
+             WHERE status IN ('pending', 'processing')
+               AND created_at < now() - make_interval(mins := $1)
+             ORDER BY created_at",
+            minutes,
+        )
+        .fetch_all(db)
         .await
     }
 }

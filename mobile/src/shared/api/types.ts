@@ -178,6 +178,8 @@ export interface ApiAiAnalysis {
   confidence_score: string | null;
   raw_response: unknown;
   created_at: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  error_message: string | null;
 }
 
 export interface ApiDiaryEntryDetail {
@@ -338,23 +340,6 @@ export interface ApiOverview {
   nutrition: ApiNutritionStats;
   meal_types: ApiMealTypeCount[];
   top_ingredients: ApiTopIngredient[];
-}
-
-// =============================================================================
-// AI ANALYSIS
-// =============================================================================
-
-export interface ApiCreateAnalysisRequest {
-  calories?: string;
-  protein_grams?: string;
-  fat_grams?: string;
-  carbs_grams?: string;
-  fiber_grams?: string;
-  sugar_grams?: string;
-  sodium_mg?: string;
-  description?: string;
-  confidence_score?: string;
-  raw_response?: unknown;
 }
 
 // =============================================================================

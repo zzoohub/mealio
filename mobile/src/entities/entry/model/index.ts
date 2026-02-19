@@ -11,3 +11,4 @@ export { useUploadQueueStore } from './uploadQueueStore';
 export type { PendingUpload, UploadStatus } from './uploadQueueStore';
 export { useUploadProcessor } from './useUploadProcessor';
 export type { UseUploadProcessorOptions } from './useUploadProcessor';
+export { useAiAnalysisQuery } from './useAiAnalysisQuery';

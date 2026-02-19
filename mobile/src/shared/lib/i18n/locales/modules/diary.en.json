@@ -105,5 +105,8 @@
   "recentMeals": "Recent Meals",
   "seeAll": "See All",
   "loadingMeals": "Loading meals...",
-  "noMealsYet": "No meals logged yet. Start by taking a photo of your meal!"
+  "noMealsYet": "No meals logged yet. Start by taking a photo of your meal!",
+  "aiAnalyzing": "Analyzing your meal...",
+  "aiAnalysisFailed": "Analysis failed",
+  "aiRetry": "Retry"
 }

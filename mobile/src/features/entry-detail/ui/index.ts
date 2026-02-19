@@ -8,3 +8,5 @@ export { NutritionSection } from './NutritionSection';
 export { EntryDeleteButton } from './EntryDeleteButton';
 export { EntryLocationMap } from './EntryLocationMap';
 export { MealNutritionRow } from './MealNutritionRow';
+export { AIAnalysisLoadingBanner } from './AIAnalysisLoadingBanner';
+export { AIAnalysisFailedBanner } from './AIAnalysisFailedBanner';

@@ -7,6 +7,7 @@ import { mapEntryToCreateRequest } from "@/shared/api";
 import { entryApi } from "../api/entryApi";
 import { photoApi } from "../api/photoApi";
 import { queryKeys } from "@/shared/config";
+import { aiAnalysisApi } from "../api/aiAnalysisApi";
 
 // =============================================================================
 // TYPES
@@ -65,12 +66,17 @@ export function useUploadProcessor(options?: UseUploadProcessorOptions) {
           });
         }
 
-        // 4. Invalidate + refetch all diary queries (including inactive ones)
+        // 4. Trigger AI analysis (fire & forget)
+        aiAnalysisApi.trigger(created.id).catch((err) =>
+          console.warn("AI analysis trigger failed:", err instanceof Error ? err.message : "Unknown error"),
+        );
+
+        // 5. Invalidate + refetch all diary queries (including inactive ones)
         // so the cache has fresh data before we remove the pending entry
         await queryClient.invalidateQueries({ queryKey: queryKeys.diary.all(), refetchType: "all" });
         await queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all(), refetchType: "all" });
 
-        // 5. Remove from queue (diary cache already has the real entry)
+        // 6. Remove from queue (diary cache already has the real entry)
         remove(item.tempId);
       } catch (error) {
         console.error("Upload failed for", item.tempId, error instanceof Error ? error.message : "Unknown error");

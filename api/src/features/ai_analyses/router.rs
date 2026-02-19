@@ -1,4 +1,4 @@
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::Router;
 
 use crate::AppState;
@@ -6,8 +6,7 @@ use crate::AppState;
 use super::handlers;
 
 pub fn router() -> Router<AppState> {
-    Router::new().route(
-        "/{entry_id}/analysis",
-        get(handlers::get_analysis).post(handlers::create_analysis),
-    )
+    Router::new()
+        .route("/{entry_id}/analysis", get(handlers::get_analysis))
+        .route("/{entry_id}/analyze", post(handlers::trigger_analysis))
 }

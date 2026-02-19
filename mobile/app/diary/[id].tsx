@@ -7,6 +7,8 @@ import {
   useEntryDetail,
   EntryDetailHeader,
   AICommentBanner,
+  AIAnalysisLoadingBanner,
+  AIAnalysisFailedBanner,
   EntryContextBar,
   EntryNotesSection,
   IngredientsSection,
@@ -45,6 +47,8 @@ export default function DiaryEntryScreen() {
     isLoading,
     isDeleting,
     isAddingPhotos,
+    aiAnalysisStatus,
+    retryAiAnalysis,
     updateTimestamp,
     updateMealType,
     updateNotes,
@@ -107,6 +111,14 @@ export default function DiaryEntryScreen() {
               : undefined
           }
         />
+
+        {/* AI Analysis Status Banners */}
+        {(aiAnalysisStatus === "pending" || aiAnalysisStatus === "processing") && (
+          <AIAnalysisLoadingBanner />
+        )}
+        {aiAnalysisStatus === "failed" && (
+          <AIAnalysisFailedBanner onRetry={retryAiAnalysis} />
+        )}
 
         {/* AI Comment Banner */}
         <AICommentBanner comment={entry?.meal.aiAnalysis?.comment} />

@@ -13,7 +13,10 @@ import {
   useUpsertNutritionMutation,
   useDeleteEntryMutation,
   photoApi,
+  aiAnalysisApi,
 } from "@/entities/entry";
+import { useAiAnalysisQuery } from "@/entities/entry/model/useAiAnalysisQuery";
+import { mapApiAiAnalysisToAIAnalysis } from "@/shared/api/mappers";
 import { mapEntryToUpdateRequest, mapNutritionInfoToUpsertRequest, uploadPhoto } from "@/shared/api";
 import { useIsAuthenticated } from "@/shared/lib/auth";
 import { useDiaryI18n, useCommonI18n, useErrorI18n } from "@/shared/lib/i18n";
@@ -22,6 +25,8 @@ import { CAMERA_SETTINGS, queryKeys } from "@/shared/config";
 // =============================================================================
 // TYPES (Interface-First Design)
 // =============================================================================
+
+export type AiAnalysisStatus = "idle" | "pending" | "processing" | "completed" | "failed";
 
 export interface UseEntryDetailReturn {
   // Data
@@ -32,6 +37,10 @@ export interface UseEntryDetailReturn {
   isDeleting: boolean;
   isAddingPhotos: boolean;
   error: Error | null;
+
+  // AI Analysis
+  aiAnalysisStatus: AiAnalysisStatus;
+  retryAiAnalysis: () => void;
 
   // Actions
   updateTimestamp: (timestamp: Date) => void;
@@ -79,6 +88,7 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
   // =============================================================================
 
   const apiDetailQuery = useEntryDetailQuery(numericId, isApiEntry);
+  const aiAnalysisQuery = useAiAnalysisQuery(numericId, isApiEntry);
   const updateEntryMutation = useUpdateEntryMutation();
   const syncIngredientsMutation = useSyncIngredientsMutation();
   const upsertNutritionMutation = useUpsertNutritionMutation();
@@ -132,9 +142,30 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
   // UNIFIED DATA
   // =============================================================================
 
-  const entry = isApiEntry ? (apiDetailQuery.data ?? null) : guestEntry;
+  const baseEntry = isApiEntry ? (apiDetailQuery.data ?? null) : guestEntry;
   const isLoading = isApiEntry ? apiDetailQuery.isLoading : guestLoading;
   const error = isApiEntry ? (apiDetailQuery.error ?? null) : guestError;
+
+  // AI Analysis — merge into entry when completed
+  const aiAnalysisStatus: AiAnalysisStatus = (() => {
+    if (!isApiEntry) return "idle";
+    const data = aiAnalysisQuery.data;
+    if (!data) return "idle";
+    return data.status;
+  })();
+
+  const entry = (() => {
+    if (!baseEntry) return null;
+    if (aiAnalysisStatus !== "completed" || !aiAnalysisQuery.data) return baseEntry;
+
+    const aiAnalysis = mapApiAiAnalysisToAIAnalysis(aiAnalysisQuery.data);
+    if (!aiAnalysis) return baseEntry;
+
+    return {
+      ...baseEntry,
+      meal: { ...baseEntry.meal, aiAnalysis },
+    };
+  })();
 
   // Keep a ref to the latest entry for callbacks
   const entryRef = useRef(entry);
@@ -367,6 +398,15 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
   // SHARE
   // =============================================================================
 
+  const retryAiAnalysis = useCallback(() => {
+    if (!isApiEntry) return;
+    aiAnalysisApi.trigger(numericId).catch((err) =>
+      console.warn("AI analysis retry failed:", err instanceof Error ? err.message : "Unknown error"),
+    );
+    // Refetch to pick up the new pending status
+    aiAnalysisQuery.refetch();
+  }, [isApiEntry, numericId, aiAnalysisQuery]);
+
   const canShare = isApiEntry && !!entry;
 
   const shareEntry = useCallback(() => {
@@ -408,6 +448,10 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
     isDeleting,
     isAddingPhotos,
     error,
+
+    // AI Analysis
+    aiAnalysisStatus,
+    retryAiAnalysis,
 
     // Actions
     updateTimestamp,

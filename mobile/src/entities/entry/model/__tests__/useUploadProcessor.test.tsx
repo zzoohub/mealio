@@ -49,6 +49,7 @@ import { uploadPhoto } from "@/shared/api/uploadApi";
 import { mapEntryToCreateRequest } from "@/shared/api";
 import { entryApi } from "../../api/entryApi";
 import { photoApi } from "../../api/photoApi";
+import { aiAnalysisApi } from "../../api/aiAnalysisApi";
 import type { ReactNode } from "react";
 
 // =============================================================================
@@ -75,6 +76,12 @@ jest.mock("../../api/photoApi", () => ({
   },
 }));
 
+jest.mock("../../api/aiAnalysisApi", () => ({
+  aiAnalysisApi: {
+    trigger: jest.fn(() => Promise.resolve({ id: 1, entry_id: 1, status: "pending" })),
+  },
+}));
+
 const mockUploadPhoto = uploadPhoto as jest.MockedFunction<typeof uploadPhoto>;
 const mockMapEntryToCreateRequest = mapEntryToCreateRequest as jest.MockedFunction<
   typeof mapEntryToCreateRequest
@@ -82,6 +89,9 @@ const mockMapEntryToCreateRequest = mapEntryToCreateRequest as jest.MockedFuncti
 const mockEntryApiCreate = entryApi.create as jest.MockedFunction<typeof entryApi.create>;
 const mockPhotoApiCreatePhoto = photoApi.createPhoto as jest.MockedFunction<
   typeof photoApi.createPhoto
+>;
+const mockAiAnalysisApiTrigger = aiAnalysisApi.trigger as jest.MockedFunction<
+  typeof aiAnalysisApi.trigger
 >;
 
 // =============================================================================
@@ -118,6 +128,8 @@ describe("useUploadProcessor", () => {
     useUploadQueueStore.setState({ queue: new Map() });
     // Clear all mocks
     jest.clearAllMocks();
+    // Re-setup aiAnalysisApi.trigger mock after clearAllMocks (resetMocks: true clears implementations)
+    mockAiAnalysisApiTrigger.mockResolvedValue({ id: 1, entry_id: 1, status: "pending" } as any);
     // Mock console.error to avoid noise in test output
     jest.spyOn(console, "error").mockImplementation(() => {});
     // Wait a bit to ensure previous test's async operations have completed

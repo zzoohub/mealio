@@ -51,6 +51,23 @@ jest.mock("@/entities/entry", () => ({
   photoApi: {
     createPhoto: jest.fn(),
   },
+  aiAnalysisApi: {
+    trigger: jest.fn(() => Promise.resolve({ id: 1, entry_id: 1, status: "pending" })),
+  },
+}));
+jest.mock("@/entities/entry/model/useAiAnalysisQuery", () => ({
+  useAiAnalysisQuery: jest.fn(),
+}));
+jest.mock("@/shared/api/mappers", () => ({
+  mapApiAiAnalysisToAIAnalysis: jest.fn(),
+  mapApiUserInfoToUser: jest.fn(),
+  mapApiUserToUser: jest.fn(),
+  mapApiNutritionToNutritionInfo: jest.fn(),
+  mapNutritionInfoToUpsertRequest: jest.fn(),
+  mapApiDiaryEntryDetailToEntry: jest.fn(),
+  mapEntryToCreateRequest: jest.fn(),
+  mapEntryToUpdateRequest: jest.fn(),
+  apiMealTypeToEnum: jest.fn(),
 }));
 jest.mock("@/shared/lib/auth", () => ({
   useIsAuthenticated: jest.fn(),
@@ -86,6 +103,7 @@ import {
   useDeleteEntryMutation,
   photoApi,
 } from "@/entities/entry";
+import { useAiAnalysisQuery } from "@/entities/entry/model/useAiAnalysisQuery";
 import { useIsAuthenticated } from "@/shared/lib/auth";
 import { useDiaryI18n, useCommonI18n, useErrorI18n } from "@/shared/lib/i18n";
 import { MealType } from "@/entities/meal";
@@ -136,6 +154,12 @@ describe("useEntryDetail", () => {
       data: null,
       isLoading: false,
       error: null,
+    });
+    (useAiAnalysisQuery as jest.Mock).mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
     });
     (useDiaryI18n as jest.Mock).mockReturnValue({
       deleteEntryTitle: "Delete Entry",

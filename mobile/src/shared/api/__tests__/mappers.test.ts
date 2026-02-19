@@ -21,6 +21,7 @@ import {
   mapApiDiaryEntryDetailToEntry,
   mapEntryToCreateRequest,
   mapEntryToUpdateRequest,
+  mapApiAiAnalysisToAIAnalysis,
 } from "../mappers";
 import type {
   ApiUserInfo,
@@ -28,6 +29,7 @@ import type {
   ApiUserNutrition,
   ApiDiaryEntryDetail,
   ApiEntryPhoto,
+  ApiAiAnalysis,
   ApiEntryLocation,
 } from "../types";
 import type { Entry } from "@/entities/entry";
@@ -1130,5 +1132,157 @@ describe("mapApiDiaryEntryDetailToEntry - new fields", () => {
     const result = mapApiDiaryEntryDetailToEntry(detail);
 
     expect(result.wouldEatAgain).toBe(false);
+  });
+});
+
+// =============================================================================
+// mapApiAiAnalysisToAIAnalysis
+// =============================================================================
+
+describe("mapApiAiAnalysisToAIAnalysis", () => {
+  const baseAnalysis: ApiAiAnalysis = {
+    id: 1,
+    entry_id: 100,
+    calories: "500",
+    protein_grams: "25.5",
+    fat_grams: "15.3",
+    carbs_grams: "60.2",
+    fiber_grams: "8.1",
+    sugar_grams: "12.4",
+    sodium_mg: "450.7",
+    description: "A hearty meal",
+    confidence_score: "0.92",
+    raw_response: null,
+    created_at: "2024-01-01T00:00:00Z",
+    status: "completed",
+    error_message: null,
+  };
+
+  it("returns undefined when status is not completed", () => {
+    const pending: ApiAiAnalysis = { ...baseAnalysis, status: "pending" };
+    expect(mapApiAiAnalysisToAIAnalysis(pending)).toBeUndefined();
+  });
+
+  it("returns undefined when status is processing", () => {
+    const processing: ApiAiAnalysis = { ...baseAnalysis, status: "processing" };
+    expect(mapApiAiAnalysisToAIAnalysis(processing)).toBeUndefined();
+  });
+
+  it("returns undefined when status is failed", () => {
+    const failed: ApiAiAnalysis = { ...baseAnalysis, status: "failed" };
+    expect(mapApiAiAnalysisToAIAnalysis(failed)).toBeUndefined();
+  });
+
+  it("returns AIAnalysis when status is completed", () => {
+    const result = mapApiAiAnalysisToAIAnalysis(baseAnalysis);
+    expect(result).not.toBeUndefined();
+  });
+
+  it("maps all nutrition fields from string to number", () => {
+    const result = mapApiAiAnalysisToAIAnalysis(baseAnalysis);
+    expect(result!.nutrition.calories).toBe(500);
+    expect(result!.nutrition.protein).toBe(25.5);
+    expect(result!.nutrition.fat).toBe(15.3);
+    expect(result!.nutrition.carbs).toBe(60.2);
+    expect(result!.nutrition.fiber).toBe(8.1);
+    expect(result!.nutrition.sugar).toBe(12.4);
+    expect(result!.nutrition.sodium).toBe(450.7);
+  });
+
+  it("maps confidence_score to confidence number", () => {
+    const result = mapApiAiAnalysisToAIAnalysis(baseAnalysis);
+    expect(result!.confidence).toBe(0.92);
+  });
+
+  it("sets detectedMeals to empty array", () => {
+    const result = mapApiAiAnalysisToAIAnalysis(baseAnalysis);
+    expect(result!.detectedMeals).toEqual([]);
+  });
+
+  it("sets mealCategory to OTHER", () => {
+    const result = mapApiAiAnalysisToAIAnalysis(baseAnalysis);
+    expect(result!.mealCategory).toBe("other");
+  });
+
+  it("uses ingredients from raw_response when available", () => {
+    const withRaw: ApiAiAnalysis = {
+      ...baseAnalysis,
+      raw_response: { ingredients: ["chicken", "rice", "broccoli"] },
+    };
+    const result = mapApiAiAnalysisToAIAnalysis(withRaw);
+    expect(result!.ingredients).toEqual(["chicken", "rice", "broccoli"]);
+  });
+
+  it("sets ingredients to empty array when raw_response is null", () => {
+    const withNullRaw: ApiAiAnalysis = { ...baseAnalysis, raw_response: null };
+    const result = mapApiAiAnalysisToAIAnalysis(withNullRaw);
+    expect(result!.ingredients).toEqual([]);
+  });
+
+  it("uses comment from raw_response when available", () => {
+    const withComment: ApiAiAnalysis = {
+      ...baseAnalysis,
+      raw_response: { comment: "What a delicious looking meal!" },
+    };
+    const result = mapApiAiAnalysisToAIAnalysis(withComment);
+    expect(result!.comment).toBe("What a delicious looking meal!");
+  });
+
+  it("falls back to description when raw_response comment is absent", () => {
+    const withDescription: ApiAiAnalysis = {
+      ...baseAnalysis,
+      description: "Looks tasty",
+      raw_response: {},
+    };
+    const result = mapApiAiAnalysisToAIAnalysis(withDescription);
+    expect(result!.comment).toBe("Looks tasty");
+  });
+
+  it("uses undefined for comment when both raw_response comment and description are null", () => {
+    const noComment: ApiAiAnalysis = {
+      ...baseAnalysis,
+      description: null,
+      raw_response: {},
+    };
+    const result = mapApiAiAnalysisToAIAnalysis(noComment);
+    expect(result!.comment).toBeUndefined();
+  });
+
+  it("handles null nutrition fields by returning 0", () => {
+    const nullNutrition: ApiAiAnalysis = {
+      ...baseAnalysis,
+      calories: null,
+      protein_grams: null,
+      fat_grams: null,
+      carbs_grams: null,
+      fiber_grams: null,
+      sugar_grams: null,
+      sodium_mg: null,
+    };
+    const result = mapApiAiAnalysisToAIAnalysis(nullNutrition);
+    expect(result!.nutrition.calories).toBe(0);
+    expect(result!.nutrition.protein).toBe(0);
+    expect(result!.nutrition.fat).toBe(0);
+    expect(result!.nutrition.carbs).toBe(0);
+    expect(result!.nutrition.fiber).toBe(0);
+    expect(result!.nutrition.sugar).toBe(0);
+    expect(result!.nutrition.sodium).toBe(0);
+  });
+
+  it("handles null confidence_score by returning 0", () => {
+    const noConfidence: ApiAiAnalysis = { ...baseAnalysis, confidence_score: null };
+    const result = mapApiAiAnalysisToAIAnalysis(noConfidence);
+    expect(result!.confidence).toBe(0);
+  });
+
+  it("handles invalid numeric strings by returning 0", () => {
+    const invalidNutrition: ApiAiAnalysis = {
+      ...baseAnalysis,
+      calories: "not-a-number",
+      protein_grams: "NaN",
+    };
+    const result = mapApiAiAnalysisToAIAnalysis(invalidNutrition);
+    expect(result!.nutrition.calories).toBe(0);
+    expect(result!.nutrition.protein).toBe(0);
   });
 });

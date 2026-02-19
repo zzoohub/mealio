@@ -47,7 +47,7 @@ use utoipa::{Modify, OpenApi};
         crate::features::nutrition::handlers::delete_nutrition,
         // AI Analysis
         crate::features::ai_analyses::handlers::get_analysis,
-        crate::features::ai_analyses::handlers::create_analysis,
+        crate::features::ai_analyses::handlers::trigger_analysis,
         // Statistics
         crate::features::statistics::handlers::nutrition_stats,
         crate::features::statistics::handlers::meal_type_stats,
@@ -119,7 +119,7 @@ use utoipa::{Modify, OpenApi};
         (name = "Ingredients", description = "Master ingredients catalog"),
         (name = "Entry Ingredients", description = "Diary entry ingredient links"),
         (name = "Nutrition", description = "User nutrition data"),
-        (name = "AI Analysis", description = "AI-generated nutrition analysis (not yet implemented — returns 501)"),
+        (name = "AI Analysis", description = "AI-generated nutrition analysis via Gemini 2.0 Flash"),
         (name = "Statistics", description = "Statistics and analytics"),
         (name = "Uploads", description = "File upload presigned URLs"),
     ),

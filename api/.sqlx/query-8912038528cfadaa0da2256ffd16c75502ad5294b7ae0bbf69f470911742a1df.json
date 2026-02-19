@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE ai_analyses\n             SET status = 'completed',\n                 calories = $2, protein_grams = $3, fat_grams = $4, carbs_grams = $5,\n                 fiber_grams = $6, sugar_grams = $7, sodium_mg = $8,\n                 description = $9, confidence_score = $10, raw_response = $11\n             WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Text",
+        "Numeric",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8912038528cfadaa0da2256ffd16c75502ad5294b7ae0bbf69f470911742a1df"
+}

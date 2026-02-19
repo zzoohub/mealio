@@ -20,4 +20,6 @@ pub struct AppState {
     pub s3_client: aws_sdk_s3::Client,
     pub r2_bucket: String,
     pub r2_public_url: String,
+    pub gemini_api_key: String,
+    pub http_client: reqwest::Client,
 }

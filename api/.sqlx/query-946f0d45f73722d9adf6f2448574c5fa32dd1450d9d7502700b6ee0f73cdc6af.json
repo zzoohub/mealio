@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, description, confidence_score, raw_response, created_at, status, error_message\n             FROM ai_analyses\n             WHERE status IN ('pending', 'processing')\n               AND created_at < now() - make_interval(mins := $1)\n             ORDER BY created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "entry_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "calories",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "protein_grams",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "fat_grams",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "carbs_grams",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "fiber_grams",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "sugar_grams",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "sodium_mg",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "confidence_score",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 11,
+        "name": "raw_response",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "error_message",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "946f0d45f73722d9adf6f2448574c5fa32dd1450d9d7502700b6ee0f73cdc6af"
+}

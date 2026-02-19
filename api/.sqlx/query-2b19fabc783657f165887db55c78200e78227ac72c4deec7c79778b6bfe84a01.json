@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, description, confidence_score, raw_response, created_at\n             FROM ai_analyses WHERE entry_id = $1 ORDER BY created_at DESC LIMIT 1",
+  "query": "INSERT INTO ai_analyses (entry_id, status)\n             VALUES ($1, 'pending')\n             RETURNING id, entry_id, calories, protein_grams, fat_grams, carbs_grams, fiber_grams, sugar_grams, sodium_mg, description, confidence_score, raw_response, created_at, status, error_message",
   "describe": {
     "columns": [
       {
@@ -67,6 +67,16 @@
         "ordinal": 12,
         "name": "created_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "error_message",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -87,8 +97,10 @@
       true,
       true,
       true,
-      false
+      false,
+      false,
+      true
     ]
   },
-  "hash": "245c4862290b1e284ba9ed23e77d53a47c84f083f962cc54e3e96c7456a3f534"
+  "hash": "2b19fabc783657f165887db55c78200e78227ac72c4deec7c79778b6bfe84a01"
 }

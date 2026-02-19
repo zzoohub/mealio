@@ -1,6 +1,6 @@
 import type { User } from "@/entities/user";
 import type { Entry, Location } from "@/entities/entry";
-import { MealType, type NutritionInfo, type Meal } from "@/entities/meal";
+import { MealType, type NutritionInfo, type Meal, type AIAnalysis } from "@/entities/meal";
 import type {
   ApiUserInfo,
   ApiUser,
@@ -10,6 +10,7 @@ import type {
   ApiMealType,
   ApiCreateEntryRequest,
   ApiUpdateEntryRequest,
+  ApiAiAnalysis,
 } from "./types";
 
 // =============================================================================
@@ -203,4 +204,33 @@ export function mapEntryToUpdateRequest(
   }
 
   return req;
+}
+
+// =============================================================================
+// AI ANALYSIS MAPPERS
+// =============================================================================
+
+export function mapApiAiAnalysisToAIAnalysis(
+  api: ApiAiAnalysis,
+): AIAnalysis | undefined {
+  if (api.status !== "completed") return undefined;
+
+  const raw = api.raw_response as Record<string, unknown> | null;
+
+  return {
+    detectedMeals: [],
+    confidence: parseDecimal(api.confidence_score),
+    nutrition: {
+      calories: parseDecimal(api.calories),
+      protein: parseDecimal(api.protein_grams),
+      fat: parseDecimal(api.fat_grams),
+      carbs: parseDecimal(api.carbs_grams),
+      fiber: parseDecimal(api.fiber_grams),
+      sugar: parseDecimal(api.sugar_grams),
+      sodium: parseDecimal(api.sodium_mg),
+    },
+    mealCategory: MealType.OTHER,
+    ingredients: (raw?.ingredients as string[]) ?? [],
+    comment: (raw?.comment as string) ?? api.description ?? undefined,
+  };
 }

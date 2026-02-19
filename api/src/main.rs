@@ -101,7 +101,32 @@ async fn main() {
         .expect("failed to load migrations");
     migrator.run(&db).await.expect("failed to run migrations");
 
+    let gemini_api_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();
+
+    let http_client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(60))
+        .build()
+        .expect("failed to build HTTP client");
+
     let jwks_cache = JwksCache::new(Duration::from_secs(3600));
+
+    // Recover stuck AI analyses (pending/processing > 5 min)
+    {
+        use mealio_api::features::ai_analyses::models::AiAnalysis;
+        match AiAnalysis::find_stuck(&db, 5).await {
+            Ok(stuck) => {
+                for a in &stuck {
+                    if let Err(e) = AiAnalysis::mark_failed(&db, a.id, "Server restarted during analysis").await {
+                        tracing::error!(analysis_id = a.id, error = %e, "failed to recover stuck analysis");
+                    }
+                }
+                if !stuck.is_empty() {
+                    tracing::info!(count = stuck.len(), "recovered stuck AI analyses");
+                }
+            }
+            Err(e) => tracing::error!(error = %e, "failed to find stuck analyses"),
+        }
+    }
 
     let state = AppState {
         db,
@@ -113,6 +138,8 @@ async fn main() {
         s3_client,
         r2_bucket,
         r2_public_url,
+        gemini_api_key,
+        http_client,
     };
 
     let cors = build_cors();
