@@ -54,7 +54,7 @@ Swagger UI available at `http://localhost:3000/swagger-ui` when running.
 
 ## API
 
-All routes are nested under `/api/v1` (e.g. `/api/v1/auth/login`, `/api/v1/diary`). Migrations run automatically on startup from `./migrations` (9 files, 0001–0009).
+All routes are nested under `/api/v1` (e.g. `/api/v1/auth/login`, `/api/v1/diary`). Migrations run automatically on startup from `./migrations` (10 files, 0001–0010).
 
 Additional top-level routes: `/health` (DB check), `/diary/{id}` (deep link fallback), `/.well-known/apple-app-site-association`, `/.well-known/assetlinks.json`.
 
@@ -78,7 +78,7 @@ features/
   ├── photos/          # Entry photos
   ├── uploads/         # Presigned URL generation for R2
   ├── nutrition/       # User nutrition overrides
-  ├── ai_analyses/     # AI meal analysis (stub — returns 501)
+  ├── ai_analyses/     # AI meal analysis (trigger-and-poll, background tokio task)
   ├── ingredients/     # Ingredient master list
   └── statistics/      # Aggregated stats
 shared/                # Cross-feature utilities
@@ -117,7 +117,10 @@ The app runs in **auth mode** (API + TanStack Query) or **guest mode** (MMKV loc
 - Auth tokens: access/refresh in `expo-secure-store`, expiry in MMKV (pre-emptive refresh 30s before expiry)
 
 ### Upload Queue
-Background upload processor mounted once in `AppProvider` as `<UploadProcessorMount />`. Flow: save entry → queue (Zustand) → process one at a time (upload photos to R2 in parallel → create entry → link photos) → invalidate `diary.all()` + `statistics.all()`.
+Background upload processor mounted once in `AppProvider` as `<UploadProcessorMount />`. Flow: save entry → queue (Zustand) → process one at a time (upload photos to R2 in parallel → create entry → link photos → trigger AI analysis) → invalidate `diary.all()` + `statistics.all()`.
+
+### AI Analysis (Trigger-and-Poll)
+After entry creation with photos, the upload queue automatically calls `POST /diary/{id}/analyze`. The API inserts an `ai_analyses` row with `status='processing'`, spawns a `tokio::spawn` background task to call the AI Vision API, and returns 202 immediately. The entry detail screen polls `GET /diary/{id}/analysis` with `refetchInterval` while status is `processing`. On completion, status becomes `completed` and the UI shows nutrition results. On failure, a retry button is shown. Server startup recovers stuck `processing` analyses (created_at > 5 min ago). Guest mode does not support AI analysis.
 
 ### Folder Structure (`mobile/src/`) — Feature-Sliced Design
 ```
