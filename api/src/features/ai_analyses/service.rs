@@ -221,6 +221,19 @@ async fn run_analysis_inner(
     let result: AnalysisResult = serde_json::from_str(text)?;
     let raw_response: serde_json::Value = serde_json::from_str(text)?;
 
+    tracing::info!(
+        analysis_id, entry_id,
+        calories = ?result.calories,
+        protein = ?result.protein,
+        fat = ?result.fat,
+        carbs = ?result.carbs,
+        fiber = ?result.fiber,
+        sugar = ?result.sugar,
+        sodium = ?result.sodium,
+        description = ?result.description,
+        "Gemini analysis parsed"
+    );
+
     // 7. Convert to BigDecimal and mark completed
     let calories = result.calories.map(|v| BigDecimal::from_str(&format!("{:.2}", v)).unwrap_or_default());
     let protein = result.protein.map(|v| BigDecimal::from_str(&format!("{:.2}", v)).unwrap_or_default());
@@ -231,7 +244,7 @@ async fn run_analysis_inner(
     let sodium = result.sodium.map(|v| BigDecimal::from_str(&format!("{:.2}", v)).unwrap_or_default());
     let confidence = result.confidence.map(|v| BigDecimal::from_str(&format!("{:.2}", v)).unwrap_or_default());
 
-    AiAnalysis::mark_completed(
+    let rows = AiAnalysis::mark_completed(
         db,
         analysis_id,
         calories.as_ref(),
@@ -247,7 +260,7 @@ async fn run_analysis_inner(
     )
     .await?;
 
-    tracing::info!(analysis_id, entry_id, "AI analysis completed successfully");
+    tracing::info!(analysis_id, entry_id, rows_affected = rows, "AI analysis completed successfully");
     Ok(())
 }
 

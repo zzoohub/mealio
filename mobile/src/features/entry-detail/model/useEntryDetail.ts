@@ -150,8 +150,10 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
   const aiAnalysisStatus: AiAnalysisStatus = (() => {
     if (!isApiEntry) return "idle";
     const data = aiAnalysisQuery.data;
-    if (!data) return "idle";
-    return data.status;
+    if (data) return data.status as AiAnalysisStatus;
+    // Show pending during initial load OR background refetch (e.g. revisit after cached 404)
+    if (aiAnalysisQuery.isFetching) return "pending";
+    return "idle";
   })();
 
   const entry = (() => {

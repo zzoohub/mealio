@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, Pressable, TextInput } from 'react-native';
+import { View, Text, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles } from '@/shared/ui/theme';
@@ -32,6 +32,8 @@ export interface NutritionSectionProps {
   onNutritionChange?: ((nutrition: NutritionInfo) => void) | undefined;
   /** Whether editing is disabled */
   disabled?: boolean | undefined;
+  /** Whether AI analysis is loading */
+  loading?: boolean | undefined;
   /** Test ID for testing */
   testID?: string | undefined;
 }
@@ -55,6 +57,7 @@ export function NutritionSection({
   nutrition,
   onNutritionChange,
   disabled = false,
+  loading = false,
   testID,
 }: NutritionSectionProps) {
   const s = useStyles(styles);
@@ -114,6 +117,17 @@ export function NutritionSection({
   // =========================================================================
 
   if (!hasData && !isEditing) {
+    if (loading) {
+      return (
+        <View style={s.container} testID={testID}>
+          <View style={s.loadingCard}>
+            <ActivityIndicator size="small" color={s.loadingSpinner.color as string} />
+            <Text style={s.loadingText}>{diary.aiAnalyzing}</Text>
+          </View>
+        </View>
+      );
+    }
+
     return (
       <View style={s.container} testID={testID}>
         <Pressable
@@ -200,6 +214,23 @@ const styles = createStyles((colors) => ({
   container: {
     paddingHorizontal: tokens.spacing.component.lg,
     paddingVertical: tokens.spacing.layout.md,
+  },
+  loadingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: tokens.spacing.component.sm,
+    paddingVertical: tokens.spacing.component.md,
+    borderRadius: tokens.radius.md,
+    backgroundColor: colors.bg.secondary,
+  },
+  loadingSpinner: {
+    color: colors.interactive.primary,
+  },
+  loadingText: {
+    fontSize: tokens.typography.fontSize.bodySmall,
+    fontWeight: tokens.typography.fontWeight.normal,
+    color: colors.text.secondary,
   },
   emptyCard: {
     flexDirection: 'row',

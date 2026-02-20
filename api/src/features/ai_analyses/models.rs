@@ -121,8 +121,8 @@ impl AiAnalysis {
         description: Option<&str>,
         confidence_score: Option<&BigDecimal>,
         raw_response: Option<&serde_json::Value>,
-    ) -> Result<(), sqlx::Error> {
-        sqlx::query!(
+    ) -> Result<u64, sqlx::Error> {
+        let result = sqlx::query!(
             "UPDATE ai_analyses
              SET status = 'completed',
                  calories = $2, protein_grams = $3, fat_grams = $4, carbs_grams = $5,
@@ -143,7 +143,7 @@ impl AiAnalysis {
         )
         .execute(db)
         .await?;
-        Ok(())
+        Ok(result.rows_affected())
     }
 
     pub async fn mark_failed(db: &PgPool, id: i64, error_message: &str) -> Result<(), sqlx::Error> {

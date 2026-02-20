@@ -66,10 +66,14 @@ export function useUploadProcessor(options?: UseUploadProcessorOptions) {
           });
         }
 
-        // 4. Trigger AI analysis (fire & forget)
-        aiAnalysisApi.trigger(created.id).catch((err) =>
-          console.warn("AI analysis trigger failed:", err instanceof Error ? err.message : "Unknown error"),
-        );
+        // 4. Trigger AI analysis and seed the query cache with pending status
+        try {
+          const analysis = await aiAnalysisApi.trigger(created.id);
+          console.log("[UploadProcessor] AI trigger success, status:", analysis.status, "entryId:", created.id);
+          queryClient.setQueryData(queryKeys.aiAnalysis.detail(created.id), analysis);
+        } catch (err) {
+          console.warn("[UploadProcessor] AI trigger FAILED:", err instanceof Error ? err.message : "Unknown error");
+        }
 
         // 5. Invalidate + refetch all diary queries (including inactive ones)
         // so the cache has fresh data before we remove the pending entry

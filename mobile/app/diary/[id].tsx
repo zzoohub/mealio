@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { View, ScrollView, useWindowDimensions, KeyboardAvoidingView, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -78,6 +78,25 @@ export default function DiaryEntryScreen() {
   const minContentHeight = screenHeight - insets.top - HEADER_HEIGHT;
   const isDisabled = isLoading || !entry;
 
+  // Per-field merge: user-set nutrition takes priority, fallback to AI per field
+  const displayNutrition = useMemo(() => {
+    const user = entry?.meal.nutrition;
+    const ai = entry?.meal.aiAnalysis?.nutrition;
+
+    if (!ai) return user;
+    if (!user) return ai;
+
+    return {
+      calories: user.calories || ai.calories,
+      protein: user.protein || ai.protein,
+      fat: user.fat || ai.fat,
+      carbs: user.carbs || ai.carbs,
+      fiber: user.fiber || ai.fiber,
+      sugar: user.sugar || ai.sugar,
+      sodium: user.sodium || ai.sodium,
+    };
+  }, [entry?.meal.nutrition, entry?.meal.aiAnalysis?.nutrition]);
+
   // =============================================================================
   // RENDER
   // =============================================================================
@@ -155,9 +174,10 @@ export default function DiaryEntryScreen() {
 
         {/* Nutrition Section */}
         <NutritionSection
-          nutrition={entry?.meal.nutrition ?? entry?.meal.aiAnalysis?.nutrition}
+          nutrition={displayNutrition}
           onNutritionChange={updateNutrition}
           disabled={isDisabled}
+          loading={aiAnalysisStatus === "pending" || aiAnalysisStatus === "processing"}
         />
 
         {/* Location Map */}

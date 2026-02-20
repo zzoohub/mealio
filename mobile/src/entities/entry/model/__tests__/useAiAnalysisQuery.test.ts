@@ -174,14 +174,26 @@ describe("useAiAnalysisQuery", () => {
   // =============================================================================
 
   describe("retry logic", () => {
-    it("does not retry on 404 ApiError (no analysis exists)", () => {
+    it("retries on 404 ApiError up to 2 times (race condition: analysis row may not exist yet)", () => {
       useAiAnalysisQuery(42, true);
 
       const callArgs = mockUseQuery.mock.calls[0]![0];
       const retryFn = (callArgs as any).retry;
       const notFoundError = new ApiError(404, "Not found");
 
-      expect(retryFn(0, notFoundError)).toBe(false);
+      // failureCount < 2, so first 2 attempts (0, 1) should retry
+      expect(retryFn(0, notFoundError)).toBe(true);
+      expect(retryFn(1, notFoundError)).toBe(true);
+    });
+
+    it("stops retrying on 404 after 2 failures", () => {
+      useAiAnalysisQuery(42, true);
+
+      const callArgs = mockUseQuery.mock.calls[0]![0];
+      const retryFn = (callArgs as any).retry;
+      const notFoundError = new ApiError(404, "Not found");
+
+      expect(retryFn(2, notFoundError)).toBe(false);
     });
 
     it("retries on non-404 errors up to 2 times", () => {
@@ -195,7 +207,7 @@ describe("useAiAnalysisQuery", () => {
       expect(retryFn(1, networkError)).toBe(true);
     });
 
-    it("stops retrying after 2 failures", () => {
+    it("stops retrying after 2 failures on non-404 errors", () => {
       useAiAnalysisQuery(42, true);
 
       const callArgs = mockUseQuery.mock.calls[0]![0];
@@ -205,15 +217,15 @@ describe("useAiAnalysisQuery", () => {
       expect(retryFn(2, networkError)).toBe(false);
     });
 
-    it("does not retry on 404 even on first attempt", () => {
+    it("retries on 404 on first attempt (race condition handling)", () => {
       useAiAnalysisQuery(42, true);
 
       const callArgs = mockUseQuery.mock.calls[0]![0];
       const retryFn = (callArgs as any).retry;
       const notFoundError = new ApiError(404, "Not found");
 
-      // Even on first failure, 404 should not retry
-      expect(retryFn(0, notFoundError)).toBe(false);
+      // First failure should retry (failureCount 0 < 2)
+      expect(retryFn(0, notFoundError)).toBe(true);
     });
 
     it("retries on ApiError with non-404 status", () => {
