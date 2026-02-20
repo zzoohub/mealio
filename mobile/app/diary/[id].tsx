@@ -73,11 +73,6 @@ export default function DiaryEntryScreen() {
     }
   }, [isNumericId, isAuthenticated, id, router]);
 
-  if (isNumericId && !isAuthenticated) return null;
-
-  const minContentHeight = screenHeight - insets.top - HEADER_HEIGHT;
-  const isDisabled = isLoading || !entry;
-
   // Per-field merge: user-set nutrition takes priority, fallback to AI per field
   const displayNutrition = useMemo(() => {
     const user = entry?.meal.nutrition;
@@ -96,6 +91,11 @@ export default function DiaryEntryScreen() {
       sodium: user.sodium || ai.sodium,
     };
   }, [entry?.meal.nutrition, entry?.meal.aiAnalysis?.nutrition]);
+
+  if (isNumericId && !isAuthenticated) return null;
+
+  const minContentHeight = screenHeight - insets.top - HEADER_HEIGHT;
+  const isDisabled = isLoading || !entry;
 
   // =============================================================================
   // RENDER
