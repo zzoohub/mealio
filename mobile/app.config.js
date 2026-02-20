@@ -1,5 +1,5 @@
 import "dotenv/config";
-import config from "./app.json";
+import config from "./app.json" with { type: "json" };
 
 const appConfig = config.expo;
 
