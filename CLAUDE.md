@@ -9,31 +9,8 @@ Mealio meal tracking app. Monorepo:
 - `/infra` — Pulumi (GCP Cloud Run, R2, Neon)
 
 ## Build & Dev Commands
-
-### Mobile (`cd mobile`)
-```bash
-bun start                          # Expo dev server
-bun run ios                        # Build & run on iOS simulator
-bun run android                    # Build & run on Android emulator
-bun run lint                       # ESLint
-bun test                           # Jest (all tests)
-bun test -- --testPathPattern=auth # Run single test file matching "auth"
-bun test -- --watch                # Watch mode
-```
+All commands are in `justfile`. Run `just --list` to see available recipes.
 **Known issue:** `bun test` crashes (Bun v1.3.8 segfault). Use `npx jest --no-cache` as fallback.
-
-Tests live in `src/**/__tests__/**/*.(test|spec).(ts|tsx)`.
-
-### API (`cd api`)
-```bash
-docker compose up -d               # Start local PostgreSQL (postgres:18-alpine, port 5432)
-cargo run                           # Run dev server (port 8080)
-cargo test                          # Run all tests
-cargo test error                    # Run tests matching "error"
-cargo build --release               # Release build
-cargo sqlx prepare                  # Regenerate .sqlx/ after query changes (needs live DB)
-```
-Swagger UI available at `http://localhost:3000/swagger-ui` when running.
 
 ## Infrastructure
 - Database: Neon (PostgreSQL)
