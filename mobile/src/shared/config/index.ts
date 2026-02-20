@@ -15,7 +15,7 @@ export const GUEST_LIMITS = {
 // API configuration
 export const API_CONFIG = {
   BASE_URL: __DEV__
-    ? "http://localhost:3000/api"
+    ? "http://localhost:8080/api"
     : "https://mealio-api-1081857794554.us-east4.run.app/api",
   TIMEOUT: 10000,
   RETRY_ATTEMPTS: 3,

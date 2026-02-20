@@ -27,7 +27,7 @@ Tests live in `src/**/__tests__/**/*.(test|spec).(ts|tsx)`.
 ### API (`cd api`)
 ```bash
 docker compose up -d               # Start local PostgreSQL (postgres:18-alpine, port 5432)
-cargo run                           # Run dev server (port 3000)
+cargo run                           # Run dev server (port 8080)
 cargo test                          # Run all tests
 cargo test error                    # Run tests matching "error"
 cargo build --release               # Release build
