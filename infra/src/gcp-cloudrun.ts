@@ -44,6 +44,7 @@ export function createCloudRun(secretResources: SecretResource[]) {
               { name: "APPLE_BUNDLE_ID", value: "com.zzoo.mealio" },
               { name: "R2_BUCKET_NAME", value: "mealio-uploads" },
               { name: "R2_PUBLIC_URL", value: r2PublicUrl },
+              { name: "GEMINI_MODEL", value: "gemini-2.5-flash" },
               ...secretEnvVars,
             ],
             startupProbe: {

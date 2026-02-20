@@ -21,5 +21,6 @@ pub struct AppState {
     pub r2_bucket: String,
     pub r2_public_url: String,
     pub gemini_api_key: String,
+    pub gemini_model: String,
     pub http_client: reqwest::Client,
 }

@@ -102,6 +102,7 @@ async fn main() {
     migrator.run(&db).await.expect("failed to run migrations");
 
     let gemini_api_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();
+    let gemini_model = std::env::var("GEMINI_MODEL").unwrap_or_else(|_| "gemini-2.5-flash".to_string());
 
     let http_client = reqwest::Client::builder()
         .timeout(Duration::from_secs(60))
@@ -139,6 +140,7 @@ async fn main() {
         r2_bucket,
         r2_public_url,
         gemini_api_key,
+        gemini_model,
         http_client,
     };
 

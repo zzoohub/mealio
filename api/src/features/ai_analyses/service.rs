@@ -100,12 +100,13 @@ pub async fn run_analysis(
     db: PgPool,
     http_client: reqwest::Client,
     api_key: String,
+    model: String,
     r2_public_url: String,
     analysis_id: i64,
     entry_id: i64,
 ) {
     // Store only sanitized, user-safe error messages
-    let user_error = match run_analysis_inner(&db, &http_client, &api_key, &r2_public_url, analysis_id, entry_id).await {
+    let user_error = match run_analysis_inner(&db, &http_client, &api_key, &model, &r2_public_url, analysis_id, entry_id).await {
         Ok(()) => return,
         Err(e) => {
             tracing::error!(analysis_id, entry_id, error = %e, "AI analysis failed");
@@ -122,6 +123,7 @@ async fn run_analysis_inner(
     db: &PgPool,
     http_client: &reqwest::Client,
     api_key: &str,
+    model: &str,
     r2_public_url: &str,
     analysis_id: i64,
     entry_id: i64,
@@ -189,7 +191,7 @@ async fn run_analysis_inner(
     };
 
     // 5. Call Gemini API (key in header, not URL)
-    let url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+    let url = format!("https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent");
 
     let resp = http_client
         .post(url)

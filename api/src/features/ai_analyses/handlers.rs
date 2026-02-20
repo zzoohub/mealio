@@ -94,10 +94,11 @@ pub async fn trigger_analysis(
     let bg_db = db.clone();
     let bg_client = state.http_client.clone();
     let bg_key = state.gemini_api_key.clone();
+    let bg_model = state.gemini_model.clone();
     let bg_r2_url = state.r2_public_url.clone();
 
     tokio::spawn(async move {
-        service::run_analysis(bg_db, bg_client, bg_key, bg_r2_url, analysis_id, entry_id).await;
+        service::run_analysis(bg_db, bg_client, bg_key, bg_model, bg_r2_url, analysis_id, entry_id).await;
     });
 
     Ok(response::Accepted(analysis))
