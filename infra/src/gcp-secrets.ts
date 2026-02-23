@@ -9,7 +9,7 @@ const prodSecrets = [
   { name: "r2-access-key-id", envVar: "R2_ACCESS_KEY_ID" },
   { name: "r2-secret-access-key", envVar: "R2_SECRET_ACCESS_KEY" },
   { name: "mealio-api-sentry-dsn", envVar: "SENTRY_DSN" },
-  { name: "mealio-gemini-api-key", envVar: "GEMINI_API_KEY" },
+  { name: "gemini-api-key", envVar: "GEMINI_API_KEY" },
 ];
 
 export interface SecretResource {

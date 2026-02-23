@@ -8,3 +8,5 @@ config:
   # No secrets needed — prod values already live in GCP Secret Manager
 
   mealio:neonProjectId: steep-band-82375288
+  neon:apiKey:
+    secure: AAABAGzrvk9A29GZ02QCgfWbzQ1J8mZhLbU3CDrHr/cms+xJEUkJpzmAh26tZmxvn3860mFrwI+r2YSstj+YtlchQoD7itE26qFZcnG95ROBbt0ZP6/QKywyb4mNzbVNgtEtCX4=
