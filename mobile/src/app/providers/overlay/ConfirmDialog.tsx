@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, useWindowDimensions } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -38,6 +38,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const { colors, isDark } = useTheme();
   const common = useCommonI18n();
+  const { width: screenWidth } = useWindowDimensions();
   const resolvedConfirmText = confirmText || common.confirm;
   const resolvedCancelText = cancelText || common.cancel;
   const backdropAnim = useSharedValue(0);
@@ -92,7 +93,7 @@ export function ConfirmDialog({
       <Animated.View
         style={[
           styles.dialog,
-          { backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF" },
+          { backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF", maxWidth: Math.min(screenWidth * 0.8, 400) },
           dialogStyle,
         ]}
       >
@@ -107,15 +108,20 @@ export function ConfirmDialog({
 
         <View style={[styles.buttonContainer, { borderTopColor: colors.border.default }]}>
           <Pressable
-            style={[styles.button, styles.cancelButton, { borderRightColor: colors.border.default }]}
+            style={({ pressed }) => [styles.button, styles.cancelButton, { borderRightColor: colors.border.default }, pressed && styles.buttonPressed]}
             onPress={handleCancel}
+            accessibilityRole="button"
           >
             <Text style={[styles.buttonText, { color: colors.interactive.primary }]}>
               {resolvedCancelText}
             </Text>
           </Pressable>
 
-          <Pressable style={[styles.button, styles.confirmButton]} onPress={handleConfirm}>
+          <Pressable
+            style={({ pressed }) => [styles.button, styles.confirmButton, pressed && styles.buttonPressed]}
+            onPress={handleConfirm}
+            accessibilityRole="button"
+          >
             <Text style={[styles.buttonText, styles.confirmText, { color: confirmButtonColor }]}>
               {resolvedConfirmText}
             </Text>
@@ -142,7 +148,6 @@ const styles = StyleSheet.create({
   },
   dialog: {
     width: "80%",
-    maxWidth: 320,
     borderRadius: 14,
     overflow: "hidden",
     shadowColor: "#000",
@@ -180,6 +185,9 @@ const styles = StyleSheet.create({
     borderRightWidth: StyleSheet.hairlineWidth,
   },
   confirmButton: {},
+  buttonPressed: {
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
+  },
   buttonText: {
     fontSize: 17,
   },

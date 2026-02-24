@@ -16,7 +16,7 @@
  * ```
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, ActionSheetIOS, Platform, Alert } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -122,6 +122,7 @@ export function EntryContextBar({
   const locationLabel = getLocationLabel(location);
   const common = useCommonI18n();
   const diary = useDiaryI18n();
+  const mealTypeButtonRef = useRef<View>(null);
 
   // DateTimePicker state
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -155,11 +156,13 @@ export function EntryContextBar({
     const options = MEAL_TYPE_OPTIONS.map((opt) => opt.label);
 
     if (Platform.OS === 'ios') {
+      const node = mealTypeButtonRef.current;
       ActionSheetIOS.showActionSheetWithOptions(
         {
           options: [...options, common.cancel],
           cancelButtonIndex: options.length,
           title: diary.mealTypeSelect,
+          ...(node ? { anchor: node as unknown as number } : {}),
         },
         (buttonIndex) => {
           const selectedOption = MEAL_TYPE_OPTIONS[buttonIndex];
@@ -221,9 +224,11 @@ export function EntryContextBar({
       >
         {/* Meal Type - Tappable */}
         <Pressable
-          style={s.mealTypeButton}
+          ref={mealTypeButtonRef}
+          style={({ pressed }) => [s.mealTypeButton, pressed && s.mealTypeButtonPressed]}
           onPress={handleMealTypePress}
           disabled={disabled || !onMealTypeChange}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           accessibilityLabel={diary.mealTypeAccessibility(getMealTypeLabel(mealType))}
           accessibilityRole="button"
         >
@@ -248,9 +253,10 @@ export function EntryContextBar({
         {/* Time - Tappable when onTimestampChange provided */}
         {onTimestampChange ? (
           <Pressable
-            style={s.mealTypeButton}
+            style={({ pressed }) => [s.mealTypeButton, pressed && s.mealTypeButtonPressed]}
             onPress={handleTimestampPress}
             disabled={disabled}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityLabel={diary.changeDateTime}
             accessibilityRole="button"
           >
@@ -348,6 +354,9 @@ const styles = createStyles((colors) => ({
     gap: 4,
     paddingVertical: 4,
     paddingRight: 4,
+  },
+  mealTypeButtonPressed: {
+    opacity: 0.6,
   },
   locationItem: {
     flex: 1,

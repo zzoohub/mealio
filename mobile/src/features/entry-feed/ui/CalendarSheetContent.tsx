@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useState, useEffect, useMemo } from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { Calendar } from "react-native-calendars";
@@ -52,7 +52,10 @@ export const CalendarSheetContent = memo(function CalendarSheetContent({
   title,
 }: CalendarSheetContentProps) {
   const { colors } = useTheme();
+  const { width: screenWidth } = useWindowDimensions();
   const deviceTz = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
+  // Responsive day cell size: fits 7 columns with gaps within calendar padding
+  const dayCellSize = useMemo(() => Math.min(Math.floor((screenWidth - 48) / 7), 48), [screenWidth]);
 
   // Own month range state — starts with the selected date's month
   const [monthRange, setMonthRange] = useState(() => getMonthRange(selectedDate));
@@ -98,9 +101,11 @@ export const CalendarSheetContent = memo(function CalendarSheetContent({
 
       return (
         <Pressable
-          style={[styles.calendarDay, hasThumbnail && styles.calendarDayWithThumbnail]}
+          style={[styles.calendarDay, { width: dayCellSize, height: dayCellSize }, hasThumbnail && styles.calendarDayWithThumbnail]}
           onPress={() => !isDisabled && onDayPress(date)}
           disabled={isDisabled}
+          accessibilityRole="button"
+          accessibilityLabel={`${date.day}`}
         >
           {hasThumbnail && (
             <>
@@ -137,14 +142,20 @@ export const CalendarSheetContent = memo(function CalendarSheetContent({
         </Pressable>
       );
     },
-    [colors, today, thumbnails, onDayPress],
+    [colors, today, thumbnails, onDayPress, dayCellSize],
   );
 
   return (
     <>
       <View style={styles.modalHeader}>
         <Text style={[styles.modalTitle, { color: colors.text.primary }]}>{title}</Text>
-        <Pressable onPress={onClose} style={styles.modalCloseButton}>
+        <Pressable
+          onPress={onClose}
+          style={({ pressed }) => [styles.modalCloseButton, pressed && styles.modalCloseButtonPressed]}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+        >
           <Ionicons name="close" size={22} color={colors.text.secondary} />
         </Pressable>
       </View>
@@ -190,10 +201,13 @@ const styles = StyleSheet.create({
     paddingBottom: tokens.spacing.component.sm,
   },
   modalCloseButton: {
-    width: 36,
-    height: 36,
+    width: tokens.size.touchTarget.md,
+    height: tokens.size.touchTarget.md,
     alignItems: "center",
     justifyContent: "center",
+  },
+  modalCloseButtonPressed: {
+    opacity: 0.6,
   },
   modalTitle: {
     fontSize: tokens.typography.fontSize.h3,
@@ -205,8 +219,7 @@ const styles = StyleSheet.create({
     minHeight: 400,
   },
   calendarDay: {
-    width: 40,
-    height: 40,
+    // width/height set dynamically via dayCellSize for responsive iPad support
     alignItems: "center",
     justifyContent: "center",
     borderRadius: tokens.radius.sm,

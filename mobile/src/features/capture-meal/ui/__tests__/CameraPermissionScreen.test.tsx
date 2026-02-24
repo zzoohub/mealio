@@ -1,7 +1,12 @@
+const mockOpenSettings = jest.fn(() => Promise.resolve());
+
 jest.mock('react-native', () => ({
   View: 'View',
   Text: 'Text',
   Pressable: 'Pressable',
+  Linking: {
+    openSettings: () => mockOpenSettings(),
+  },
   StyleSheet: {
     create: (styles: any) => styles,
     flatten: (style: any) => {
@@ -37,6 +42,7 @@ jest.mock('@/shared/ui/tokens', () => ({
       lineHeight: { body: 24 },
     },
     radius: { md: 12 },
+    size: { touchTarget: { lg: 48 } },
   },
 }));
 
@@ -86,5 +92,46 @@ describe('CameraPermissionScreen', () => {
     expect(getByText('Custom Title')).toBeTruthy();
     expect(getByText('Custom message')).toBeTruthy();
     expect(getByText('Custom Button')).toBeTruthy();
+  });
+
+  it('shows Open Settings button when permission is denied', () => {
+    const { getByText, queryByText } = render(
+      <CameraPermissionScreen
+        {...defaultProps}
+        isDenied
+        labels={{ ...defaultProps.labels, openSettingsText: 'Open Settings' }}
+      />,
+    );
+
+    expect(getByText('Open Settings')).toBeTruthy();
+    expect(queryByText('Continue')).toBeNull();
+  });
+
+  it('calls Linking.openSettings when denied and button pressed', () => {
+    const { getByText } = render(
+      <CameraPermissionScreen
+        {...defaultProps}
+        isDenied
+        labels={{ ...defaultProps.labels, openSettingsText: 'Open Settings' }}
+      />,
+    );
+
+    fireEvent.press(getByText('Open Settings'));
+    expect(mockOpenSettings).toHaveBeenCalledTimes(1);
+    expect(defaultProps.onRequestPermission).not.toHaveBeenCalled();
+  });
+
+  it('calls onRequestPermission when not denied', () => {
+    const { getByText } = render(
+      <CameraPermissionScreen
+        {...defaultProps}
+        isDenied={false}
+        labels={{ ...defaultProps.labels, openSettingsText: 'Open Settings' }}
+      />,
+    );
+
+    fireEvent.press(getByText('Continue'));
+    expect(defaultProps.onRequestPermission).toHaveBeenCalledTimes(1);
+    expect(mockOpenSettings).not.toHaveBeenCalled();
   });
 });

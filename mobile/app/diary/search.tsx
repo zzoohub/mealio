@@ -30,7 +30,6 @@ import { useDiaryI18n, useCommonI18n } from "@/shared/lib/i18n";
 // =============================================================================
 
 const GRID_GAP = 1;
-const NUM_COLUMNS = 3;
 
 // =============================================================================
 // MAIN COMPONENT
@@ -39,9 +38,11 @@ const NUM_COLUMNS = 3;
 export default function DiarySearchScreen() {
   const { colors } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
+  // Responsive columns: 4 on iPad (>600px), 3 on phone
+  const numColumns = screenWidth > 600 ? 4 : 3;
   const itemSize = useMemo(
-    () => (screenWidth - GRID_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS,
-    [screenWidth],
+    () => (screenWidth - GRID_GAP * (numColumns - 1)) / numColumns,
+    [screenWidth, numColumns],
   );
   const { bottomSheet } = useOverlayHelpers();
   const diaryI18n = useDiaryI18n();
@@ -226,7 +227,7 @@ export default function DiarySearchScreen() {
           data={filteredEntries}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          numColumns={NUM_COLUMNS}
+          numColumns={numColumns}
           estimatedItemSize={itemSize}
           ListEmptyComponent={renderEmpty}
           ListFooterComponent={renderFooter}

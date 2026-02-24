@@ -316,6 +316,8 @@ export function Button({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       testID={testID}
+      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+      accessibilityRole="button"
       style={({ pressed }) => [
         s.base,
         {

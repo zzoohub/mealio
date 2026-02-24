@@ -106,13 +106,16 @@ export default function Camera({ initialPhotos, targetDate }: CameraProps) {
 
   // Permission not granted
   if (!permission.granted) {
+    const isDenied = permission.status === "denied" && !permission.canAskAgain;
     return (
       <CameraPermissionScreen
         onRequestPermission={requestPermission}
+        isDenied={isDenied}
         labels={{
-          title: t.permissions.title,
-          message: t.permissions.message,
+          title: isDenied ? t.permissions.title : t.welcome.title,
+          message: isDenied ? t.permissions.message : t.welcome.message,
           buttonText: t.welcome.enableCamera,
+          openSettingsText: t.permissions.openSettings,
         }}
       />
     );

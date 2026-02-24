@@ -10,7 +10,8 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.zzoo.mealio",
-      "associatedDomains": ["applinks:mealio.zzooapp.com"]
+      "associatedDomains": ["applinks:mealio.zzooapp.com"],
+      "privacyUrl": "https://github.com/zzoohub/mealio/blob/main/mobile/PRIVACY_POLICY.md"
     },
     "android": {
       "adaptiveIcon": {
@@ -73,15 +74,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Mealio uses your camera to take photos of your meals so you can log what you eat and track your nutrition.",
-          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
-          "recordAudioAndroid": true
+          "cameraPermission": "Mealio uses your camera to take photos of your meals so you can log what you eat and track your nutrition."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "The app accesses your photos to let you share them with your friends."
+          "photosPermission": "Mealio accesses your photo library to let you select meal photos for your food diary."
         }
       ],
       [

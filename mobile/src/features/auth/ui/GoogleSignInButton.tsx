@@ -32,9 +32,12 @@ export function GoogleSignInButton({
 
   return (
     <Pressable
-      style={[s.button, isDisabled && s.buttonDisabled]}
+      style={({ pressed }) => [s.button, isDisabled && s.buttonDisabled, pressed && s.buttonPressed]}
       onPress={onPress}
       disabled={isDisabled}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      accessibilityRole="button"
+      accessibilityLabel={label}
     >
       {isLoading ? (
         <ActivityIndicator size="small" color={colors.text.primary} style={s.icon} />
@@ -66,6 +69,9 @@ const styles = createStyles((colors) => ({
   },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  buttonPressed: {
+    opacity: 0.8,
   },
   iconContainer: {
     width: 32,

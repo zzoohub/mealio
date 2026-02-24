@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, useWindowDimensions } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -55,8 +55,11 @@ export function Toast({
 }: ToastProps) {
   const animValue = useSharedValue(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const { width: screenWidth } = useWindowDimensions();
 
   const isBottom = position === "bottom";
+  // Responsive horizontal margin: wider on iPad for centered toast
+  const horizontalMargin = screenWidth > 600 ? Math.round((screenWidth - 500) / 2) : 20;
 
   useEffect(() => {
     if (isOpen) {
@@ -117,6 +120,7 @@ export function Toast({
       style={[
         styles.container,
         isBottom ? styles.bottomPosition : styles.topPosition,
+        { left: horizontalMargin, right: horizontalMargin },
         animatedStyle,
       ]}
       pointerEvents="box-none"
@@ -143,8 +147,7 @@ export function Toast({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    left: 20,
-    right: 20,
+    // left/right set dynamically for responsive iPad sizing
   },
   topPosition: {
     top: 100,

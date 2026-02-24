@@ -26,12 +26,24 @@ export const CameraBottomControls = memo(function CameraBottomControls({ onDiary
 
   return (
     <View style={[styles.bottomControls, dynamicStyle]}>
-      <Pressable style={styles.bottomButton} onPress={onDiaryPress}>
+      <Pressable
+        style={({ pressed }) => [styles.bottomButton, pressed && styles.bottomButtonPressed]}
+        onPress={onDiaryPress}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel={diaryLabel}
+      >
         <Ionicons name="book-outline" size={iconSizes.md} color="white" />
         <Text style={styles.bottomButtonText}>{diaryLabel}</Text>
       </Pressable>
 
-      <Pressable style={styles.bottomButton} onPress={onGalleryPress}>
+      <Pressable
+        style={({ pressed }) => [styles.bottomButton, pressed && styles.bottomButtonPressed]}
+        onPress={onGalleryPress}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel="Gallery"
+      >
         <Ionicons name="images-outline" size={iconSizes.md} color="white" />
       </Pressable>
     </View>
@@ -55,6 +67,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: tokens.spacing.component.sm,
     position: "relative",
+  },
+  bottomButtonPressed: {
+    opacity: 0.6,
   },
   bottomButtonText: {
     color: "white",

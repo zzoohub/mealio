@@ -38,7 +38,13 @@ const PhotoItem = memo(function PhotoItem({ uri, index, onRemove }: PhotoItemPro
   return (
     <View style={styles.thumbnailWrapper}>
       <Image source={{ uri }} style={styles.thumbnail} contentFit="cover" />
-      <Pressable style={styles.removeButton} onPress={handleRemove}>
+      <Pressable
+        style={styles.removeButton}
+        onPress={handleRemove}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel="Remove photo"
+      >
         <Ionicons name="close-circle" size={20} color="white" />
       </Pressable>
       <View style={styles.thumbnailIndex}>
@@ -75,7 +81,13 @@ export function PhotoStrip({ photos, onRemovePhoto, onDone, onPickFromGallery, p
   return (
     <>
       {/* Gallery Button - Right side */}
-      <Pressable style={[styles.galleryButtonFloating, dynamicGalleryStyle]} onPress={onPickFromGallery}>
+      <Pressable
+        style={({ pressed }) => [styles.galleryButtonFloating, dynamicGalleryStyle, pressed && styles.galleryButtonPressed]}
+        onPress={onPickFromGallery}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel="Pick from gallery"
+      >
         <Ionicons name="images-outline" size={iconSizes.md} color="white" />
         <View style={[styles.photoCountBadge, s.photoCountBadge]}>
           <Text style={styles.photoCountText}>{photoCount}</Text>
@@ -95,7 +107,13 @@ export function PhotoStrip({ photos, onRemovePhoto, onDone, onPickFromGallery, p
           />
         </View>
 
-        <Pressable style={[styles.doneButton, s.doneButton]} onPress={onDone}>
+        <Pressable
+          style={({ pressed }) => [styles.doneButton, s.doneButton, pressed && styles.doneButtonPressed]}
+          onPress={onDone}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Done"
+        >
           <Ionicons name="checkmark" size={22} color="white" />
         </Pressable>
       </View>
@@ -119,6 +137,9 @@ const styles = StyleSheet.create({
     padding: tokens.spacing.component.md,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     borderRadius: tokens.radius.full,
+  },
+  galleryButtonPressed: {
+    opacity: 0.6,
   },
   photoCountBadge: {
     position: "absolute",
@@ -195,6 +216,9 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 21,
     marginLeft: 10,
+  },
+  doneButtonPressed: {
+    opacity: 0.7,
   },
 });
 

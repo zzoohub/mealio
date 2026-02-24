@@ -26,11 +26,23 @@ export const CameraTopControls = memo(function CameraTopControls({ flashIcon, on
 
   return (
     <View style={[styles.topControls, dynamicStyle]}>
-      <Pressable style={styles.controlButton} onPress={onSettingsPress}>
+      <Pressable
+        style={({ pressed }) => [styles.controlButton, pressed && styles.controlButtonPressed]}
+        onPress={onSettingsPress}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel="Settings"
+      >
         <Ionicons name="settings-outline" size={iconSizes.md} color="white" />
       </Pressable>
 
-      <Pressable style={styles.controlButton} onPress={onToggleFlash}>
+      <Pressable
+        style={({ pressed }) => [styles.controlButton, pressed && styles.controlButtonPressed]}
+        onPress={onToggleFlash}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel="Toggle flash"
+      >
         <Ionicons name={flashIcon} size={iconSizes.md} color="white" />
       </Pressable>
     </View>
@@ -60,5 +72,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
+  },
+  controlButtonPressed: {
+    opacity: 0.6,
   },
 });

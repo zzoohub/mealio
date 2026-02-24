@@ -14,7 +14,7 @@
  */
 
 import React, { memo } from 'react';
-import { View, Pressable, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { View, Pressable, ActivityIndicator, useWindowDimensions, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
@@ -47,7 +47,9 @@ export const MealHeroImage = memo(function MealHeroImage({
 }: MealHeroImageProps) {
   const s = useStyles(styles);
   const { width: screenWidth } = useWindowDimensions();
-  const imageHeight = screenWidth; // 1:1 square aspect ratio
+  // 1:1 on phones, capped at 500px on iPad to avoid oversized images
+  const maxImageHeight = Platform.isPad ? 500 : screenWidth;
+  const imageHeight = Math.min(screenWidth, maxImageHeight);
   const sizeStyle = { width: screenWidth, height: imageHeight };
 
   // Render placeholder when loading or no image
