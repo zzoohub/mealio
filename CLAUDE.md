@@ -19,7 +19,7 @@ All commands are in `justfile`. Run `just --list` to see available recipes.
 - Email: Cloudflare Email Routing
 - Error tracking: Sentry
 - Analytics: PostHog
-- IaC: Pulumi (`/infra`) — manages Cloud Run, Secret Manager, Artifact Registry, R2, Neon; does NOT manage secret values
+- IaC: Pulumi (`/infra`) — manages Cloud Run, Artifact Registry, R2, Neon; secrets via `pulumi config set --secret`
 
 ## Principles (MUST CONFORM TO)
 1. All implementation must use skills (even if after plan mode.)

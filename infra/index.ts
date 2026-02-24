@@ -1,5 +1,4 @@
 import { createIam } from "./src/gcp-iam";
-import { createSecrets } from "./src/gcp-secrets";
 import { createRegistry } from "./src/gcp-registry";
 import { createCloudRun } from "./src/gcp-cloudrun";
 import { createR2Bucket } from "./src/cloudflare";
@@ -9,10 +8,9 @@ import { createNeon } from "./src/neon";
 // Managed by Pulumi (`pulumi destroy` will delete these)
 // =============================================================================
 // - GCP Cloud Run service (mealio-api)
-// - GCP Secret Manager (7 secrets — containers only, not values)
 // - GCP Artifact Registry (services repo)
 // - GCP IAM: WIF pool, OIDC provider, service account
-// - GCP IAM: Secret accessor bindings, Cloud Run public invoker
+// - GCP IAM: Cloud Run public invoker
 // - Cloudflare R2 bucket (mealio-uploads)
 // - Neon database project (mealio)
 //
@@ -32,14 +30,11 @@ import { createNeon } from "./src/neon";
 // IAM: WIF pool, provider, service account
 createIam();
 
-// GCP Secret Manager
-const secretResources = createSecrets();
-
 // Artifact Registry
 createRegistry();
 
-// Cloud Run
-const cloudRunService = createCloudRun(secretResources);
+// Cloud Run (secrets from `pulumi config set --secret`)
+const cloudRunService = createCloudRun();
 
 // Cloudflare R2
 createR2Bucket();

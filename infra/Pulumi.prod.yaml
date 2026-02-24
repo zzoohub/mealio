@@ -1,12 +1,24 @@
 config:
   gcp:project: mealio-483914
   gcp:region: us-east4
-  mealio:cloudflareAccountId: "6dfc3725a77bb65a15378d6daa420312"
-  mealio:r2PublicUrl: "https://pub-a6ac381f54d7453392feeeac89f6dc8b.r2.dev"
-  # Set via: pulumi config set mealio:neonProjectId <value>
-  # mealio:neonProjectId:
-  # No secrets needed — prod values already live in GCP Secret Manager
-
-  mealio:neonProjectId: steep-band-82375288
+  mealio:cloudflare-account-id: "6dfc3725a77bb65a15378d6daa420312"
+  mealio:r2-public-url: "https://pub-a6ac381f54d7453392feeeac89f6dc8b.r2.dev"
+  mealio:neon-project-id: steep-band-82375288
   neon:apiKey:
     secure: AAABAGzrvk9A29GZ02QCgfWbzQ1J8mZhLbU3CDrHr/cms+xJEUkJpzmAh26tZmxvn3860mFrwI+r2YSstj+YtlchQoD7itE26qFZcnG95ROBbt0ZP6/QKywyb4mNzbVNgtEtCX4=
+  mealio:database-url:
+    secure: AAABAEx+KU+oEneM6YUrq5d7UEeTVSqxYj0a6Ym0uzQ2s2HkUcO3EuUV8sSiT481w2IO73rehvoDbA0O/J1tNjPlkz8De5I6DTLk6kO9ZCCr+zerF8Ew3UXUQvvLgDoICtZQywyvNzS1uVd+3sBBtPVLgSYw+e4P6WiybKE08GEarYWC1x4lTeuVdZ3FmCnaeQM8Kl8NQ58PYO1wwxUXL+YWQ1LN8NjGlYJKt0vYyFGkYpqr4fSj
+  mealio:jwt-secret:
+    secure: AAABANIiCwnffNr+0ehlxCLkvzgtZtbisaMo0Lf2EaR69seuu28tQ7bwcHEgPGzs9ai2qSmAnG8daz4T/P3bA9u7N1D0NZKR7K6CRCNlWrsVymi5CU76/awV4LXSH4Xx/BLWrgSUfUo8FU2WOTnSJnL7qPL+l6hG
+  mealio:google-client-id:
+    secure: AAABANYfQi2qeTougJhOMIsQVX5MSjFasIf018gMSvA6DnN4opVaC8KGz3K8Izg9ahzXH9MNQorfT0C81uHKhYN1f4AuwmDF+umCJOXJ7lMe35VT7sXqB0IjDRX7d8Ry2Bz4kknBn/qb
+  mealio:r2-account-id:
+    secure: AAABAB6DMtGHZCltUpgDQYf97PTIrJTC6H6sm987PHlJRmMlIu/o6BjiiytolRudh8KiLMDcKT8rsKqoe0pvpQ==
+  mealio:r2-access-key-id:
+    secure: AAABAKvfURLNXEe08pbz/fb5WkrVW5Cf/w/fGfNV8VMTlV5FODJv94HaYmD1mG4X/t/UCWvAm+0S0nTPmLO9Ww==
+  mealio:r2-secret-access-key:
+    secure: AAABAElUY05lTK4jWEdi8j9BbpioeEeiQw05tnSjaIQDpbfTCfbPUC4NZJsEpu9SxCBMuzwFLt15dLp0wtjApj9EZ4EwBHQv1ZIhfoHtc/b3O9EvF0JBmkMRCfiZx1Zi
+  mealio:sentry-dsn:
+    secure: AAABAFKBU6YjHfXu/r17gNkvZFnZtUo0EWT3D1hTfCtJIf5sy7RCSiMOjDgdwNXvZTuIfQT7D08ZnSxJCvZ/KS4Z6+gnsa6qv8jrCXeVloEZUUFXtM/Nlg3l+6afaknIWoAtvR9n6+H1kTc7A0xf2PTSr7ImrjtpQRy5hjmPKg==
+  mealio:gemini-api-key:
+    secure: AAABADeTtXUPhU+7jtUKIt4CryxXiPjDPaGj+F5PgdJri3g+Dcx+iJl1kXN/yfrusvOJC118hCDUcM6BdulwIWBLWWrEfyk=
