@@ -29,6 +29,16 @@ pub struct UpdatePhotoRequest {
 }
 
 impl EntryPhoto {
+    pub async fn list_urls_by_user_id(db: &PgPool, user_id: i64) -> Result<Vec<String>, sqlx::Error> {
+        let rows = sqlx::query_scalar!(
+            "SELECT ep.url FROM entry_photos ep JOIN diary_entries d ON d.id = ep.entry_id WHERE d.user_id = $1",
+            user_id,
+        )
+        .fetch_all(db)
+        .await?;
+        Ok(rows)
+    }
+
     pub async fn list_by_entry_id(db: &PgPool, entry_id: i64) -> Result<Vec<Self>, sqlx::Error> {
         sqlx::query_as!(
             EntryPhoto,

@@ -94,40 +94,14 @@ impl User {
         .await
     }
 
-    pub async fn soft_delete<'e, E: Executor<'e, Database = Postgres>>(
+    pub async fn hard_delete<'e, E: Executor<'e, Database = Postgres>>(
         db: E,
         id: i64,
     ) -> Result<(), sqlx::Error> {
-        sqlx::query!(
-            "UPDATE users SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL",
-            id,
-        )
-        .execute(db)
-        .await?;
+        sqlx::query!("DELETE FROM users WHERE id = $1", id)
+            .execute(db)
+            .await?;
         Ok(())
-    }
-
-    pub async fn restore<'e, E: Executor<'e, Database = Postgres>>(
-        db: E,
-        id: i64,
-        display_name: &str,
-        photo_url: Option<&str>,
-    ) -> Result<Self, sqlx::Error> {
-        sqlx::query_as!(
-            User,
-            "UPDATE users
-             SET deleted_at = NULL,
-                 display_name = $2,
-                 photo_url = $3,
-                 updated_at = now()
-             WHERE id = $1 AND deleted_at IS NOT NULL
-             RETURNING id, display_name, email, photo_url, created_at, updated_at, deleted_at",
-            id,
-            display_name,
-            photo_url,
-        )
-        .fetch_one(db)
-        .await
     }
 }
 

@@ -1,8 +1,11 @@
 import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
+import { useRouter } from "expo-router";
 import { useSettingsStore, type DisplaySettings, type NotificationSettings } from "./settingsStore";
 import { useDeleteAccountMutation } from "./useSettingsQueries";
 import { useAuthStore } from "@/features/auth";
+import { useUploadQueueStore } from "@/entities/entry";
+import { useOverlayHelpers } from "@/app/providers/overlay";
 import { changeLanguage, useSettingsI18n, type SupportedLanguage } from "@/shared/lib/i18n";
 import type { User } from "@/entities/user";
 
@@ -49,6 +52,8 @@ export interface UseSettingsScreenReturn {
 
 export function useSettingsScreen(): UseSettingsScreenReturn {
   const settings = useSettingsI18n();
+  const { replace } = useRouter();
+  const { toast } = useOverlayHelpers();
 
   // Stores
   const { user, logout, isLoading: authLoading } = useAuthStore();
@@ -130,8 +135,11 @@ export function useSettingsScreen(): UseSettingsScreenReturn {
           style: "destructive",
           onPress: async () => {
             try {
+              useUploadQueueStore.getState().clearQueue();
               await deleteAccountMutation.mutateAsync();
               await logout();
+              replace("/");
+              toast({ title: "Account deleted", type: "success" });
             } catch {
               Alert.alert("Error", "Failed to delete account. Please try again.");
             }
@@ -139,7 +147,7 @@ export function useSettingsScreen(): UseSettingsScreenReturn {
         },
       ]
     );
-  }, [deleteAccountMutation, logout]);
+  }, [deleteAccountMutation, logout, replace, toast]);
 
   return {
     // User state

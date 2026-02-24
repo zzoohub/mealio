@@ -7,6 +7,20 @@ jest.mock("react-native", () => ({
     alert: jest.fn(),
   },
 }));
+const mockRouterReplace = jest.fn();
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ replace: mockRouterReplace }),
+}));
+const mockOverlayToast = jest.fn();
+jest.mock("@/app/providers/overlay", () => ({
+  useOverlayHelpers: () => ({ toast: mockOverlayToast }),
+}));
+const mockClearQueue = jest.fn();
+jest.mock("@/entities/entry", () => ({
+  useUploadQueueStore: Object.assign(jest.fn(), {
+    getState: () => ({ clearQueue: mockClearQueue }),
+  }),
+}));
 jest.mock("@tanstack/react-query", () => ({
   useMutation: jest.fn(),
 }));

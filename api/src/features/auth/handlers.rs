@@ -50,19 +50,9 @@ pub async fn sign_in(
 
     let user = match UserAuthProvider::find_by_provider(&mut *tx, &req.provider, &oauth_user.provider_uid).await? {
         Some(auth_provider) => {
-            match User::find_by_id(&mut *tx, auth_provider.user_id).await? {
-                Some(user) => user,
-                None => {
-                    // User was soft-deleted — restore the account
-                    User::restore(
-                        &mut *tx,
-                        auth_provider.user_id,
-                        &oauth_user.name,
-                        oauth_user.photo_url.as_deref(),
-                    )
-                    .await?
-                }
-            }
+            User::find_by_id(&mut *tx, auth_provider.user_id)
+                .await?
+                .ok_or_else(|| AppError::Unauthorized("account no longer exists".into()))?
         }
         None => {
             let user = User::create(

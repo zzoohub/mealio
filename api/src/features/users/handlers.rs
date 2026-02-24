@@ -1,9 +1,11 @@
+use axum::extract::State;
 use axum::Json;
 
 use crate::error::AppError;
 use crate::extractors::{AuthUser, Db};
-use crate::features::auth::models::AuthToken;
+use crate::features::photos::models::EntryPhoto;
 use crate::response;
+use crate::AppState;
 
 use super::models::*;
 
@@ -66,12 +68,52 @@ pub async fn update_me(
 pub async fn delete_me(
     auth: AuthUser,
     Db(db): Db,
+    State(state): State<AppState>,
 ) -> Result<response::NoContent, AppError> {
-    // Revoke all tokens before soft-deleting user
-    let mut tx = db.begin().await?;
-    AuthToken::revoke_all_for_user(&mut *tx, auth.user_id).await?;
-    User::soft_delete(&mut *tx, auth.user_id).await?;
-    tx.commit().await?;
+    // 1. Collect all photo URLs for this user
+    let photo_urls = EntryPhoto::list_urls_by_user_id(&db, auth.user_id).await?;
+
+    // 2. Best-effort R2 cleanup — delete photo objects in parallel
+    if !photo_urls.is_empty() && !state.r2_public_url.is_empty() {
+        let r2_public_prefix = format!("{}/", state.r2_public_url.trim_end_matches('/'));
+        let expected_key_prefix = format!("photos/{}/", auth.user_id);
+        let mut join_set = tokio::task::JoinSet::new();
+
+        for url in &photo_urls {
+            if let Some(key) = url.strip_prefix(&r2_public_prefix) {
+                if !key.starts_with(&expected_key_prefix) {
+                    tracing::warn!(url = %url, user_id = auth.user_id, "skipping R2 deletion: key not in user's directory");
+                    continue;
+                }
+                let client = state.s3_client.clone();
+                let bucket = state.r2_bucket.clone();
+                let key = key.to_string();
+                let url = url.clone();
+                join_set.spawn(async move {
+                    let result = client.delete_object().bucket(&bucket).key(&key).send().await;
+                    (url, result)
+                });
+            }
+        }
+
+        while let Some(res) = join_set.join_next().await {
+            if let Ok((url, Err(e))) = res {
+                tracing::warn!(url = %url, error = %e, "failed to delete R2 object");
+            }
+        }
+    } else if !photo_urls.is_empty() {
+        tracing::warn!(user_id = auth.user_id, "R2_PUBLIC_URL not configured — skipping R2 photo cleanup");
+    }
+
+    // 3. Hard delete user (CASCADE removes all child rows)
+    tracing::info!(
+        user_id = auth.user_id,
+        photo_count = photo_urls.len(),
+        event = "account.hard_delete",
+        "user account permanently deleted"
+    );
+    User::hard_delete(&db, auth.user_id).await?;
+
     Ok(response::NoContent)
 }
 

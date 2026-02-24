@@ -25,6 +25,7 @@ interface UploadQueueState {
   markFailed: (tempId: string) => void;
   remove: (tempId: string) => void;
   retry: (tempId: string) => void;
+  clearQueue: () => void;
   getPendingForDate: (date: Date) => PendingUpload[];
   getNextPending: () => PendingUpload | undefined;
 }
@@ -91,6 +92,8 @@ export const useUploadQueueStore = create<UploadQueueState>((set, get) => ({
       return { queue: next };
     });
   },
+
+  clearQueue: () => set({ queue: new Map() }),
 
   getPendingForDate: (date) => {
     const dateStr = formatDateToString(date);

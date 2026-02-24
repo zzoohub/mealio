@@ -61,8 +61,89 @@ describe("uploadQueueStore", () => {
       expect(typeof state.markFailed).toBe("function");
       expect(typeof state.remove).toBe("function");
       expect(typeof state.retry).toBe("function");
+      expect(typeof state.clearQueue).toBe("function");
       expect(typeof state.getPendingForDate).toBe("function");
       expect(typeof state.getNextPending).toBe("function");
+    });
+  });
+
+  // =============================================================================
+  // clearQueue() Functionality
+  // =============================================================================
+
+  describe("clearQueue", () => {
+    const mockEntry = {
+      userId: "user_123",
+      timestamp: new Date("2024-01-15T08:00:00Z"),
+      notes: "Test meal",
+      meal: {
+        photoUri: "file:///test.jpg",
+        mealType: "breakfast" as const,
+      },
+    };
+    const mockPhotoUris = ["file:///photo1.jpg"];
+
+    it("clears all items from the queue", () => {
+      const { enqueue, clearQueue } = useUploadQueueStore.getState();
+      enqueue(mockEntry, mockPhotoUris);
+      enqueue(mockEntry, mockPhotoUris);
+      enqueue(mockEntry, mockPhotoUris);
+
+      expect(useUploadQueueStore.getState().queue.size).toBe(3);
+
+      clearQueue();
+
+      expect(useUploadQueueStore.getState().queue.size).toBe(0);
+    });
+
+    it("works on an already-empty queue without error", () => {
+      const { clearQueue } = useUploadQueueStore.getState();
+      expect(useUploadQueueStore.getState().queue.size).toBe(0);
+
+      expect(() => clearQueue()).not.toThrow();
+
+      expect(useUploadQueueStore.getState().queue.size).toBe(0);
+    });
+
+    it("removes items with all statuses", () => {
+      const { enqueue, markUploading, markFailed, clearQueue } = useUploadQueueStore.getState();
+      const tempId1 = enqueue(mockEntry, mockPhotoUris);
+      const tempId2 = enqueue(mockEntry, mockPhotoUris);
+      const tempId3 = enqueue(mockEntry, mockPhotoUris);
+
+      markUploading(tempId1);
+      markFailed(tempId2);
+      // tempId3 stays pending
+
+      clearQueue();
+
+      expect(useUploadQueueStore.getState().queue.size).toBe(0);
+      expect(useUploadQueueStore.getState().queue.get(tempId1)).toBeUndefined();
+      expect(useUploadQueueStore.getState().queue.get(tempId2)).toBeUndefined();
+      expect(useUploadQueueStore.getState().queue.get(tempId3)).toBeUndefined();
+    });
+
+    it("allows new items to be enqueued after clearing", () => {
+      const { enqueue, clearQueue } = useUploadQueueStore.getState();
+      enqueue(mockEntry, mockPhotoUris);
+      clearQueue();
+
+      const newTempId = enqueue(mockEntry, mockPhotoUris);
+
+      expect(useUploadQueueStore.getState().queue.size).toBe(1);
+      expect(useUploadQueueStore.getState().queue.get(newTempId)).toBeDefined();
+    });
+
+    it("getNextPending returns undefined after clearing", () => {
+      const { enqueue, clearQueue, getNextPending } = useUploadQueueStore.getState();
+      enqueue(mockEntry, mockPhotoUris);
+      enqueue(mockEntry, mockPhotoUris);
+
+      expect(getNextPending()).toBeDefined();
+
+      clearQueue();
+
+      expect(getNextPending()).toBeUndefined();
     });
   });
 
