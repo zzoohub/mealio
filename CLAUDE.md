@@ -27,7 +27,7 @@ All commands are in `justfile`. Run `just --list` to see available recipes.
    - api: Use **z-axum** skill + **z-postgresql** skill for queries
 2. Once the implementation is complete, run the two sub-agents below in parallel.
    - Run a **z-security-reviewer** sub-agent for security audit → fix
-   - Run a **z-tester** sub-agent for testing only changed code → fix
+   - Run a **z-verifier** sub-agent for verifying changes (run tests, E2E, browser verify)
 
 ## API
 
