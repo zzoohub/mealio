@@ -28,7 +28,7 @@
  * ```
  */
 
-import React, { useRef, useImperativeHandle, forwardRef } from 'react';
+import React, { useRef, useImperativeHandle } from 'react';
 import {
   View,
   Text,
@@ -91,21 +91,19 @@ const AnimatedView = Animated.createAnimatedComponent(View);
 // COMPONENT
 // =============================================================================
 
-export const Input = forwardRef<InputRef, InputProps>(function Input(
-  {
-    variant = 'outline',
-    label,
-    helperText,
-    leadingIcon,
-    trailingElement,
-    style,
-    inputStyle,
-    testID,
-    showCharacterCount = false,
-    ...hookProps
-  },
-  ref
-) {
+export function Input({
+  variant = 'outline',
+  label,
+  helperText,
+  leadingIcon,
+  trailingElement,
+  style,
+  inputStyle,
+  testID,
+  showCharacterCount = false,
+  ref,
+  ...hookProps
+}: InputProps & { ref?: React.Ref<InputRef> }) {
   const s = useStyles(styles);
   const {
     inputProps,
@@ -302,7 +300,7 @@ export const Input = forwardRef<InputRef, InputProps>(function Input(
       </View>
     </View>
   );
-});
+}
 
 export default Input;
 
