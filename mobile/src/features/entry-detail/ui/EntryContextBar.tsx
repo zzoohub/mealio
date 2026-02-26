@@ -374,7 +374,7 @@ const styles = createStyles((colors) => ({
     color: colors.text.tertiary,
   },
   pickerSheet: {
-    backgroundColor: colors.bg.primary,
+    backgroundColor: '#FFFFFF',
   },
   pickerDoneRow: {
     flexDirection: 'row',
@@ -385,7 +385,7 @@ const styles = createStyles((colors) => ({
   pickerDoneText: {
     fontSize: tokens.typography.fontSize.body,
     fontWeight: tokens.typography.fontWeight.semibold,
-    color: colors.interactive.primary,
+    color: '#007AFF',
   },
   pickerBody: {
     alignItems: 'center',
