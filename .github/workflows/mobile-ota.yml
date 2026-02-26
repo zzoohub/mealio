@@ -3,7 +3,7 @@ name: Mobile OTA Update
 on:
   push:
     branches: [main]
-    paths: ['mobile/**']
+    paths: ['mobile/**', '.github/workflows/mobile-ota.yml']
 
 jobs:
   test:
