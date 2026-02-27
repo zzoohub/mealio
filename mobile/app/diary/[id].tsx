@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from "react";
-import { View, ScrollView, useWindowDimensions, KeyboardAvoidingView, Platform } from "react-native";
+import { View, ScrollView, useWindowDimensions } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { createStyles, useStyles } from "@/shared/ui/theme";
@@ -107,11 +107,6 @@ export default function DiaryEntryScreen() {
       <EntryDetailHeader onBackPress={goBack} onSharePress={canShare ? shareEntry : undefined} />
 
       {/* Scrollable Content */}
-      <KeyboardAvoidingView
-        style={s.scrollView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={insets.top + HEADER_HEIGHT}
-      >
       <ScrollView
         style={s.scrollView}
         contentContainerStyle={[s.scrollContent, { minHeight: minContentHeight }]}
@@ -189,7 +184,6 @@ export default function DiaryEntryScreen() {
         {/* Delete Button */}
         <EntryDeleteButton onPress={deleteEntry} loading={isDeleting} disabled={isDisabled} />
       </ScrollView>
-      </KeyboardAvoidingView>
     </View>
   );
 }

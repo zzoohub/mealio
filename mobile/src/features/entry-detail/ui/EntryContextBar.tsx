@@ -21,7 +21,7 @@ import { View, Text, Pressable, ActionSheetIOS, Platform, Alert } from 'react-na
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
-import { createStyles, useStyles } from '@/shared/ui/theme';
+import { createStyles, useStyles, useTheme } from '@/shared/ui/theme';
 import { BottomSheet } from '@/shared/ui/styled';
 import { MealType } from '@/entities/meal';
 import type { Location } from '@/entities/entry';
@@ -119,6 +119,7 @@ export function EntryContextBar({
   testID,
 }: EntryContextBarProps) {
   const s = useStyles(styles);
+  const { colorScheme } = useTheme();
   const locationLabel = getLocationLabel(location);
   const common = useCommonI18n();
   const diary = useDiaryI18n();
@@ -306,6 +307,7 @@ export function EntryContextBar({
               display="spinner"
               onChange={handleTimeChange}
               maximumDate={new Date()}
+              themeVariant={colorScheme}
             />
           </View>
         </BottomSheet>
@@ -374,7 +376,7 @@ const styles = createStyles((colors) => ({
     color: colors.text.tertiary,
   },
   pickerSheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bg.secondary,
   },
   pickerDoneRow: {
     flexDirection: 'row',
@@ -385,7 +387,7 @@ const styles = createStyles((colors) => ({
   pickerDoneText: {
     fontSize: tokens.typography.fontSize.body,
     fontWeight: tokens.typography.fontWeight.semibold,
-    color: '#007AFF',
+    color: colors.interactive.primary,
   },
   pickerBody: {
     alignItems: 'center',
