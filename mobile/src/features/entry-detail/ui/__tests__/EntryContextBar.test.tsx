@@ -52,6 +52,7 @@ const useStylesImpl = (stylesFn: any) => stylesFn(mockColors);
 
 jest.mock('@/shared/ui/theme', () => ({
   useStyles: jest.fn(useStylesImpl),
+  useTheme: jest.fn(() => ({ colorScheme: 'light' })),
   createStyles: jest.fn((fn: any) => fn),
 }));
 
@@ -94,7 +95,7 @@ import { BottomSheet } from '@/shared/ui/styled';
 import { EntryContextBar } from '../EntryContextBar';
 import { MealType } from '@/entities/meal';
 import { useCommonI18n, useDiaryI18n } from '@/shared/lib/i18n';
-import { useStyles } from '@/shared/ui/theme';
+import { useStyles, useTheme } from '@/shared/ui/theme';
 
 describe('EntryContextBar', () => {
   const mockOnMealTypeChange = jest.fn();
@@ -107,6 +108,7 @@ describe('EntryContextBar', () => {
 
     // Re-apply mocks (resetMocks: true clears implementations before each test)
     (useStyles as jest.Mock).mockImplementation(useStylesImpl);
+    (useTheme as jest.Mock).mockReturnValue({ colorScheme: 'light' });
 
     (BottomSheet as jest.Mock).mockImplementation(({ children }: any) => children);
 
