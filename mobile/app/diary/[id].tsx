@@ -112,6 +112,7 @@ export default function DiaryEntryScreen() {
         contentContainerStyle={[s.scrollContent, { minHeight: minContentHeight }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
       >
         {/* Photo Carousel */}
         <PhotoCarousel
