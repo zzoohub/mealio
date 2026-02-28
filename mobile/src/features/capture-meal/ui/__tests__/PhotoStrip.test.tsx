@@ -2,6 +2,7 @@ jest.mock('react-native', () => ({
   View: 'View',
   Text: 'Text',
   Pressable: 'Pressable',
+  ScrollView: 'ScrollView',
   StyleSheet: {
     create: (styles: any) => styles,
     flatten: (style: any) => {
@@ -16,12 +17,6 @@ jest.mock('@expo/vector-icons', () => ({
 }));
 jest.mock('expo-image', () => ({
   Image: 'Image',
-}));
-jest.mock('@shopify/flash-list', () => ({
-  FlashList: ({ data, renderItem }: { data: string[]; renderItem: Function }) => {
-    const items = data.map((item: string, index: number) => renderItem({ item, index }));
-    return items;
-  },
 }));
 jest.mock('@/shared/ui/theme', () => ({
   createStyles: (fn: Function) =>

@@ -1,6 +1,5 @@
 import React, { memo, useCallback, useMemo } from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
-import { FlashList } from "@shopify/flash-list";
+import { View, Text, Pressable, StyleSheet, ScrollView } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { createStyles, useStyles } from "@/shared/ui/theme";
@@ -69,15 +68,6 @@ export function PhotoStrip({ photos, onRemovePhoto, onDone, onPickFromGallery, p
     bottom: bottomOffset + tokens.spacing.component.lg,
   }), [bottomOffset]);
 
-  const renderItem = useCallback(
-    ({ item, index }: { item: string; index: number }) => (
-      <PhotoItem uri={item} index={index} onRemove={onRemovePhoto} />
-    ),
-    [onRemovePhoto]
-  );
-
-  const keyExtractor = useCallback((item: string) => item, []);
-
   return (
     <>
       {/* Gallery Button - Right side */}
@@ -96,16 +86,16 @@ export function PhotoStrip({ photos, onRemovePhoto, onDone, onPickFromGallery, p
 
       {/* Thumbnail Strip - Bottom */}
       <View style={[styles.thumbnailContainer, dynamicStripStyle]}>
-        <View style={styles.thumbnailListContainer}>
-          <FlashList
-            data={photos}
-            renderItem={renderItem}
-            keyExtractor={keyExtractor}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.thumbnailScroll}
-          />
-        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.thumbnailScroll}
+          style={styles.thumbnailListContainer}
+        >
+          {photos.map((uri, index) => (
+            <PhotoItem key={uri} uri={uri} index={index} onRemove={onRemovePhoto} />
+          ))}
+        </ScrollView>
 
         <Pressable
           style={({ pressed }) => [styles.doneButton, s.doneButton, pressed && styles.doneButtonPressed]}
@@ -125,8 +115,8 @@ export function PhotoStrip({ photos, onRemovePhoto, onDone, onPickFromGallery, p
 // STYLES
 // =============================================================================
 
-/** Height reserved for the capture button area above the strip */
-const CAPTURE_AREA_HEIGHT = 80;
+/** Height reserved for the capture button area above the strip (matches CAPTURE_BUTTON_WITH_STRIP_OFFSET) */
+const CAPTURE_AREA_HEIGHT = 110;
 
 const THUMBNAIL_SIZE = 52;
 

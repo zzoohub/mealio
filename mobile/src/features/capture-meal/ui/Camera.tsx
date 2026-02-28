@@ -142,6 +142,7 @@ export default function Camera({ initialPhotos, targetDate }: CameraProps) {
         pressedState={captureButtonPressed}
         disabled={isCapturing || isAtGuestLimit}
         bottomInset={insets.bottom}
+        photoStripVisible={hasPhotos}
       />
 
       {/* Bottom Controls - Changes based on photo state */}

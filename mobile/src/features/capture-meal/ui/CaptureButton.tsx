@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from "react";
+import React, { memo, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
   interpolate,
   runOnJS,
+  Easing,
   SharedValue,
 } from "react-native-reanimated";
 import { createStyles, useStyles } from "@/shared/ui/theme";
@@ -23,6 +24,8 @@ export interface CaptureButtonProps {
   disabled?: boolean;
   /** Bottom safe area inset from parent (accounts for home indicator) */
   bottomInset?: number;
+  /** Whether the photo strip is visible below the button */
+  photoStripVisible?: boolean;
 }
 
 // =============================================================================
@@ -35,6 +38,7 @@ export const CaptureButton = memo(function CaptureButton({
   pressedState,
   disabled,
   bottomInset = 0,
+  photoStripVisible = false,
 }: CaptureButtonProps) {
   const s = useStyles(captureButtonStyles);
 
@@ -55,21 +59,29 @@ export const CaptureButton = memo(function CaptureButton({
       runOnJS(onCapture)();
     });
 
-  // Derive scale from pressed state
+  // Animated bottom position — smooth transition when photo strip appears/disappears
+  const targetBottom = Math.max(bottomInset, 16) +
+    (photoStripVisible ? CAPTURE_BUTTON_WITH_STRIP_OFFSET : CAPTURE_BUTTON_BOTTOM_OFFSET);
+  const bottomPosition = useSharedValue(targetBottom);
+
+  useEffect(() => {
+    bottomPosition.set(
+      withTiming(targetBottom, { duration: 250, easing: Easing.out(Easing.cubic) })
+    );
+  }, [targetBottom, bottomPosition]);
+
+  // Derive scale + position from shared values
   const animatedStyle = useAnimatedStyle(() => {
     const scale = interpolate(pressed.get(), [0, 1], [1, 0.85]);
     return {
+      bottom: bottomPosition.get(),
       transform: [{ scale }],
     };
   });
 
-  const captureAreaPosition = useMemo(() => ({
-    bottom: Math.max(bottomInset, 16) + CAPTURE_BUTTON_BOTTOM_OFFSET,
-  }), [bottomInset]);
-
   return (
     <GestureDetector gesture={tap}>
-      <Animated.View style={[styles.captureArea, captureAreaPosition, animatedStyle]}>
+      <Animated.View style={[styles.captureArea, animatedStyle]}>
         <View style={styles.captureButton}>
           <View style={[styles.captureRing, isCapturing && s.capturingRing]}>
             <View style={[styles.captureInner, isCapturing && s.capturingInner]} />
@@ -85,7 +97,10 @@ export const CaptureButton = memo(function CaptureButton({
 // =============================================================================
 
 const CAPTURE_BUTTON_SIZE = 80;
-const CAPTURE_BUTTON_BOTTOM_OFFSET = 80;
+/** Default offset — matches native iOS Camera shutter position */
+const CAPTURE_BUTTON_BOTTOM_OFFSET = 50;
+/** Raised offset to clear the photo strip */
+const CAPTURE_BUTTON_WITH_STRIP_OFFSET = 110;
 
 const styles = StyleSheet.create({
   captureArea: {
