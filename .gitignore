@@ -63,6 +63,7 @@ coverage/
 web-build/
 expo-env.d.ts
 *.hbc
+google-service-account*.json
 
 # iOS
 #ios/Pods/

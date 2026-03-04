@@ -27,6 +27,10 @@
         "appleId": "zzoo.origin@gmail.com",
         "ascAppId": "6758864658",
         "appleTeamId": "6VMN7W3K93"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account-play-store-api.json",
+        "track": "production"
       }
     }
   }
