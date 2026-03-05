@@ -2,6 +2,7 @@ const {
   withAppDelegate,
   withPodfile,
   withInfoPlist,
+  withAndroidManifest,
 } = require("@expo/config-plugins");
 const {
   mergeContents,
@@ -10,13 +11,30 @@ const {
 function withGoogleMaps(config, { apiKey }) {
   if (!apiKey) return config;
 
-  // 1. Set GMSApiKey in Info.plist
+  // 1. Add Google Maps API key to AndroidManifest.xml
+  config = withAndroidManifest(config, (conf) => {
+    const mainApp = conf.modResults.manifest.application?.[0];
+    if (!mainApp) return conf;
+    if (!mainApp["meta-data"]) mainApp["meta-data"] = [];
+    mainApp["meta-data"] = mainApp["meta-data"].filter(
+      (item) => item.$?.["android:name"] !== "com.google.android.geo.API_KEY",
+    );
+    mainApp["meta-data"].push({
+      $: {
+        "android:name": "com.google.android.geo.API_KEY",
+        "android:value": apiKey,
+      },
+    });
+    return conf;
+  });
+
+  // 2. Set GMSApiKey in Info.plist
   config = withInfoPlist(config, (conf) => {
     conf.modResults.GMSApiKey = apiKey;
     return conf;
   });
 
-  // 2. Add Google Maps import + init to AppDelegate
+  // 3. Add Google Maps import + init to AppDelegate
   config = withAppDelegate(config, (conf) => {
     let contents = conf.modResults.contents;
 
@@ -55,7 +73,7 @@ function withGoogleMaps(config, { apiKey }) {
     return conf;
   });
 
-  // 3. Add Google Maps CocoaPod
+  // 4. Add Google Maps CocoaPod
   config = withPodfile(config, (conf) => {
     const result = mergeContents({
       tag: "google-maps-pod",
