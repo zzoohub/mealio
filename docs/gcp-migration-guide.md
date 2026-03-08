@@ -3,7 +3,7 @@
 **목표**: `mealio-483914` + `play-store-api` → `zzooapp` 완전 통합, `zzooapp-infra` 독립 repo로 분리
 
 **전략**:
-1. `zzooapp-infra` repo 생성 (GCP 인프라 전용)
+1. `zzooapp-infra` repo 생성 (전체 인프라 통합 관리)
 2. 새 프로젝트에 인프라 배포
 3. CI/CD 전환
 4. 앱 네이티브 빌드 + 스토어 배포
@@ -17,9 +17,19 @@
 
 | 관리 주체 | 대상 |
 |-----------|------|
-| **zzooapp-infra (Pulumi)** | Cloud Run, Artifact Registry, IAM/WIF, (향후) Cloud SQL |
+| **zzooapp-infra (Pulumi)** | Cloud Run, Artifact Registry, IAM/WIF, Neon DB, Cloudflare R2, Sentry, Vercel, PostHog |
 | **각 서비스 repo CI** | Docker 이미지 빌드 + `gcloud run deploy` |
-| **대시보드 (수동)** | Cloudflare, Neon, Vercel, EAS, Sentry, PostHog |
+| **수동** | Cloudflare DNS, EAS (`eas.json` + CLI) |
+
+서비스 삭제 시 **폴더 삭제 + `pulumi up` 한 번**으로 모든 리소스 자동 정리.
+
+### Pulumi providers
+
+```bash
+bun add @pulumi/gcp @pulumi/cloudflare @pulumi/neon @pulumi/vercel pulumi-posthog
+# Sentry: pulumiverse provider
+bun add @pulumiverse/sentry
+```
 
 ### repo 구조
 
@@ -27,18 +37,58 @@
 zzooapp-infra/
 ├── Pulumi.yaml
 ├── package.json
-├── index.ts                  # 엔트리포인트
+├── index.ts                        # 엔트리포인트
 ├── shared/
-│   ├── config.ts             # gcpProject, gcpRegion
-│   ├── iam.ts                # WIF pool + provider + 공용 서비스 계정
-│   └── registry.ts           # Artifact Registry (공용 1개)
+│   ├── config.ts                   # gcpProject, gcpRegion, 각 provider 설정
+│   ├── iam.ts                      # WIF pool + provider + 공용 서비스 계정
+│   ├── registry.ts                 # Artifact Registry (공용 1개)
+│   ├── neon.ts                     # Neon 프로젝트 (공용 1개)
+│   └── factories/
+│       ├── cloud-run.ts            # createService()
+│       ├── database.ts             # createDatabase()
+│       ├── bucket.ts               # createBucket()
+│       ├── sentry.ts               # createSentryProject()
+│       ├── vercel.ts               # createVercelProject()
+│       └── posthog.ts              # createPosthogResources()
 └── services/
-    ├── types.ts              # ServiceConfig 타입 정의
-    ├── cloud-run.ts          # createService() 팩토리 함수
-    ├── mealio.ts             # mealio 서비스 정의
-    ├── app-b.ts              # 서비스 B
-    └── ...                   # 새 서비스 추가 시 파일 1개 추가
+    ├── mealio/                     # 파일트리 = 인프라 구성 한눈에 파악
+    │   ├── index.ts                # export createMealio()
+    │   ├── cloud-run.ts            # Cloud Run 서비스 + 환경변수
+    │   ├── cloudflare.ts           # R2 bucket
+    │   ├── neon.ts                 # Database
+    │   └── sentry.ts               # Sentry 프로젝트
+    ├── app-b/                      # Vercel 프론트엔드 서비스 예시
+    │   ├── index.ts
+    │   ├── neon.ts
+    │   ├── vercel.ts               # ← Vercel 프로젝트
+    │   ├── sentry.ts
+    │   └── posthog.ts              # ← PostHog 피처플래그/대시보드
+    └── app-c/
+        ├── index.ts
+        └── cloud-run.ts            # ← DB도 없는 가벼운 서비스
 ```
+
+### 시크릿 관리 (`shared` 네임스페이스)
+
+여러 서비스가 공유하는 시크릿은 `shared` 네임스페이스에 1번만 설정.
+서비스 전용 시크릿만 각 서비스 네임스페이스에 설정.
+
+```bash
+# 공용 시크릿 (1번만 설정, 전 서비스 공유)
+pulumi config set --secret shared:r2-account-id <값>
+pulumi config set --secret shared:r2-access-key-id <값>
+pulumi config set --secret shared:r2-secret-access-key <값>
+pulumi config set --secret shared:sentry-org "zzoo-org"
+pulumi config set --secret shared:sentry-team "zzoo"
+
+# 서비스 전용 시크릿
+pulumi config set --secret mealio:database-url <값>
+pulumi config set --secret mealio:jwt-secret <값>
+pulumi config set --secret mealio:google-client-id <값>
+pulumi config set --secret mealio:gemini-api-key <값>
+```
+
+키 로테이션 시: `pulumi config set --secret shared:r2-access-key-id <새값>` + `pulumi up` → 20개 서비스 전부 반영.
 
 ### 핵심 코드
 
@@ -47,9 +97,22 @@ zzooapp-infra/
 import * as pulumi from "@pulumi/pulumi";
 
 const gcpConfig = new pulumi.Config("gcp");
+const cfConfig = new pulumi.Config("cloudflare");
+const shared = new pulumi.Config("shared");
 
-export const gcpProject = gcpConfig.require("project");  // zzooapp
-export const gcpRegion = gcpConfig.require("region");     // us-east4
+// Provider 설정
+export const gcpProject = gcpConfig.require("project");          // zzooapp
+export const gcpRegion = gcpConfig.require("region");             // us-east4
+export const cloudflareAccountId = cfConfig.require("accountId");
+
+// 공용 시크릿 (여러 서비스가 공유)
+export const sharedSecrets = {
+  r2AccountId: shared.requireSecret("r2-account-id"),
+  r2AccessKeyId: shared.requireSecret("r2-access-key-id"),
+  r2SecretAccessKey: shared.requireSecret("r2-secret-access-key"),
+  sentryOrg: shared.require("sentry-org"),
+  sentryTeam: shared.require("sentry-team"),
+};
 ```
 
 **`shared/iam.ts`**:
@@ -75,7 +138,6 @@ export function createIam() {
       "attribute.repository": "assertion.repository",
       "attribute.repository_owner": "assertion.repository_owner",
     },
-    // 모든 zzoohub repo 허용
     attributeCondition: 'assertion.repository_owner == "zzoohub"',
     oidc: { issuerUri: "https://token.actions.githubusercontent.com" },
   }, { protect: true });
@@ -101,34 +163,44 @@ export function createRegistry() {
     location: gcpRegion,
     repositoryId: "services",
     format: "DOCKER",
-    description: "Container images for zzooapp services",
   }, { protect: true });
 }
 ```
 
-**`services/types.ts`**:
+**`shared/neon.ts`**:
 ```typescript
-import * as pulumi from "@pulumi/pulumi";
+import * as neon from "@pulumi/neon";
 
-export interface ServiceConfig {
-  name: string;                                          // Cloud Run 서비스 이름
-  envs?: { name: string; value: string | pulumi.Output<string> }[];
-  cpu?: string;                                          // default: "1"
-  memory?: string;                                       // default: "512Mi"
-  maxInstances?: number;                                 // default: 3
-  concurrency?: number;                                  // default: 80
-  healthCheckPath?: string;                              // default: "/health"
-  public?: boolean;                                      // default: true (allUsers invoker)
+export function createNeonProject() {
+  return new neon.Project("zzooapp", {
+    name: "zzooapp",
+    pgVersion: 18,
+    regionId: "aws-us-east-1",
+  }, { protect: true });
 }
 ```
 
-**`services/cloud-run.ts`**:
+### 팩토리 함수
+
+**`shared/factories/cloud-run.ts`**:
 ```typescript
 import * as gcp from "@pulumi/gcp";
-import { gcpProject, gcpRegion } from "../shared/config";
-import { ServiceConfig } from "./types";
+import * as pulumi from "@pulumi/pulumi";
+import { gcpProject, gcpRegion } from "../config";
 
-export function createService(config: ServiceConfig) {
+export interface CloudRunConfig {
+  name: string;
+  envs?: { name: string; value: string | pulumi.Output<string> }[];
+  cpu?: string;
+  memory?: string;
+  maxInstances?: number;
+  concurrency?: number;
+  healthCheckPath?: string;
+  public?: boolean;
+  protect?: boolean;        // 운영: true, 실험: false
+}
+
+export function createCloudRun(config: CloudRunConfig) {
   const {
     name,
     envs = [],
@@ -138,6 +210,7 @@ export function createService(config: ServiceConfig) {
     concurrency = 80,
     healthCheckPath = "/health",
     public: isPublic = true,
+    protect: isProtected = false,
   } = config;
 
   const image = `${gcpRegion}-docker.pkg.dev/${gcpProject}/services/${name}:latest`;
@@ -170,7 +243,7 @@ export function createService(config: ServiceConfig) {
       timeout: "30s",
     },
   }, {
-    protect: true,
+    protect: isProtected,
     ignoreChanges: ["template.containers[0].image"],
   });
 
@@ -188,16 +261,178 @@ export function createService(config: ServiceConfig) {
 }
 ```
 
-**`services/mealio.ts`** — 서비스별 정의:
+**`shared/factories/database.ts`**:
+```typescript
+import * as neon from "@pulumi/neon";
+
+export interface DatabaseConfig {
+  name: string;
+  projectId: string;
+  branchId: string;
+  ownerName?: string;
+}
+
+export function createDatabase(config: DatabaseConfig) {
+  return new neon.Database(config.name, {
+    projectId: config.projectId,
+    branchId: config.branchId,
+    name: config.name,
+    ownerName: config.ownerName ?? config.name,
+  });
+}
+```
+
+**`shared/factories/bucket.ts`**:
+```typescript
+import * as cloudflare from "@pulumi/cloudflare";
+import { cloudflareAccountId } from "../config";
+
+export interface BucketConfig {
+  name: string;
+  location?: string;
+}
+
+export function createBucket(config: BucketConfig) {
+  return new cloudflare.R2Bucket(config.name, {
+    accountId: cloudflareAccountId,
+    name: config.name,
+    location: config.location ?? "ENAM",
+  });
+}
+```
+
+**`shared/factories/sentry.ts`**:
+```typescript
+import * as sentry from "@pulumiverse/sentry";
+
+export interface SentryProjectConfig {
+  name: string;           // 프로젝트 이름
+  organization: string;   // Sentry org slug
+  team: string;           // Sentry team slug
+  platform?: string;      // e.g. "node", "python", "react-native"
+}
+
+export function createSentryProject(config: SentryProjectConfig) {
+  const project = new sentry.SentryProject(config.name, {
+    organization: config.organization,
+    teams: [config.team],
+    name: config.name,
+    slug: config.name,
+    platform: config.platform ?? "node",
+  });
+
+  const key = new sentry.SentryKey(`${config.name}-key`, {
+    organization: config.organization,
+    project: project.slug,
+    name: "Default",
+  });
+
+  return { project, key, dsn: key.dsnPublic };
+}
+```
+
+**`shared/factories/vercel.ts`**:
+```typescript
+import * as vercel from "@pulumiverse/vercel";
+
+export interface VercelProjectConfig {
+  name: string;
+  framework?: string;     // e.g. "nextjs", "vite"
+  gitRepository?: {
+    type: string;          // "github"
+    repo: string;          // "zzoohub/app-b"
+  };
+  environmentVariables?: {
+    key: string;
+    value: string;
+    targets: string[];     // ["production", "preview", "development"]
+  }[];
+}
+
+export function createVercelProject(config: VercelProjectConfig) {
+  return new vercel.Project(config.name, {
+    name: config.name,
+    framework: config.framework,
+    gitRepository: config.gitRepository,
+    environments: config.environmentVariables?.map(env => ({
+      key: env.key,
+      value: env.value,
+      targets: env.targets,
+    })),
+  });
+}
+```
+
+**`shared/factories/posthog.ts`**:
+```typescript
+import * as posthog from "pulumi-posthog";
+
+export interface PosthogFeatureFlagConfig {
+  name: string;
+  key: string;
+  rolloutPercentage?: number;
+  active?: boolean;
+}
+
+export function createFeatureFlag(config: PosthogFeatureFlagConfig) {
+  return new posthog.FeatureFlag(config.name, {
+    key: config.key,
+    name: config.name,
+    active: config.active ?? false,
+    filters: JSON.stringify({
+      groups: [{
+        rollout_percentage: config.rolloutPercentage ?? 0,
+      }],
+    }),
+  });
+}
+```
+
+### 서비스 예시: mealio
+
+**`services/mealio/neon.ts`**:
+```typescript
+import { createDatabase } from "../../shared/factories/database";
+
+export function createMealioDB(projectId: string, branchId: string) {
+  return createDatabase({ name: "mealio", projectId, branchId });
+}
+```
+
+**`services/mealio/cloudflare.ts`**:
+```typescript
+import { createBucket } from "../../shared/factories/bucket";
+
+export function createMealioBucket() {
+  return createBucket({ name: "mealio-uploads" });
+}
+```
+
+**`services/mealio/sentry.ts`**:
+```typescript
+import { createSentryProject } from "../../shared/factories/sentry";
+
+export function createMealioSentry() {
+  return createSentryProject({
+    name: "mealio-api",
+    organization: "zzoo-org",
+    team: "zzoo",
+    platform: "node",
+  });
+}
+```
+
+**`services/mealio/cloud-run.ts`**:
 ```typescript
 import * as pulumi from "@pulumi/pulumi";
-import { createService } from "./cloud-run";
+import { createCloudRun } from "../../shared/factories/cloud-run";
 
 const config = new pulumi.Config("mealio");
 
-export function createMealio() {
-  return createService({
+export function createMealioService(sentryDsn?: pulumi.Output<string>) {
+  return createCloudRun({
     name: "mealio-api",
+    protect: true,
     envs: [
       { name: "APPLE_TEAM_ID", value: "6VMN7W3K93" },
       { name: "APPLE_BUNDLE_ID", value: "com.zzoo.mealio" },
@@ -210,37 +445,66 @@ export function createMealio() {
       { name: "R2_ACCOUNT_ID", value: config.requireSecret("r2-account-id") },
       { name: "R2_ACCESS_KEY_ID", value: config.requireSecret("r2-access-key-id") },
       { name: "R2_SECRET_ACCESS_KEY", value: config.requireSecret("r2-secret-access-key") },
-      { name: "SENTRY_DSN", value: config.requireSecret("sentry-dsn") },
+      { name: "SENTRY_DSN", value: sentryDsn ?? config.requireSecret("sentry-dsn") },
       { name: "GEMINI_API_KEY", value: config.requireSecret("gemini-api-key") },
     ],
   });
 }
 ```
 
-**`index.ts`** — 엔트리포인트:
+**`services/mealio/index.ts`**:
+```typescript
+import { createMealioDB } from "./neon";
+import { createMealioBucket } from "./cloudflare";
+import { createMealioSentry } from "./sentry";
+import { createMealioService } from "./cloud-run";
+
+export function createMealio(neonProjectId: string, neonBranchId: string) {
+  const db = createMealioDB(neonProjectId, neonBranchId);
+  const bucket = createMealioBucket();
+  const sentry = createMealioSentry();
+  const service = createMealioService(sentry.dsn);
+
+  return { db, bucket, sentry, service };
+}
+```
+
+### 엔트리포인트
+
+**`index.ts`**:
 ```typescript
 import { createIam } from "./shared/iam";
 import { createRegistry } from "./shared/registry";
+import { createNeonProject } from "./shared/neon";
 import { createMealio } from "./services/mealio";
-// import { createAppB } from "./services/app-b";  ← 새 서비스 추가 시
+// import { createAppB } from "./services/app-b";
 
+// 공용 리소스
 createIam();
 createRegistry();
+const neon = createNeonProject();
 
-const mealio = createMealio();
-// const appB = createAppB();
+// 서비스
+const mealio = createMealio(neon.id, neon.defaultBranchId);
+// const appB = createAppB(neon.id, neon.defaultBranchId);
 
-export const mealioApiUrl = mealio.uri;
+// Outputs
+export const mealioApiUrl = mealio.service.uri;
 ```
 
-### 새 서비스 추가 시
+### 서비스 라이프사이클
 
-1. `services/app-b.ts` 파일 생성 (mealio.ts 복사 후 수정)
+**추가:**
+1. `services/new-app/` 폴더 생성 (필요한 파일만)
 2. `index.ts`에 import + 호출 추가
-3. `pulumi config set --secret app-b:database-url <값>`
+3. `pulumi config set --secret new-app:database-url <값>` (필요시)
 4. `pulumi up`
 
-끝.
+**삭제:**
+1. `index.ts`에서 import/호출 제거
+2. `services/old-app/` 폴더 삭제
+3. `pulumi up` → Cloud Run + DB + R2 + Sentry + Vercel + PostHog 전부 자동 삭제
+   - `protect: true`인 경우 먼저 `pulumi state unprotect <urn>`
 
 ---
 
@@ -249,19 +513,14 @@ export const mealioApiUrl = mealio.uri;
 ### Phase 1: zzooapp-infra repo 생성
 
 ```bash
-# repo 생성
 gh repo create zzoohub/zzooapp-infra --private
 
-# 로컬 클론
 git clone git@github.com:zzoohub/zzooapp-infra.git
 cd zzooapp-infra
 
-# Pulumi 초기화
 pulumi new typescript --name zzooapp-infra --yes
-bun install @pulumi/gcp
+bun add @pulumi/gcp @pulumi/cloudflare @pulumi/neon @pulumiverse/vercel @pulumiverse/sentry pulumi-posthog
 ```
-
-위 설계의 코드를 작성.
 
 `Pulumi.yaml`:
 ```yaml
@@ -270,8 +529,10 @@ runtime:
   name: nodejs
   options:
     packagemanager: bun
-description: GCP infrastructure for zzooapp services
+description: Infrastructure for zzooapp services
 ```
+
+위 설계의 코드 작성.
 
 ### Phase 2: 새 GCP 프로젝트 세팅
 
@@ -320,11 +581,27 @@ gcloud iam service-accounts keys create \
 ```bash
 cd zzooapp-infra
 
-# GCP 설정
+# GCP
 pulumi config set gcp:project zzooapp
 pulumi config set gcp:region us-east4
 
-# mealio secrets (기존 값 복사)
+# Cloudflare
+pulumi config set cloudflare:accountId <값>
+pulumi config set --secret cloudflare:apiToken <값>
+
+# Neon
+pulumi config set --secret neon:apiKey <값>
+
+# Sentry
+pulumi config set --secret sentry:token <값>
+
+# Vercel
+pulumi config set --secret vercel:apiToken <값>
+
+# PostHog
+pulumi config set --secret posthog:apiKey <값>
+
+# mealio secrets
 pulumi config set mealio:r2-public-url <값>
 pulumi config set --secret mealio:database-url <값>
 pulumi config set --secret mealio:jwt-secret <값>
@@ -332,7 +609,6 @@ pulumi config set --secret mealio:google-client-id <새 Web Client ID>
 pulumi config set --secret mealio:r2-account-id <값>
 pulumi config set --secret mealio:r2-access-key-id <값>
 pulumi config set --secret mealio:r2-secret-access-key <값>
-pulumi config set --secret mealio:sentry-dsn <값>
 pulumi config set --secret mealio:gemini-api-key <값>
 
 pulumi up
@@ -401,9 +677,7 @@ eas submit --platform all --profile production
 
 스토어 배포 후 Google 로그인, 사진 업로드, AI 분석 전체 테스트.
 
-### Phase 8: mealio/infra 제거 + 기존 프로젝트 정리
-
-스토어 배포 반영 + 1~2주 뒤.
+### Phase 8: 기존 정리 (1~2주 뒤)
 
 #### mealio repo에서 infra 제거
 
@@ -446,7 +720,7 @@ gcloud projects delete play-store-api
 | `.github/workflows/api.yml` | IMAGE 경로 + `--project zzooapp` | 6 |
 | `infra/` | 삭제 | 8 |
 
-**변경 불필요**: `eas.json`, 번들 ID, Neon, R2, Sentry, PostHog, Cloudflare
+**변경 불필요**: `eas.json`, 번들 ID(`com.zzoo.mealio`), Cloudflare DNS
 
 ---
 
