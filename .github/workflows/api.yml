@@ -56,6 +56,8 @@ jobs:
           service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: zzooapp
 
       - name: Authorize Docker
         run: gcloud auth configure-docker us-east4-docker.pkg.dev --quiet
