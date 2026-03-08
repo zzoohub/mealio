@@ -9,7 +9,7 @@ on:
     paths: ['api/**']
 
 env:
-  IMAGE: us-east4-docker.pkg.dev/mealio-483914/services/api
+  IMAGE: us-east4-docker.pkg.dev/zzooapp/services/mealio-api
 
 jobs:
   test:
@@ -71,4 +71,5 @@ jobs:
         run: |
           gcloud run deploy mealio-api \
             --image ${{ env.IMAGE }}:${GITHUB_SHA::7} \
-            --region us-east4
+            --region us-east4 \
+            --project zzooapp
