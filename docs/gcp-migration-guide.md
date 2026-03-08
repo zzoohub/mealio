@@ -411,12 +411,13 @@ export function createMealioBucket() {
 **`services/mealio/sentry.ts`**:
 ```typescript
 import { createSentryProject } from "../../shared/factories/sentry";
+import { sharedSecrets } from "../../shared/config";
 
 export function createMealioSentry() {
   return createSentryProject({
     name: "mealio-api",
-    organization: "zzoo-org",
-    team: "zzoo",
+    organization: sharedSecrets.sentryOrg,    // ← shared에서
+    team: sharedSecrets.sentryTeam,           // ← shared에서
     platform: "node",
   });
 }
@@ -426,6 +427,7 @@ export function createMealioSentry() {
 ```typescript
 import * as pulumi from "@pulumi/pulumi";
 import { createCloudRun } from "../../shared/factories/cloud-run";
+import { sharedSecrets } from "../../shared/config";
 
 const config = new pulumi.Config("mealio");
 
@@ -434,6 +436,7 @@ export function createMealioService(sentryDsn?: pulumi.Output<string>) {
     name: "mealio-api",
     protect: true,
     envs: [
+      // 서비스 고유
       { name: "APPLE_TEAM_ID", value: "6VMN7W3K93" },
       { name: "APPLE_BUNDLE_ID", value: "com.zzoo.mealio" },
       { name: "R2_BUCKET_NAME", value: "mealio-uploads" },
@@ -442,11 +445,13 @@ export function createMealioService(sentryDsn?: pulumi.Output<string>) {
       { name: "DATABASE_URL", value: config.requireSecret("database-url") },
       { name: "JWT_SECRET", value: config.requireSecret("jwt-secret") },
       { name: "GOOGLE_CLIENT_ID", value: config.requireSecret("google-client-id") },
-      { name: "R2_ACCOUNT_ID", value: config.requireSecret("r2-account-id") },
-      { name: "R2_ACCESS_KEY_ID", value: config.requireSecret("r2-access-key-id") },
-      { name: "R2_SECRET_ACCESS_KEY", value: config.requireSecret("r2-secret-access-key") },
-      { name: "SENTRY_DSN", value: sentryDsn ?? config.requireSecret("sentry-dsn") },
       { name: "GEMINI_API_KEY", value: config.requireSecret("gemini-api-key") },
+      // 공용 시크릿 (shared에서)
+      { name: "R2_ACCOUNT_ID", value: sharedSecrets.r2AccountId },
+      { name: "R2_ACCESS_KEY_ID", value: sharedSecrets.r2AccessKeyId },
+      { name: "R2_SECRET_ACCESS_KEY", value: sharedSecrets.r2SecretAccessKey },
+      // Sentry DSN (Pulumi가 자동 생성)
+      { name: "SENTRY_DSN", value: sentryDsn ?? config.requireSecret("sentry-dsn") },
     ],
   });
 }
@@ -581,38 +586,34 @@ gcloud iam service-accounts keys create \
 ```bash
 cd zzooapp-infra
 
-# GCP
+# ── Provider 설정 ──
 pulumi config set gcp:project zzooapp
 pulumi config set gcp:region us-east4
-
-# Cloudflare
 pulumi config set cloudflare:accountId <값>
 pulumi config set --secret cloudflare:apiToken <값>
-
-# Neon
 pulumi config set --secret neon:apiKey <값>
-
-# Sentry
 pulumi config set --secret sentry:token <값>
-
-# Vercel
 pulumi config set --secret vercel:apiToken <값>
-
-# PostHog
 pulumi config set --secret posthog:apiKey <값>
 
-# mealio secrets
+# ── 공용 시크릿 (shared) ── 1번만 설정, 전 서비스 공유
+pulumi config set --secret shared:r2-account-id <값>
+pulumi config set --secret shared:r2-access-key-id <값>
+pulumi config set --secret shared:r2-secret-access-key <값>
+pulumi config set shared:sentry-org zzoo-org
+pulumi config set shared:sentry-team zzoo
+
+# ── mealio 전용 시크릿 ──
 pulumi config set mealio:r2-public-url <값>
 pulumi config set --secret mealio:database-url <값>
 pulumi config set --secret mealio:jwt-secret <값>
 pulumi config set --secret mealio:google-client-id <새 Web Client ID>
-pulumi config set --secret mealio:r2-account-id <값>
-pulumi config set --secret mealio:r2-access-key-id <값>
-pulumi config set --secret mealio:r2-secret-access-key <값>
 pulumi config set --secret mealio:gemini-api-key <값>
 
 pulumi up
 ```
+
+> 새 서비스 추가 시 공용 시크릿은 이미 설정되어 있으므로 서비스 전용 시크릿만 추가하면 됨.
 
 확인:
 ```bash
