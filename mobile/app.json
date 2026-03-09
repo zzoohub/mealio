@@ -101,7 +101,6 @@
           "apiKey": "GOOGLE_MAP_API_KEY"
         }
       ],
-      "./plugins/withJitpackFix",
       "expo-font",
       "expo-image",
       "expo-localization",
