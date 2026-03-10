@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import type { Entry, EntryFilter } from "./types";
 import type { NutritionInfo } from "@/entities/meal";
 import { storage } from "@/shared/lib/storage";
+import { captureError } from "@/shared/lib/sentry";
 import { GUEST_LIMITS, ERROR_MESSAGES } from "@/shared/config";
 import { useGuestEntryStore } from "./guestEntryStore";
 
@@ -77,7 +78,7 @@ export const entryStorageUtils = {
       if (error instanceof GuestEntryLimitError) {
         throw error;
       }
-      console.error("Error saving entry:", error);
+      captureError(error, { tags: { feature: "entry-storage", action: "save_entry" } });
       throw new Error("Failed to save entry");
     }
   },
@@ -112,7 +113,7 @@ export const entryStorageUtils = {
 
       return updatedEntry;
     } catch (error) {
-      console.error("Error updating entry:", error);
+      captureError(error, { tags: { feature: "entry-storage", action: "update_entry" } });
       throw new Error("Failed to update entry");
     }
   },
@@ -122,7 +123,7 @@ export const entryStorageUtils = {
       const entries = await entryStorageUtils.getAllEntries();
       return entries.find((e) => e.id === entryId) || null;
     } catch (error) {
-      console.error("Error getting entry:", error);
+      captureError(error, { tags: { feature: "entry-storage", action: "get_entry" } });
       return null;
     }
   },
@@ -138,7 +139,7 @@ export const entryStorageUtils = {
         updatedAt: new Date(entry.updatedAt),
       }));
     } catch (error) {
-      console.error("Error getting entries:", error);
+      captureError(error, { tags: { feature: "entry-storage", action: "get_entries" } });
       return [];
     }
   },
@@ -184,7 +185,7 @@ export const entryStorageUtils = {
 
       return entries;
     } catch (error) {
-      console.error("Error filtering entries:", error);
+      captureError(error, { tags: { feature: "entry-storage", action: "filter_entries" } });
       return [];
     }
   },
@@ -196,7 +197,7 @@ export const entryStorageUtils = {
         .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
         .slice(0, limit);
     } catch (error) {
-      console.error("Error getting recent entries:", error);
+      captureError(error, { tags: { feature: "entry-storage", action: "get_recent_entries" } });
       return [];
     }
   },
@@ -233,7 +234,7 @@ export const entryStorageUtils = {
       await storage.set(ENTRIES_STORAGE_KEY, filteredEntries);
       useGuestEntryStore.getState().bump();
     } catch (error) {
-      console.error("Error deleting entry:", error);
+      captureError(error, { tags: { feature: "entry-storage", action: "delete_entry" } });
       throw new Error("Failed to delete entry");
     }
   },
@@ -243,7 +244,7 @@ export const entryStorageUtils = {
       await storage.remove(ENTRIES_STORAGE_KEY);
       useGuestEntryStore.getState().bump();
     } catch (error) {
-      console.error("Error clearing entries:", error);
+      captureError(error, { tags: { feature: "entry-storage", action: "clear_entries" } });
       throw new Error("Failed to clear entries");
     }
   },
@@ -289,7 +290,7 @@ export const entryStorageUtils = {
         totalNutrition,
       };
     } catch (error) {
-      console.error("Error getting nutrition stats:", error);
+      captureError(error, { tags: { feature: "entry-storage", action: "get_nutrition_stats" } });
       return {
         totalEntries: 0,
         averageCalories: 0,

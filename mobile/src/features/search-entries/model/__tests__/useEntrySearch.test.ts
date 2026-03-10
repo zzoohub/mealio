@@ -44,6 +44,11 @@ jest.mock("@/shared/lib/i18n", () => ({
     stat: jest.fn((key) => key),
   })),
 }));
+const mockCaptureError = jest.fn();
+jest.mock("@/shared/lib/sentry", () => ({
+  captureError: (...args: unknown[]) => mockCaptureError(...args),
+  Sentry: { wrap: jest.fn((c: unknown) => c) },
+}));
 const i18nTranslations: Record<string, string> = {
   "diary:allTime": "All time",
   "diary:dateRangeFrom": "From {{date}}",
@@ -457,8 +462,6 @@ describe("useEntrySearch", () => {
         .mockResolvedValueOnce(mockApiResponse([createMockApiEntry()], 1, 2))
         .mockRejectedValueOnce(new Error("Load more failed"));
 
-      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-
       const { result } = renderHook(() => useEntrySearch());
 
       await waitFor(() => {
@@ -469,16 +472,11 @@ describe("useEntrySearch", () => {
         await result.current.loadMore();
       });
 
-      // Should log error
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Error loading more entries:",
-        expect.any(Error)
-      );
+      // Should capture error
+      expect(mockCaptureError).toHaveBeenCalledWith(expect.any(Error), expect.objectContaining({ tags: expect.objectContaining({ feature: "search-entries" }) }));
 
       // Should not be loading anymore
       expect(result.current.isLoadingMore).toBe(false);
-
-      consoleSpy.mockRestore();
     });
   });
 
@@ -876,8 +874,6 @@ describe("useEntrySearch", () => {
       const fallbackSections = [{ title: "Fallback", data: mockEntries }];
       entrySortingUtils.sortEntries.mockResolvedValueOnce(fallbackSections);
 
-      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-
       const { result } = renderHook(() => useEntrySearch());
 
       await waitFor(() => {
@@ -888,13 +884,8 @@ describe("useEntrySearch", () => {
         expect(result.current.isSorting).toBe(false);
       });
 
-      // Should have logged error
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Error sorting entries:",
-        expect.any(Error)
-      );
-
-      consoleSpy.mockRestore();
+      // Should have captured error
+      expect(mockCaptureError).toHaveBeenCalledWith(expect.any(Error), expect.objectContaining({ tags: expect.objectContaining({ feature: "search-entries" }) }));
     });
   });
 

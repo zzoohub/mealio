@@ -2,6 +2,7 @@ import i18n, { InitOptions, Resource } from "i18next";
 import { initReactI18next } from "react-i18next";
 import * as Localization from "expo-localization";
 import { storage } from "@/lib/storage";
+import { captureError } from "@/shared/lib/sentry";
 import type { TranslationResources } from "./types";
 
 // Dynamic imports for better code splitting
@@ -34,7 +35,7 @@ const loadTranslations = async (language: string): Promise<TranslationResources>
         };
     }
   } catch (error) {
-    console.error(`Failed to load translations for language: ${language}`, error);
+    captureError(error, { tags: { feature: "i18n", action: "load_translations" }, extra: { language } });
     throw error;
   }
 };
@@ -195,8 +196,7 @@ export const changeLanguage = async (language: SupportedLanguage) => {
     await i18n.changeLanguage(language);
     await storage.set(LANGUAGE_STORAGE_KEY, language);
   } catch (error) {
-    console.error("Failed to change language:", error);
-    console.error("Error details:", error);
+    captureError(error, { tags: { feature: "i18n", action: "change_language" }, extra: { language } });
     throw error;
   }
 };

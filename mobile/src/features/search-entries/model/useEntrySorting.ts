@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { Entry, SortMethod } from "@/entities/entry";
 import { useDiaryI18n, getCurrentLanguage } from "@/shared/lib/i18n";
+import { captureError } from "@/shared/lib/sentry";
 
 export interface SortMetadata {
   key: SortMethod;
@@ -451,7 +452,7 @@ export const entrySortingUtils = {
       // Group into sections
       return entrySortingUtils.groupEntriesIntoSections(sortedEntries, sortMethod, i18n);
     } catch (error) {
-      console.error("Error sorting entries:", error);
+      captureError(error, { tags: { feature: "search-entries", action: "sort_entries" } });
 
       // Fallback to simple date-based grouping
       return entrySortingUtils.groupByDate(entries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()), i18n);

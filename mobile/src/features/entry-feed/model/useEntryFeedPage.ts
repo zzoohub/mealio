@@ -5,6 +5,7 @@ import { useIsAuthenticated } from "@/shared/lib/auth";
 import { entryStorageUtils, useEntryListQuery, useGuestEntryStore, useUploadQueueStore } from "@/entities/entry";
 import { getWeekDays, isSameDay, formatDateToString } from "@/shared/lib/utils";
 import { getCurrentLanguage } from "@/shared/lib/i18n";
+import { captureError } from "@/shared/lib/sentry";
 import { MealType } from "@/entities/meal";
 import type { ApiDiaryEntry } from "@/shared/api";
 import { useWeekThumbnailsQuery } from "./useWeekThumbnailsQuery";
@@ -153,7 +154,7 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
 
         setDateThumbnails(thumbnailMap);
       } catch (err) {
-        console.error("Error loading all entries:", err);
+        captureError(err, { tags: { feature: "entry-feed", action: "load_all_entries" } });
         setError(err instanceof Error ? err : new Error("Failed to load entries"));
       }
     };
@@ -217,7 +218,7 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
         entriesForDate.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
         setGuestEntries(entriesForDate);
       } catch (err) {
-        console.error("Error loading entries for date:", err);
+        captureError(err, { tags: { feature: "entry-feed", action: "load_entries_for_date" } });
         setGuestEntries([]);
         setError(err instanceof Error ? err : new Error("Failed to load entries for date"));
       } finally {
@@ -253,7 +254,7 @@ export function useEntryFeedPage(primaryColor: string): UseEntryFeedPageReturn {
           entriesForDate.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
           setGuestEntries(entriesForDate);
         } catch (err) {
-          console.error("Error reloading guest entries:", err);
+          captureError(err, { tags: { feature: "entry-feed", action: "reload_guest_entries" } });
         }
       };
 

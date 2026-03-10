@@ -18,4 +18,24 @@ export function initSentry() {
   });
 }
 
+/**
+ * Log an error to console (dev) and Sentry (prod).
+ * Use instead of raw `console.error` so errors are always tracked.
+ */
+export function captureError(
+  error: unknown,
+  context?: { tags?: Record<string, string>; extra?: Record<string, unknown> },
+) {
+  if (__DEV__) {
+    console.error(error);
+  }
+
+  const exception =
+    error instanceof Error ? error : new Error(String(error));
+  Sentry.captureException(exception, {
+    tags: context?.tags,
+    extra: context?.extra,
+  });
+}
+
 export { Sentry };

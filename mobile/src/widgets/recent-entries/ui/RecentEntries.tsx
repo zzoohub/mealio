@@ -27,6 +27,7 @@ import { createStyles, useStyles } from '@/shared/ui/theme';
 import { tokens } from '@/shared/ui/tokens';
 import { responsiveValue } from '@/shared/lib/utils';
 import { useDiaryI18n } from '@/shared/lib/i18n';
+import { captureError } from '@/shared/lib/sentry';
 import type { Entry } from '@/entities/entry';
 import { entryStorageUtils } from '@/entities/entry';
 
@@ -180,7 +181,7 @@ export default function RecentEntries({ onSeeAll }: RecentEntriesProps) {
       const entries = await entryStorageUtils.getRecentEntries(6);
       setRecentEntries(entries);
     } catch (error) {
-      console.error('Error loading recent entries:', error);
+      captureError(error, { tags: { feature: "recent-entries", action: "load_entries" } });
     } finally {
       setIsLoading(false);
     }

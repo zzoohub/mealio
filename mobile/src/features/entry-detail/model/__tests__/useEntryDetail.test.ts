@@ -77,6 +77,11 @@ jest.mock("@/shared/lib/i18n", () => ({
   useCommonI18n: jest.fn(),
   useErrorI18n: jest.fn(),
 }));
+const mockCaptureError = jest.fn();
+jest.mock("@/shared/lib/sentry", () => ({
+  captureError: (...args: unknown[]) => mockCaptureError(...args),
+  Sentry: { wrap: jest.fn((c: unknown) => c) },
+}));
 jest.mock("@/entities/meal", () => ({
   MealType: {
     BREAKFAST: "breakfast",
@@ -482,7 +487,6 @@ describe("useEntryDetail", () => {
 
     it("handles error when guest entry update fails", async () => {
       (useIsAuthenticated as jest.Mock).mockReturnValue(false);
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       const mockEntry = {
         id: "guest-error",
         userId: "guest",
@@ -514,9 +518,8 @@ describe("useEntryDetail", () => {
 
       // Should have attempted the update
       expect(entryStorageUtils.updateEntry).toHaveBeenCalled();
-      // Error should be logged
-      expect(consoleSpy).toHaveBeenCalledWith("Failed to update entry:", expect.any(Error));
-      consoleSpy.mockRestore();
+      // Error should be captured
+      expect(mockCaptureError).toHaveBeenCalledWith(expect.any(Error), expect.objectContaining({ tags: expect.objectContaining({ feature: "entry-detail" }) }));
     });
   });
 
@@ -1269,7 +1272,6 @@ describe("useEntryDetail", () => {
     });
 
     it("logs error to console when upload fails", async () => {
-      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
 
       (useIsAuthenticated as jest.Mock).mockReturnValue(true);
       (useEntryDetailQuery as jest.Mock).mockReturnValue({
@@ -1301,9 +1303,7 @@ describe("useEntryDetail", () => {
         await result.current.addPhotos();
       });
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to add photos:", uploadError);
-
-      consoleErrorSpy.mockRestore();
+      expect(mockCaptureError).toHaveBeenCalledWith(uploadError, expect.objectContaining({ tags: expect.objectContaining({ feature: "entry-detail" }) }));
     });
   });
 
@@ -1745,9 +1745,7 @@ describe("useEntryDetail", () => {
 
       expect(result.current.entry).toBeNull();
       expect(result.current.error).toEqual(storageError);
-      expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to load entry:", storageError);
-
-      consoleErrorSpy.mockRestore();
+      expect(mockCaptureError).toHaveBeenCalledWith(storageError, expect.objectContaining({ tags: expect.objectContaining({ feature: "entry-detail" }) }));
     });
 
     it("handles non-Error exception", async () => {

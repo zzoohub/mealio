@@ -82,6 +82,12 @@ jest.mock("../../api/aiAnalysisApi", () => ({
   },
 }));
 
+const mockCaptureError = jest.fn();
+jest.mock("@/shared/lib/sentry", () => ({
+  captureError: (...args: unknown[]) => mockCaptureError(...args),
+  Sentry: { wrap: jest.fn((c: unknown) => c) },
+}));
+
 const mockUploadPhoto = uploadPhoto as jest.MockedFunction<typeof uploadPhoto>;
 const mockMapEntryToCreateRequest = mapEntryToCreateRequest as jest.MockedFunction<
   typeof mapEntryToCreateRequest
@@ -768,8 +774,7 @@ describe("useUploadProcessor", () => {
       });
     });
 
-    it("logs error to console on failure", async () => {
-      const consoleErrorSpy = jest.spyOn(console, "error");
+    it("captures error on failure", async () => {
       mockUploadPhoto.mockRejectedValue(new Error("Upload failed"));
 
       const { enqueue } = useUploadQueueStore.getState();
@@ -778,13 +783,12 @@ describe("useUploadProcessor", () => {
         wrapper: createWrapper(queryClient),
       });
 
-      const tempId = enqueue(mockEntry, mockPhotoUris);
+      enqueue(mockEntry, mockPhotoUris);
 
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          "Upload failed for",
-          tempId,
-          "Upload failed"
+        expect(mockCaptureError).toHaveBeenCalledWith(
+          expect.any(Error),
+          expect.objectContaining({ tags: expect.objectContaining({ feature: "upload-processor" }) })
         );
       });
     });
