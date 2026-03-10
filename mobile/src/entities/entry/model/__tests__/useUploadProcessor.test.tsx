@@ -50,7 +50,10 @@ import { mapEntryToCreateRequest } from "@/shared/api";
 import { entryApi } from "../../api/entryApi";
 import { photoApi } from "../../api/photoApi";
 import { aiAnalysisApi } from "../../api/aiAnalysisApi";
+import { track } from "@/shared/lib/analytics";
 import type { ReactNode } from "react";
+
+const mockTrack = track as jest.Mock;
 
 // =============================================================================
 // MOCKS
@@ -396,6 +399,12 @@ describe("useUploadProcessor", () => {
       await waitFor(() => {
         expect(useUploadQueueStore.getState().queue.has(tempId)).toBe(false);
       });
+
+      // Analytics: track upload_completed
+      expect(mockTrack).toHaveBeenCalledWith("upload_completed", expect.objectContaining({
+        entry_id: 123,
+        photo_count: 2,
+      }));
     });
 
     it("processes items sequentially, not in parallel", async () => {
@@ -558,6 +567,11 @@ describe("useUploadProcessor", () => {
         const item = useUploadQueueStore.getState().queue.get(tempId);
         expect(item?.status).toBe("failed");
       });
+
+      // Analytics: track upload_failed
+      expect(mockTrack).toHaveBeenCalledWith("upload_failed", expect.objectContaining({
+        error_type: "Upload failed",
+      }));
     });
 
     it("marks item as failed when entry creation fails", async () => {

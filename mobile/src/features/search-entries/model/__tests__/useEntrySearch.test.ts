@@ -93,7 +93,9 @@ import type { ApiDiaryEntry } from "@/shared/api";
 import type { Entry } from "@/entities/entry";
 import { MealType } from "@/entities/meal";
 import { useDiaryI18n } from "@/shared/lib/i18n";
+import { track } from "@/shared/lib/analytics";
 
+const mockTrack = track as jest.Mock;
 const mockUseIsAuthenticated = useIsAuthenticated as jest.Mock;
 const mockGetEntriesFiltered = entryStorageUtils.getEntriesFiltered as jest.Mock;
 const mockEntryApiList = entryApi.list as jest.Mock;
@@ -203,6 +205,13 @@ describe("useEntrySearch", () => {
         expect(mockGetEntriesFiltered).toHaveBeenCalledWith({
           searchQuery: "pizza",
         });
+      });
+
+      // Analytics: track search_performed
+      await waitFor(() => {
+        expect(mockTrack).toHaveBeenCalledWith("search_performed", expect.objectContaining({
+          query_length: 5,
+        }));
       });
     });
 
@@ -321,6 +330,13 @@ describe("useEntrySearch", () => {
             q: "burger",
           })
         );
+      });
+
+      // Analytics: track search_performed
+      await waitFor(() => {
+        expect(mockTrack).toHaveBeenCalledWith("search_performed", expect.objectContaining({
+          query_length: 6,
+        }));
       });
     });
 

@@ -87,12 +87,17 @@ export const useAuthStore = create<AuthStore>()(
           is_new_user: response.is_new_user ?? false,
         });
 
-        // Analytics: guest conversion
+        // Analytics: guest conversion (only if guest actually had entries)
         if (wasGuest) {
-          aliasUser(String(response.user.id));
-          track("guest_converted", {
-            auth_provider: credential.providerId,
-          });
+          const guestEntries = storage.get<unknown[]>("@diary_entries");
+          const guestEntryCount = guestEntries?.length ?? 0;
+          if (guestEntryCount > 0) {
+            aliasUser(String(response.user.id));
+            track("guest_converted", {
+              auth_provider: credential.providerId,
+              guest_entry_count: guestEntryCount,
+            });
+          }
         }
       } catch (error) {
         const message =

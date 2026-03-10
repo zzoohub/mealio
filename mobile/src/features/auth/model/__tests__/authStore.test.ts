@@ -33,7 +33,13 @@ import { useAuthStore } from '../authStore';
 import { apiClient, useTokenStore, mapApiUserInfoToUser } from '@/shared/api';
 import { storage } from '@/shared/lib/storage';
 import { queryClient } from '@/shared/lib/query';
+import { track, identifyUser, aliasUser, resetUser } from '@/shared/lib/analytics';
 import type { AuthCredential } from '@/entities/user';
+
+const mockTrack = track as jest.Mock;
+const mockIdentifyUser = identifyUser as jest.Mock;
+const mockAliasUser = aliasUser as jest.Mock;
+const mockResetUser = resetUser as jest.Mock;
 
 const mockApiPost = apiClient.post as jest.Mock;
 const mockMapUser = mapApiUserInfoToUser as jest.Mock;
@@ -99,6 +105,13 @@ describe('authStore', () => {
       expect(state.user).toEqual(mockUser);
       expect(state.isLoading).toBe(false);
       expect(state.error).toBeNull();
+
+      // Analytics assertions
+      expect(mockIdentifyUser).toHaveBeenCalledWith('1', { auth_provider: 'google' });
+      expect(mockTrack).toHaveBeenCalledWith('signup_completed', {
+        auth_provider: 'google',
+        is_new_user: false,
+      });
     });
 
     it('sets loading state during login', async () => {
@@ -125,6 +138,33 @@ describe('authStore', () => {
       expect(state.isLoading).toBe(false);
       expect(state.user).toBeNull();
     });
+
+    it('does not fire guest_converted for fresh first login without guest entries', async () => {
+      mockApiPost.mockResolvedValueOnce(mockApiResponse);
+      mockMapUser.mockReturnValueOnce(mockUser);
+
+      await useAuthStore.getState().login(mockCredential);
+
+      expect(mockAliasUser).not.toHaveBeenCalled();
+      expect(mockTrack).not.toHaveBeenCalledWith('guest_converted', expect.anything());
+    });
+
+    it('fires guest_converted when guest entries exist in MMKV', async () => {
+      (storage.get as jest.Mock).mockImplementation((key: string) => {
+        if (key === '@diary_entries') return [{ id: '1' }, { id: '2' }];
+        return undefined;
+      });
+      mockApiPost.mockResolvedValueOnce(mockApiResponse);
+      mockMapUser.mockReturnValueOnce(mockUser);
+
+      await useAuthStore.getState().login(mockCredential);
+
+      expect(mockAliasUser).toHaveBeenCalledWith('1');
+      expect(mockTrack).toHaveBeenCalledWith('guest_converted', {
+        auth_provider: 'google',
+        guest_entry_count: 2,
+      });
+    });
   });
 
   // ===========================================================================
@@ -143,6 +183,10 @@ describe('authStore', () => {
       expect(mockClearTokens).toHaveBeenCalled();
       expect(storage.remove).toHaveBeenCalled();
       expect(queryClient.clear).toHaveBeenCalled();
+
+      // Analytics assertions
+      expect(mockTrack).toHaveBeenCalledWith('logout_completed');
+      expect(mockResetUser).toHaveBeenCalled();
     });
 
     it('still logs out locally when revoke fails', async () => {

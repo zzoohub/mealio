@@ -50,7 +50,10 @@ jest.mock("@/entities/meal", () => ({
 }));
 jest.mock("@/entities/entry", () => ({}));
 
+import { track } from "@/shared/lib/analytics";
 import { detectMealType } from "../useCamera";
+
+const mockTrack = track as jest.Mock;
 
 // =============================================================================
 // detectMealType — tests the time-based meal type detection logic
@@ -248,6 +251,11 @@ describe("useCamera hook", () => {
 
       expect(result.current.capturedPhotos).toEqual([]);
       expect(result.current.hasPhotos).toBe(false);
+
+      // Analytics: track meal_capture_started on mount
+      expect(mockTrack).toHaveBeenCalledWith("meal_capture_started", expect.objectContaining({
+        source: "camera",
+      }));
     });
 
     it("initializes capturedPhotos state with initialPhotos when provided", () => {
@@ -482,6 +490,11 @@ describe("useCamera hook", () => {
         }),
         initialPhotos
       );
+
+      // Analytics: track meal_saved
+      expect(mockTrack).toHaveBeenCalledWith("meal_saved", expect.objectContaining({
+        photo_count: 2,
+      }));
     });
 
     it("saves entry with all captured photos in photoUris field", async () => {
@@ -795,6 +808,9 @@ describe("useCamera hook", () => {
       // Should not attempt to capture photo
       expect(result.current.capturedPhotos).toEqual([]);
       expect(result.current.isCapturing).toBe(false);
+
+      // Analytics: track guest_limit_reached
+      expect(mockTrack).toHaveBeenCalledWith("guest_limit_reached", { entry_count: 10 });
     });
 
     it("pickFromGallery shows warning toast and returns early when isAtGuestLimit is true", async () => {
@@ -905,6 +921,12 @@ describe("useCamera hook", () => {
       expect(Haptics.notificationAsync).toHaveBeenCalledWith(
         Haptics.NotificationFeedbackType.Success
       );
+
+      // Analytics: track photo_captured
+      expect(mockTrack).toHaveBeenCalledWith("photo_captured", {
+        source: "camera",
+        photo_count: 1,
+      });
 
       // Should NOT show guest limit toast
       expect(mockToast).not.toHaveBeenCalledWith(

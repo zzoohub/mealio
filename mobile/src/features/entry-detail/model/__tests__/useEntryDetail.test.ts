@@ -113,6 +113,9 @@ import { useIsAuthenticated } from "@/shared/lib/auth";
 import { useDiaryI18n, useCommonI18n, useErrorI18n } from "@/shared/lib/i18n";
 import { MealType } from "@/entities/meal";
 import { CAMERA_SETTINGS, queryKeys } from "@/shared/config";
+import { track } from "@/shared/lib/analytics";
+
+const mockTrack = track as jest.Mock;
 
 // Get mock references
 const { mapEntryToUpdateRequest, mapNutritionInfoToUpsertRequest, uploadPhoto } = jest.requireMock("@/shared/api");
@@ -1127,6 +1130,13 @@ describe("useEntryDetail", () => {
         is_primary: false,
         sort_order: 4,
       });
+
+      // Analytics: track photos_added_to_entry
+      expect(mockTrack).toHaveBeenCalledWith("photos_added_to_entry", {
+        entry_id: "123",
+        new_photo_count: 3,
+        total_photo_count: 5,
+      });
     });
 
     it("invalidates queries after successful upload", async () => {
@@ -1359,6 +1369,9 @@ describe("useEntryDetail", () => {
         url: "https://mealio.zzooapp.com/diary/123",
         message: "Check out this meal!",
       });
+
+      // Analytics: track entry_shared
+      expect(mockTrack).toHaveBeenCalledWith("entry_shared", { entry_id: "123" });
     });
 
     it("shares entry URL on Android with message and URL concatenated", async () => {
@@ -1574,6 +1587,9 @@ describe("useEntryDetail", () => {
 
       expect(mockDeleteMutation.mutateAsync).toHaveBeenCalledWith(123);
       expect(mockRouter.back).toHaveBeenCalled();
+
+      // Analytics: track entry_deleted
+      expect(mockTrack).toHaveBeenCalledWith("entry_deleted", { entry_id: "123" });
     });
 
     it("deletes guest entry and navigates back on confirmation", async () => {
