@@ -13,7 +13,8 @@ import { queryClient } from "./query";
 import { preloadCriticalModules, markPerformance, measurePerformance } from "@/shared/lib/performance";
 import { ThemeProvider, type ThemePreference } from "@/shared/ui/theme";
 import { useUploadProcessor } from "@/entities/entry";
-import { Sentry } from "@/shared/lib/sentry";
+import { captureError } from "@/shared/lib/sentry";
+import { initAnalytics, track, getDaysSinceFirstOpen, flushAnalytics } from "@/shared/lib/analytics";
 
 function AppInitializer() {
   const loadUserFromStorage = useAuthStore(state => state.loadUserFromStorage);
@@ -24,6 +25,9 @@ function AppInitializer() {
     // Track app initialization performance
     markPerformance("app-init");
 
+    // Initialize analytics before anything else
+    initAnalytics();
+
     // Initialize user data and settings from storage on app start
     Promise.all([loadUserFromStorage(), loadSettings()])
       .then(() => {
@@ -31,10 +35,15 @@ function AppInitializer() {
         if (__DEV__ && initTime && initTime > 1000) {
           console.warn(`Slow app initialization: ${initTime.toFixed(2)}ms`);
         }
+
+        // Track app opened after initialization completes
+        track("app_opened", {
+          days_since_first_open: getDaysSinceFirstOpen(),
+        });
       })
       .catch(error => {
         measurePerformance("app-init");
-        console.error("Failed to initialize app data:", error);
+        captureError(error, { tags: { feature: "app", action: "initialize" } });
       });
 
     // Preload critical modules for better performance
@@ -43,8 +52,9 @@ function AppInitializer() {
     // Setup app lifecycle handlers for React Native
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === "background" || nextAppState === "inactive") {
-        // Flush pending settings saves when app goes to background
+        // Flush pending settings saves and analytics when app goes to background
         flushSettingsStorage();
+        flushAnalytics();
       }
     };
 
@@ -98,11 +108,12 @@ export default function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
-    if (__DEV__) {
-      console.error("App-level error:", error, errorInfo);
-    }
-    Sentry.captureException(error, {
-      contexts: { react: { componentStack: errorInfo.componentStack } },
+    captureError(error, {
+      tags: { feature: "app", action: "error_boundary" },
+      extra: { componentStack: errorInfo.componentStack },
+    });
+    track("error_boundary_hit", {
+      error_message: error.message,
     });
   };
 

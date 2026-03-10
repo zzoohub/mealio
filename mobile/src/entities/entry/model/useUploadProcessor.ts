@@ -8,6 +8,8 @@ import { entryApi } from "../api/entryApi";
 import { photoApi } from "../api/photoApi";
 import { queryKeys } from "@/shared/config";
 import { aiAnalysisApi } from "../api/aiAnalysisApi";
+import { captureError } from "@/shared/lib/sentry";
+import { track } from "@/shared/lib/analytics";
 
 // =============================================================================
 // TYPES
@@ -81,9 +83,16 @@ export function useUploadProcessor(options?: UseUploadProcessorOptions) {
         await queryClient.invalidateQueries({ queryKey: queryKeys.statistics.all(), refetchType: "all" });
 
         // 6. Remove from queue (diary cache already has the real entry)
+        track("upload_completed", {
+          entry_id: created.id,
+          photo_count: urls.length,
+        });
         remove(item.tempId);
       } catch (error) {
-        console.error("Upload failed for", item.tempId, error instanceof Error ? error.message : "Unknown error");
+        captureError(error, { tags: { feature: "upload-processor", action: "upload" }, extra: { tempId: item.tempId } });
+        track("upload_failed", {
+          error_type: error instanceof Error ? error.message : "unknown",
+        });
         markFailed(item.tempId);
         options?.onFailed?.(item.tempId);
       }

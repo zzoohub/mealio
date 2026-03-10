@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import * as Localization from 'expo-localization';
 import { STORAGE_KEYS } from '@/shared/config';
 import { storage } from '@/shared/lib/storage';
+import { captureError } from '@/shared/lib/sentry';
+import { track } from '@/shared/lib/analytics';
 import { settingsApi } from './settingsApi';
 import { isAuthenticated } from '@/shared/lib/auth';
 import type { SupportedLanguage } from '@/shared/lib/i18n';
@@ -69,6 +71,14 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
       set({ notifications: newSettings, error: null });
 
+      for (const [key, value] of Object.entries(updates)) {
+        track('settings_changed', {
+          setting_category: 'notifications',
+          setting_name: key,
+          new_value: String(value),
+        });
+      }
+
       try {
         await storage.set(STORAGE_KEYS.NOTIFICATION_SETTINGS, newSettings);
 
@@ -89,6 +99,14 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     updateDisplay: async (updates: Partial<DisplaySettings>) => {
       try {
         set({ isLoading: true, error: null });
+
+        for (const [key, value] of Object.entries(updates)) {
+          track('settings_changed', {
+            setting_category: 'display',
+            setting_name: key,
+            new_value: String(value),
+          });
+        }
 
         const newSettings = { ...get().display, ...updates };
 
@@ -113,6 +131,14 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     updateCamera: async (updates: Partial<CameraSettings>) => {
       try {
         set({ isLoading: true, error: null });
+
+        for (const [key, value] of Object.entries(updates)) {
+          track('settings_changed', {
+            setting_category: 'camera',
+            setting_name: key,
+            new_value: String(value),
+          });
+        }
 
         const newSettings = { ...get().camera, ...updates };
 
@@ -183,7 +209,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
           }
         }
       } catch (error) {
-        console.error('Failed to load settings from storage:', error);
+        captureError(error, { tags: { feature: "settings", action: "load_settings" } });
         set({ isLoading: false });
       }
     },

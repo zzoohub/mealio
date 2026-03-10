@@ -7,6 +7,8 @@ import type { ApiAuthResponse } from "@/shared/api";
 import type { User, AuthCredential } from "@/entities/user";
 import { queryClient } from "@/shared/lib/query";
 import { Platform } from "react-native";
+import { captureError } from "@/shared/lib/sentry";
+import { track, identifyUser, aliasUser, resetUser } from "@/shared/lib/analytics";
 
 // =============================================================================
 // TYPES
@@ -42,12 +44,15 @@ const initialState: AuthState = {
 // =============================================================================
 
 export const useAuthStore = create<AuthStore>()(
-  subscribeWithSelector((set) => ({
+  subscribeWithSelector((set, get) => ({
     ...initialState,
 
     login: async (credential: AuthCredential) => {
       try {
         set({ isLoading: true, error: null });
+
+        // Detect guest-to-auth conversion before login overwrites state
+        const wasGuest = !get().user;
 
         const deviceInfo = `${Platform.OS}/${Platform.Version}`;
 
@@ -71,10 +76,29 @@ export const useAuthStore = create<AuthStore>()(
         storage.set(STORAGE_KEYS.USER_DATA, user);
 
         set({ user, isLoading: false, error: null });
+
+        // Analytics: identify + track signup
+        identifyUser(String(response.user.id), {
+          auth_provider: credential.providerId,
+        });
+
+        track("signup_completed", {
+          auth_provider: credential.providerId,
+          is_new_user: response.is_new_user ?? false,
+        });
+
+        // Analytics: guest conversion
+        if (wasGuest) {
+          aliasUser(String(response.user.id));
+          track("guest_converted", {
+            auth_provider: credential.providerId,
+          });
+        }
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Login failed";
         set({ error: message, isLoading: false });
+        captureError(error, { tags: { auth_action: "login" } });
         throw error;
       }
     },
@@ -103,11 +127,15 @@ export const useAuthStore = create<AuthStore>()(
         // Clear all cached queries
         queryClient.clear();
 
+        track("logout_completed");
+        resetUser();
+
         set({ ...initialState });
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Logout failed";
         set({ error: message, isLoading: false });
+        captureError(error, { tags: { auth_action: "logout" } });
       }
     },
 
@@ -127,7 +155,7 @@ export const useAuthStore = create<AuthStore>()(
           set({ isLoading: false });
         }
       } catch (error) {
-        console.error("Failed to load user from storage:", error);
+        captureError(error, { tags: { auth_action: "load_user" } });
         set({ isLoading: false });
       }
     },

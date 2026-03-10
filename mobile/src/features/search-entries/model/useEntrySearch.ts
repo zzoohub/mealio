@@ -8,6 +8,8 @@ import { entryApi } from "@/entities/entry/api/entryApi";
 import { formatDateToString } from "@/shared/lib/utils";
 import { getCurrentLanguage, useDiaryI18n } from "@/shared/lib/i18n";
 import i18n from "@/shared/lib/i18n/config";
+import { captureError } from "@/shared/lib/sentry";
+import { track } from "@/shared/lib/analytics";
 import { MealType } from "@/entities/meal";
 import type { ApiDiaryEntry, ApiMealType } from "@/shared/api";
 
@@ -239,7 +241,7 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
         );
         setSortedSections(sections);
       } catch (err) {
-        console.error("Error sorting entries:", err);
+        captureError(err, { tags: { feature: "search-entries", action: "sort_entries" } });
         const fallbackSections = await entrySortingUtils.sortEntries(entries, "date-desc", sortI18n);
         setSortedSections(fallbackSections);
       } finally {
@@ -280,6 +282,14 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
           const mapped = response.data.map(apiEntryToEntry);
           setEntries(mapped);
           setHasMore(response.meta.page < response.meta.total_pages);
+
+          if (debouncedQuery) {
+            track("search_performed", {
+              query_length: debouncedQuery.length,
+              results_count: mapped.length,
+              has_filters: !!(datePeriod.startDate || params?.mealType || params?.wouldEatAgain),
+            });
+          }
         } else {
           // Guest: use local storage
           const filter: EntryFilter = {};
@@ -294,10 +304,18 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
           const paginatedEntries = loadedEntries.slice(0, ITEMS_PER_PAGE);
           setEntries(paginatedEntries);
           setHasMore(ITEMS_PER_PAGE < loadedEntries.length);
+
+          if (debouncedQuery) {
+            track("search_performed", {
+              query_length: debouncedQuery.length,
+              results_count: paginatedEntries.length,
+              has_filters: !!(datePeriod.startDate || params?.mealType || params?.wouldEatAgain),
+            });
+          }
         }
       } catch (err) {
         if (stale) return;
-        console.error("Error loading entries:", err);
+        captureError(err, { tags: { feature: "search-entries", action: "load_entries" } });
         setError(err instanceof Error ? err : new Error("Failed to load entries"));
       } finally {
         if (!stale) setIsLoading(false);
@@ -415,7 +433,7 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
       }
     } catch (err) {
       if (loadVersionRef.current !== version) return;
-      console.error("Error loading more entries:", err);
+      captureError(err, { tags: { feature: "search-entries", action: "load_more_entries" } });
     } finally {
       setIsLoadingMore(false);
     }

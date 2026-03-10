@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { CameraView, FlashMode } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
@@ -7,6 +7,8 @@ import type { SharedValue } from "react-native-reanimated";
 import { MealType } from "@/entities/meal";
 import type { Entry } from "@/entities/entry";
 import { useCameraI18n } from "@/shared/lib/i18n";
+import { captureError } from "@/shared/lib/sentry";
+import { track } from "@/shared/lib/analytics";
 import { useOverlayHelpers } from "@/app/providers/overlay";
 import { useDeviceLocation } from "@/shared/lib/location";
 
@@ -97,8 +99,21 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
   const remainingPhotos = MAX_PHOTOS - capturedPhotos.length;
   const hasPhotos = capturedPhotos.length > 0;
 
+  // Track capture screen open
+  const captureStartTracked = useRef(false);
+  useEffect(() => {
+    if (!captureStartTracked.current) {
+      captureStartTracked.current = true;
+      track("meal_capture_started", {
+        source: initialPhotos?.length ? "gallery" : "camera",
+        is_past_date: !!targetDate && targetDate.toDateString() !== new Date().toDateString(),
+      });
+    }
+  }, [initialPhotos, targetDate]);
+
   const showGuestLimitToast = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    track("guest_limit_reached", { entry_count: 10 });
     toast({
       title: t.capture.guestLimitTitle,
       message: t.capture.guestLimitMessage,
@@ -138,11 +153,15 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
       });
 
       if (photo?.uri) {
-        setCapturedPhotos((prev) => [...prev, photo.uri]);
+        setCapturedPhotos((prev) => {
+          const updated = [...prev, photo.uri];
+          track("photo_captured", { source: "camera", photo_count: updated.length });
+          return updated;
+        });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (error) {
-      console.error("Photo capture failed:", error);
+      captureError(error, { tags: { feature: "capture-meal", action: "capture_photo" } });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsCapturing(false);
@@ -168,7 +187,11 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
 
     if (!result.canceled && result.assets.length > 0) {
       const newUris = result.assets.map((asset) => asset.uri);
-      setCapturedPhotos((prev) => [...prev, ...newUris]);
+      setCapturedPhotos((prev) => {
+        const updated = [...prev, ...newUris];
+        track("photo_captured", { source: "gallery", photo_count: updated.length });
+        return updated;
+      });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   }, [isAtGuestLimit, showGuestLimitToast, remainingPhotos]);
@@ -202,6 +225,13 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
       };
 
       const entryId = await onSaveEntry(entry, capturedPhotos);
+
+      track("meal_saved", {
+        photo_count: capturedPhotos.length,
+        meal_type: detectMealType(targetDate),
+        has_location: !!location,
+      });
+
       setCapturedPhotos([]);
 
       toast({
@@ -214,7 +244,7 @@ export function useCamera(options: UseCameraOptions): UseCameraReturn {
         onPress: entryId && onNavigateToEntry ? () => onNavigateToEntry(entryId) : undefined,
       });
     } catch (error) {
-      console.error("Failed to save entry:", error);
+      captureError(error, { tags: { feature: "capture-meal", action: "save_entry" } });
       toast({
         title: t.capture.error,
         message: t.capture.errorMessage,

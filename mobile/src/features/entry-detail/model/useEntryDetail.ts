@@ -20,6 +20,8 @@ import { mapApiAiAnalysisToAIAnalysis } from "@/shared/api/mappers";
 import { mapEntryToUpdateRequest, mapNutritionInfoToUpsertRequest, uploadPhoto } from "@/shared/api";
 import { useIsAuthenticated } from "@/shared/lib/auth";
 import { useDiaryI18n, useCommonI18n, useErrorI18n } from "@/shared/lib/i18n";
+import { captureError } from "@/shared/lib/sentry";
+import { track } from "@/shared/lib/analytics";
 import { CAMERA_SETTINGS, queryKeys } from "@/shared/config";
 
 // =============================================================================
@@ -128,7 +130,7 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
         }
       } catch (err) {
         if (cancelled) return;
-        console.error("Failed to load entry:", err);
+        captureError(err, { tags: { feature: "entry-detail", action: "load_entry" } });
         setGuestError(err instanceof Error ? err : new Error("Failed to load entry"));
       } finally {
         if (!cancelled) setGuestLoading(false);
@@ -173,6 +175,34 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
   const entryRef = useRef(entry);
   entryRef.current = entry;
 
+  // Analytics: track entry_viewed once when entry loads
+  const viewTracked = useRef(false);
+  useEffect(() => {
+    if (entry && !viewTracked.current) {
+      viewTracked.current = true;
+      track("entry_viewed", {
+        entry_id: entry.id,
+        has_ai_analysis: aiAnalysisStatus === "completed",
+        has_photos: !!(entry.meal.photoUri || entry.meal.photoUris?.length),
+        meal_type: entry.meal.mealType,
+      });
+    }
+  }, [entry, aiAnalysisStatus]);
+
+  // Analytics: track AI analysis status transitions
+  const prevAiStatus = useRef<AiAnalysisStatus>("idle");
+  useEffect(() => {
+    if (aiAnalysisStatus === prevAiStatus.current) return;
+    const prev = prevAiStatus.current;
+    prevAiStatus.current = aiAnalysisStatus;
+
+    if (aiAnalysisStatus === "completed" && prev !== "completed") {
+      track("ai_analysis_completed", { entry_id: entryId });
+    } else if (aiAnalysisStatus === "failed" && prev !== "failed") {
+      track("ai_analysis_failed", { entry_id: entryId });
+    }
+  }, [aiAnalysisStatus, entryId]);
+
   // =============================================================================
   // GUEST UPDATE HELPER
   // =============================================================================
@@ -184,7 +214,7 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
         const updatedEntry = await entryStorageUtils.updateEntry(entryId, updates);
         setGuestEntry(updatedEntry);
       } catch (err) {
-        console.error("Failed to update entry:", err);
+        captureError(err, { tags: { feature: "entry-detail", action: "update_entry" } });
         setGuestError(err instanceof Error ? err : new Error("Failed to update entry"));
       }
     },
@@ -353,10 +383,16 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
         ),
       );
 
+      track("photos_added_to_entry", {
+        entry_id: entryId,
+        new_photo_count: validAssets.length,
+        total_photo_count: currentPhotoCount + validAssets.length,
+      });
+
       await queryClient.invalidateQueries({ queryKey: queryKeys.diary.detail(numericId) });
       await queryClient.invalidateQueries({ queryKey: queryKeys.diary.all() });
     } catch (err) {
-      console.error("Failed to add photos:", err);
+      captureError(err, { tags: { feature: "entry-detail", action: "add_photos" } });
       Alert.alert(common.error, diary.addPhotoFailed);
     } finally {
       isAddingPhotosRef.current = false;
@@ -376,6 +412,8 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
           onPress: async () => {
             if (!entryId) return;
 
+            track("entry_deleted", { entry_id: entryId });
+
             setIsDeleting(true);
             try {
               if (isApiEntry) {
@@ -385,7 +423,7 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
               }
               router.back();
             } catch (err) {
-              console.error("Failed to delete entry:", err);
+              captureError(err, { tags: { feature: "entry-detail", action: "delete_entry" } });
               Alert.alert(common.error, errors.deleteFailed);
             } finally {
               setIsDeleting(false);
@@ -402,6 +440,7 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
 
   const retryAiAnalysis = useCallback(() => {
     if (!isApiEntry) return;
+    track("ai_analysis_retried", { entry_id: entryId });
     aiAnalysisApi.trigger(numericId).catch((err) =>
       console.warn("AI analysis retry failed:", err instanceof Error ? err.message : "Unknown error"),
     );
@@ -413,6 +452,8 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
 
   const shareEntry = useCallback(() => {
     if (!isApiEntry || !entry) return;
+
+    track("entry_shared", { entry_id: entryId });
 
     const url = `https://mealio.zzooapp.com/diary/${numericId}`;
     const message = common.shareEntry;

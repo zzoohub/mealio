@@ -3,6 +3,9 @@ module.exports = {
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/basic-setup.ts'],
   moduleNameMapper: {
+    '^@sentry/react-native$': '<rootDir>/src/__mocks__/@sentry/react-native.ts',
+    '^posthog-react-native$': '<rootDir>/src/__mocks__/posthog-react-native.ts',
+    '^@/shared/lib/analytics$': '<rootDir>/src/__mocks__/@shared/lib/analytics.ts',
     '^@/lib/(.*)$': '<rootDir>/src/shared/lib/$1',
     '^@/constants/(.*)$': '<rootDir>/src/shared/config/$1',
     '^@/types/(.*)$': '<rootDir>/src/shared/types/$1',

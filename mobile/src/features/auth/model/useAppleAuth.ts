@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import type { AuthCredential } from "@/entities/user";
+import { captureError } from "@/shared/lib/sentry";
+import { track } from "@/shared/lib/analytics";
 
 // =============================================================================
 // TYPES
@@ -63,6 +65,8 @@ export function useAppleAuth(): UseAppleAuthReturn {
       setIsSigningIn(true);
       setError(null);
 
+      track("auth_started", { auth_provider: "apple" });
+
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
@@ -103,8 +107,12 @@ export function useAppleAuth(): UseAppleAuthReturn {
       }
       if (err instanceof Error) {
         setError(err.message);
+        captureError(err, { tags: { auth_provider: "apple" } });
+        track("auth_failed", { auth_provider: "apple", error_message: err.message });
       } else {
         setError("An unexpected error occurred");
+        captureError(err, { tags: { auth_provider: "apple" } });
+        track("auth_failed", { auth_provider: "apple" });
       }
       return null;
     } finally {

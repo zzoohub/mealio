@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import type { AuthCredential } from "@/entities/user";
+import { captureError } from "@/shared/lib/sentry";
+import { track } from "@/shared/lib/analytics";
 
 // =============================================================================
 // TYPES
@@ -84,6 +86,8 @@ export function useGoogleAuth(): UseGoogleAuthReturn {
       setIsSigningIn(true);
       setError(null);
 
+      track("auth_started", { auth_provider: "google" });
+
       if (Platform.OS === "android") {
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       }
@@ -111,10 +115,6 @@ export function useGoogleAuth(): UseGoogleAuthReturn {
 
       return null;
     } catch (err) {
-      if (__DEV__) {
-        console.error("Google Sign-In error:", JSON.stringify(err, null, 2));
-      }
-
       if (isErrorWithCode(err)) {
         switch (err.code) {
           case statusCodes.IN_PROGRESS:
@@ -122,16 +122,22 @@ export function useGoogleAuth(): UseGoogleAuthReturn {
             break;
           case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
             setError("Google Play Services not available");
+            captureError(err, { tags: { auth_provider: "google", error_code: err.code } });
+            track("auth_failed", { auth_provider: "google", error_code: err.code });
             break;
           case statusCodes.SIGN_IN_CANCELLED:
-            // User cancelled - not an error
+            // User cancelled - not an error, not tracked
             break;
           default:
             setError(err.message || `Google sign in failed (code: ${err.code})`);
+            captureError(err, { tags: { auth_provider: "google", error_code: err.code } });
+            track("auth_failed", { auth_provider: "google", error_code: err.code });
         }
       } else {
         const message = err instanceof Error ? err.message : "An unexpected error occurred";
         setError(message);
+        captureError(err, { tags: { auth_provider: "google" } });
+        track("auth_failed", { auth_provider: "google", error_message: message });
       }
       return null;
     } finally {
@@ -145,7 +151,7 @@ export function useGoogleAuth(): UseGoogleAuthReturn {
     try {
       await GoogleSignin.signOut();
     } catch (err) {
-      console.error("Google sign out error:", err);
+      captureError(err, { tags: { auth_provider: "google", auth_action: "sign_out" } });
     }
   }, []);
 
