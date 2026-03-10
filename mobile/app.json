@@ -2,7 +2,7 @@
   "expo": {
     "name": "mealio",
     "slug": "mealio",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mealio",
@@ -117,7 +117,7 @@
       "url": "https://u.expo.dev/3ccd67e8-81bb-43b2-af35-2e1b5450ba2e"
     },
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "fingerprint"
     },
     "experiments": {
       "typedRoutes": true
