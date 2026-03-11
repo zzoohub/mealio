@@ -9,7 +9,7 @@ on:
     paths: ['api/**']
 
 env:
-  IMAGE: us-east4-docker.pkg.dev/zzooapp/services/mealio-api
+  IMAGE: us-east4-docker.pkg.dev/zzooapp/mealio/api
 
 jobs:
   test:
