@@ -10,13 +10,16 @@ import { tokens } from "@/shared/ui/tokens";
 
 export interface CameraPermissionScreenProps {
   onRequestPermission: () => void;
-  /** When true, permission was denied and user must open Settings instead */
+  /** When true, permission was denied and canAskAgain is false */
   isDenied?: boolean;
+  /** Called when the user taps the go-back button in the denied state */
+  onGoBack?: () => void;
   labels: {
     title: string;
     message: string;
     buttonText: string;
     openSettingsText?: string;
+    goBackText?: string;
   };
 }
 
@@ -27,21 +30,51 @@ export interface CameraPermissionScreenProps {
 export function CameraPermissionScreen({
   onRequestPermission,
   isDenied = false,
+  onGoBack,
   labels,
 }: CameraPermissionScreenProps) {
   const s = useStyles(permissionStyles);
 
-  const handlePress = () => {
-    if (isDenied) {
-      Linking.openSettings();
-    } else {
-      onRequestPermission();
-    }
-  };
-
-  const buttonLabel = isDenied && labels.openSettingsText
-    ? labels.openSettingsText
-    : labels.buttonText;
+  if (isDenied) {
+    return (
+      <View style={[styles.container, s.container]}>
+        <Ionicons name="camera-off-outline" size={80} color={s.icon.color} />
+        <Text style={[styles.title, s.title]}>{labels.title}</Text>
+        <Text style={[styles.message, s.message]}>{labels.message}</Text>
+        {labels.goBackText && onGoBack && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.button,
+              s.button,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={onGoBack}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityRole="button"
+            accessibilityLabel={labels.goBackText}
+          >
+            <Text style={styles.buttonText}>{labels.goBackText}</Text>
+          </Pressable>
+        )}
+        {labels.openSettingsText && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.settingsLink,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() => Linking.openSettings()}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityRole="link"
+            accessibilityLabel={labels.openSettingsText}
+          >
+            <Text style={[styles.settingsLinkText, s.settingsLinkText]}>
+              {labels.openSettingsText}
+            </Text>
+          </Pressable>
+        )}
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, s.container]}>
@@ -54,12 +87,12 @@ export function CameraPermissionScreen({
           s.button,
           pressed && styles.buttonPressed,
         ]}
-        onPress={handlePress}
+        onPress={onRequestPermission}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         accessibilityRole="button"
-        accessibilityLabel={buttonLabel}
+        accessibilityLabel={labels.buttonText}
       >
-        <Text style={styles.buttonText}>{buttonLabel}</Text>
+        <Text style={styles.buttonText}>{labels.buttonText}</Text>
       </Pressable>
     </View>
   );
@@ -105,6 +138,14 @@ const styles = StyleSheet.create({
     fontSize: tokens.typography.fontSize.body,
     fontWeight: tokens.typography.fontWeight.semibold,
   },
+  settingsLink: {
+    marginTop: tokens.spacing.component.lg,
+    padding: tokens.spacing.component.lg,
+  },
+  settingsLinkText: {
+    fontSize: tokens.typography.fontSize.body,
+    textDecorationLine: "underline" as const,
+  },
 });
 
 const permissionStyles = createStyles((colors) => ({
@@ -122,5 +163,8 @@ const permissionStyles = createStyles((colors) => ({
   },
   button: {
     backgroundColor: colors.interactive.primary,
+  },
+  settingsLinkText: {
+    color: colors.text.secondary,
   },
 }));

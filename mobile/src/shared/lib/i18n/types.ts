@@ -43,6 +43,7 @@ export interface CameraTranslations {
     message: string;
     cancel: string;
     openSettings: string;
+    goBack: string;
   };
   capture: {
     success: string;

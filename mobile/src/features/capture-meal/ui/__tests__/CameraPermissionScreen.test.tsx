@@ -94,31 +94,64 @@ describe('CameraPermissionScreen', () => {
     expect(getByText('Custom Button')).toBeTruthy();
   });
 
-  it('shows Open Settings button when permission is denied', () => {
-    const { getByText, queryByText } = render(
-      <CameraPermissionScreen
-        {...defaultProps}
-        isDenied
-        labels={{ ...defaultProps.labels, openSettingsText: 'Open Settings' }}
-      />,
-    );
+  describe('when permission is denied', () => {
+    const deniedProps = {
+      ...defaultProps,
+      isDenied: true,
+      onGoBack: jest.fn(),
+      labels: {
+        ...defaultProps.labels,
+        openSettingsText: 'Enable in Settings',
+        goBackText: 'Go Back',
+      },
+    };
 
-    expect(getByText('Open Settings')).toBeTruthy();
-    expect(queryByText('Continue')).toBeNull();
-  });
+    it('shows Go Back as the primary button', () => {
+      const { getByText, queryByText } = render(
+        <CameraPermissionScreen {...deniedProps} />,
+      );
 
-  it('calls Linking.openSettings when denied and button pressed', () => {
-    const { getByText } = render(
-      <CameraPermissionScreen
-        {...defaultProps}
-        isDenied
-        labels={{ ...defaultProps.labels, openSettingsText: 'Open Settings' }}
-      />,
-    );
+      expect(getByText('Go Back')).toBeTruthy();
+      expect(queryByText('Continue')).toBeNull();
+    });
 
-    fireEvent.press(getByText('Open Settings'));
-    expect(mockOpenSettings).toHaveBeenCalledTimes(1);
-    expect(defaultProps.onRequestPermission).not.toHaveBeenCalled();
+    it('calls onGoBack when Go Back button is pressed', () => {
+      const { getByText } = render(
+        <CameraPermissionScreen {...deniedProps} />,
+      );
+
+      fireEvent.press(getByText('Go Back'));
+      expect(deniedProps.onGoBack).toHaveBeenCalledTimes(1);
+      expect(mockOpenSettings).not.toHaveBeenCalled();
+    });
+
+    it('shows a secondary settings link', () => {
+      const { getByText } = render(
+        <CameraPermissionScreen {...deniedProps} />,
+      );
+
+      expect(getByText('Enable in Settings')).toBeTruthy();
+    });
+
+    it('calls Linking.openSettings when settings link is pressed', () => {
+      const { getByText } = render(
+        <CameraPermissionScreen {...deniedProps} />,
+      );
+
+      fireEvent.press(getByText('Enable in Settings'));
+      expect(mockOpenSettings).toHaveBeenCalledTimes(1);
+      expect(deniedProps.onGoBack).not.toHaveBeenCalled();
+    });
+
+    it('does not call onRequestPermission in denied state', () => {
+      const { getByText } = render(
+        <CameraPermissionScreen {...deniedProps} />,
+      );
+
+      fireEvent.press(getByText('Go Back'));
+      fireEvent.press(getByText('Enable in Settings'));
+      expect(defaultProps.onRequestPermission).not.toHaveBeenCalled();
+    });
   });
 
   it('calls onRequestPermission when not denied', () => {
@@ -126,7 +159,7 @@ describe('CameraPermissionScreen', () => {
       <CameraPermissionScreen
         {...defaultProps}
         isDenied={false}
-        labels={{ ...defaultProps.labels, openSettingsText: 'Open Settings' }}
+        labels={{ ...defaultProps.labels, openSettingsText: 'Enable in Settings' }}
       />,
     );
 

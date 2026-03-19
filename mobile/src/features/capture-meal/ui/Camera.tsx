@@ -111,11 +111,13 @@ export default function Camera({ initialPhotos, targetDate }: CameraProps) {
       <CameraPermissionScreen
         onRequestPermission={requestPermission}
         isDenied={isDenied}
+        onGoBack={() => router.back()}
         labels={{
           title: isDenied ? t.permissions.title : t.welcome.title,
           message: isDenied ? t.permissions.message : t.welcome.message,
           buttonText: t.welcome.enableCamera,
           openSettingsText: t.permissions.openSettings,
+          goBackText: isDenied ? t.permissions.goBack : undefined,
         }}
       />
     );

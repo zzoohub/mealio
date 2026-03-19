@@ -123,6 +123,7 @@ export const useCameraI18n = () => {
         message: t("permissions.message"),
         cancel: t("permissions.cancel"),
         openSettings: t("permissions.openSettings"),
+        goBack: t("permissions.goBack"),
       },
       capture: {
         success: t("capture.success"),

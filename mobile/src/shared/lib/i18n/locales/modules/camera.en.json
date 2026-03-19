@@ -16,10 +16,11 @@
     "enableCamera": "Continue"
   },
   "permissions": {
-    "title": "Camera Permission Required",
-    "message": "To log your meals with photos, please allow camera access.",
+    "title": "Camera Access Is Off",
+    "message": "You can still log meals manually. To use the camera for meal photos, enable camera access in your device settings.",
     "cancel": "Cancel",
-    "openSettings": "Open Settings"
+    "openSettings": "Enable in Settings",
+    "goBack": "Go Back"
   },
   "capture": {
     "success": "Meal Logged!",
