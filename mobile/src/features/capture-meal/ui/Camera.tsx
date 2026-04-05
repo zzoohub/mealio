@@ -17,6 +17,12 @@ import { CameraBottomControls } from "./CameraBottomControls";
 import { PhotoStrip } from "./PhotoStrip";
 
 // =============================================================================
+// CONSTANTS
+// =============================================================================
+
+const ALLOWED_SCHEMES = ["file://", "ph://", "content://", "asset-library://"];
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -44,7 +50,6 @@ export default function Camera({ initialPhotos, targetDate }: CameraProps) {
   const enqueue = useUploadQueueStore((s) => s.enqueue);
 
   // Parse and validate props from route params (treated as untrusted input)
-  const ALLOWED_SCHEMES = ["file://", "ph://", "content://", "asset-library://"];
   const parsedInitialPhotos = initialPhotos
     ? initialPhotos
         .split(",")

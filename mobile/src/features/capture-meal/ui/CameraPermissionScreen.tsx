@@ -5,6 +5,13 @@ import { createStyles, useStyles } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
 
 // =============================================================================
+// CONSTANTS
+// =============================================================================
+
+const ICON_SIZE = 80;
+const HIT_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -35,65 +42,48 @@ export function CameraPermissionScreen({
 }: CameraPermissionScreenProps) {
   const s = useStyles(permissionStyles);
 
-  if (isDenied) {
-    return (
-      <View style={[styles.container, s.container]}>
-        <Ionicons name="camera-off-outline" size={80} color={s.icon.color} />
-        <Text style={[styles.title, s.title]}>{labels.title}</Text>
-        <Text style={[styles.message, s.message]}>{labels.message}</Text>
-        {labels.goBackText && onGoBack && (
-          <Pressable
-            style={({ pressed }) => [
-              styles.button,
-              s.button,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={onGoBack}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            accessibilityRole="button"
-            accessibilityLabel={labels.goBackText}
-          >
-            <Text style={styles.buttonText}>{labels.goBackText}</Text>
-          </Pressable>
-        )}
-        {labels.openSettingsText && (
-          <Pressable
-            style={({ pressed }) => [
-              styles.settingsLink,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={() => Linking.openSettings()}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            accessibilityRole="link"
-            accessibilityLabel={labels.openSettingsText}
-          >
-            <Text style={[styles.settingsLinkText, s.settingsLinkText]}>
-              {labels.openSettingsText}
-            </Text>
-          </Pressable>
-        )}
-      </View>
-    );
-  }
+  const iconName = isDenied ? "camera-off-outline" : "camera-outline";
+  const primaryLabel = isDenied ? labels.goBackText : labels.buttonText;
+  const primaryAction = isDenied ? onGoBack : onRequestPermission;
 
   return (
     <View style={[styles.container, s.container]}>
-      <Ionicons name="camera-outline" size={80} color={s.icon.color} />
+      <Ionicons name={iconName} size={ICON_SIZE} color={s.icon.color} />
       <Text style={[styles.title, s.title]}>{labels.title}</Text>
       <Text style={[styles.message, s.message]}>{labels.message}</Text>
-      <Pressable
-        style={({ pressed }) => [
-          styles.button,
-          s.button,
-          pressed && styles.buttonPressed,
-        ]}
-        onPress={onRequestPermission}
-        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        accessibilityRole="button"
-        accessibilityLabel={labels.buttonText}
-      >
-        <Text style={styles.buttonText}>{labels.buttonText}</Text>
-      </Pressable>
+
+      {primaryLabel && primaryAction && (
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            s.button,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={primaryAction}
+          hitSlop={HIT_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel={primaryLabel}
+        >
+          <Text style={styles.buttonText}>{primaryLabel}</Text>
+        </Pressable>
+      )}
+
+      {isDenied && labels.openSettingsText && (
+        <Pressable
+          style={({ pressed }) => [
+            styles.settingsLink,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={() => Linking.openSettings()}
+          hitSlop={HIT_SLOP}
+          accessibilityRole="link"
+          accessibilityLabel={labels.openSettingsText}
+        >
+          <Text style={[styles.settingsLinkText, s.settingsLinkText]}>
+            {labels.openSettingsText}
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }
