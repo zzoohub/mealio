@@ -222,82 +222,57 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
   );
 
   // =============================================================================
+  // GENERIC UPDATE — single branching point for API vs guest
+  // =============================================================================
+
+  const updateField = useCallback(
+    (updates: Partial<Omit<Entry, "id" | "createdAt">>) => {
+      if (isApiEntry) {
+        updateEntryMutation.mutate({
+          id: numericId,
+          body: mapEntryToUpdateRequest(updates),
+        });
+      } else {
+        updateGuestEntry(updates);
+      }
+    },
+    [isApiEntry, numericId, updateEntryMutation, updateGuestEntry],
+  );
+
+  // =============================================================================
   // ACTIONS
   // =============================================================================
 
   const updateTimestamp = useCallback(
     (timestamp: Date) => {
       if (timestamp > new Date()) return;
-
-      if (isApiEntry) {
-        updateEntryMutation.mutate({
-          id: numericId,
-          body: mapEntryToUpdateRequest({ timestamp }),
-        });
-      } else {
-        updateGuestEntry({ timestamp });
-      }
+      updateField({ timestamp });
     },
-    [isApiEntry, numericId, updateEntryMutation, updateGuestEntry]
+    [updateField],
   );
 
   const updateMealType = useCallback(
     (mealType: MealType) => {
       const current = entryRef.current;
       if (!current) return;
-
-      if (isApiEntry) {
-        updateEntryMutation.mutate({
-          id: numericId,
-          body: mapEntryToUpdateRequest({ meal: { ...current.meal, mealType } }),
-        });
-      } else {
-        updateGuestEntry({ meal: { ...current.meal, mealType } });
-      }
+      updateField({ meal: { ...current.meal, mealType } });
     },
-    [isApiEntry, numericId, updateEntryMutation, updateGuestEntry]
+    [updateField],
   );
 
   const updateNotes = useCallback(
-    (notes: string) => {
-      if (isApiEntry) {
-        updateEntryMutation.mutate({
-          id: numericId,
-          body: mapEntryToUpdateRequest({ notes }),
-        });
-      } else {
-        updateGuestEntry({ notes });
-      }
-    },
-    [isApiEntry, numericId, updateEntryMutation, updateGuestEntry]
+    (notes: string) => updateField({ notes }),
+    [updateField],
   );
 
   const updateRating = useCallback(
-    (rating: number) => {
-      if (isApiEntry) {
-        updateEntryMutation.mutate({
-          id: numericId,
-          body: mapEntryToUpdateRequest({ rating }),
-        });
-      } else {
-        updateGuestEntry({ rating });
-      }
-    },
-    [isApiEntry, numericId, updateEntryMutation, updateGuestEntry]
+    (rating: number) => updateField({ rating }),
+    [updateField],
   );
 
   const updateWouldEatAgain = useCallback(
-    (wouldEatAgain: boolean) => {
-      if (isApiEntry) {
-        updateEntryMutation.mutate({
-          id: numericId,
-          body: mapEntryToUpdateRequest({ wouldEatAgain }),
-        });
-      } else {
-        updateGuestEntry({ wouldEatAgain });
-      }
-    },
-    [isApiEntry, numericId, updateEntryMutation, updateGuestEntry]
+    (wouldEatAgain: boolean) => updateField({ wouldEatAgain }),
+    [updateField],
   );
 
   const updateIngredients = useCallback(
@@ -314,7 +289,7 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
         updateGuestEntry({ meal: { ...current.meal, ingredients } });
       }
     },
-    [isApiEntry, numericId, syncIngredientsMutation, updateGuestEntry]
+    [isApiEntry, numericId, syncIngredientsMutation, updateGuestEntry],
   );
 
   const updateNutrition = useCallback(
@@ -331,7 +306,7 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
         updateGuestEntry({ meal: { ...current.meal, nutrition } });
       }
     },
-    [isApiEntry, numericId, upsertNutritionMutation, updateGuestEntry]
+    [isApiEntry, numericId, upsertNutritionMutation, updateGuestEntry],
   );
 
   const addPhotos = useCallback(async () => {
@@ -474,8 +449,7 @@ export function useEntryDetail(options: UseEntryDetailOptions): UseEntryDetailRe
   }, [router]);
 
   const openPhotoViewer = useCallback(() => {
-    // TODO: Open fullscreen photo viewer or change photo
-    console.log("Photo pressed - implement fullscreen viewer");
+    // Placeholder — fullscreen photo viewer not yet implemented
   }, []);
 
   // =============================================================================

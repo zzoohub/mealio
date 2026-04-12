@@ -1833,8 +1833,7 @@ describe("useEntryDetail", () => {
         result.current.openPhotoViewer();
       });
 
-      expect(consoleLogSpy).toHaveBeenCalledWith("Photo pressed - implement fullscreen viewer");
-
+      // openPhotoViewer is a no-op placeholder
       consoleLogSpy.mockRestore();
     });
   });
