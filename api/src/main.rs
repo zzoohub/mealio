@@ -131,17 +131,23 @@ async fn main() {
 
     let state = AppState {
         db,
-        jwt_secret,
-        google_client_id,
-        apple_team_id,
-        apple_bundle_id,
-        jwks_cache,
-        s3_client,
-        r2_bucket,
-        r2_public_url,
-        gemini_api_key,
-        gemini_model,
-        http_client,
+        auth: mealio_api::AuthConfig {
+            jwt_secret,
+            google_client_id,
+            apple_team_id,
+            apple_bundle_id,
+            jwks_cache,
+        },
+        storage: mealio_api::StorageConfig {
+            s3_client,
+            r2_bucket,
+            r2_public_url,
+        },
+        ai: mealio_api::AiConfig {
+            gemini_api_key,
+            gemini_model,
+            http_client,
+        },
     };
 
     let cors = build_cors();

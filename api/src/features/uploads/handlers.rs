@@ -60,9 +60,10 @@ pub async fn presign(
     );
 
     let presigned = state
+        .storage
         .s3_client
         .put_object()
-        .bucket(&state.r2_bucket)
+        .bucket(&state.storage.r2_bucket)
         .key(&object_key)
         .content_type(&req.content_type)
         .presigned(
@@ -74,7 +75,7 @@ pub async fn presign(
         .await
         .map_err(|e| AppError::Internal(format!("presign error: {e}")))?;
 
-    let public_url = crate::shared::storage::build_r2_public_url(&state.r2_public_url, &object_key);
+    let public_url = crate::shared::storage::build_r2_public_url(&state.storage.r2_public_url, &object_key);
 
     Ok(response::Ok(PresignResponse {
         upload_url: presigned.uri().to_string(),

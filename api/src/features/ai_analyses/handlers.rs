@@ -57,7 +57,7 @@ pub async fn trigger_analysis(
     DiaryEntry::verify_ownership(&db, entry_id, auth.user_id).await?;
 
     // Check if AI is enabled
-    if state.gemini_api_key.is_empty() {
+    if state.ai.gemini_api_key.is_empty() {
         return Err(AppError::BadRequest("AI analysis is not available".into()));
     }
 
@@ -92,10 +92,10 @@ pub async fn trigger_analysis(
     // Spawn background task
     let analysis_id = analysis.id;
     let bg_db = db.clone();
-    let bg_client = state.http_client.clone();
-    let bg_key = state.gemini_api_key.clone();
-    let bg_model = state.gemini_model.clone();
-    let bg_r2_url = state.r2_public_url.clone();
+    let bg_client = state.ai.http_client.clone();
+    let bg_key = state.ai.gemini_api_key.clone();
+    let bg_model = state.ai.gemini_model.clone();
+    let bg_r2_url = state.storage.r2_public_url.clone();
 
     tokio::spawn(async move {
         service::run_analysis(bg_db, bg_client, bg_key, bg_model, bg_r2_url, analysis_id, entry_id).await;

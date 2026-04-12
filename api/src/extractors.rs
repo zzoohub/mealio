@@ -64,7 +64,7 @@ where
 
         let token_data = jsonwebtoken::decode::<Claims>(
             token,
-            &DecodingKey::from_secret(app_state.jwt_secret.as_bytes()),
+            &DecodingKey::from_secret(app_state.auth.jwt_secret.as_bytes()),
             &Validation::default(),
         )?;
 

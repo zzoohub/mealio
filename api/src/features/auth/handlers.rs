@@ -30,15 +30,15 @@ pub async fn sign_in(
 ) -> Result<response::Created<AuthResponse>, AppError> {
     let oauth_user = match req.provider.as_str() {
         "google" => {
-            oauth::verify_google_token(&req.id_token, &state.google_client_id, &state.jwks_cache)
+            oauth::verify_google_token(&req.id_token, &state.auth.google_client_id, &state.auth.jwks_cache)
                 .await?
         }
         "apple" => {
             oauth::verify_apple_token(
                 &req.id_token,
-                &state.apple_team_id,
-                &state.apple_bundle_id,
-                &state.jwks_cache,
+                &state.auth.apple_team_id,
+                &state.auth.apple_bundle_id,
+                &state.auth.jwks_cache,
             )
             .await?
         }
@@ -70,7 +70,7 @@ pub async fn sign_in(
         }
     };
 
-    let (access_token, expires_in) = jwt::create_access_token(user.id, &state.jwt_secret)
+    let (access_token, expires_in) = jwt::create_access_token(user.id, &state.auth.jwt_secret)
         .map_err(|e| AppError::Internal(format!("failed to create token: {e}")))?;
 
     let refresh_token = Uuid::new_v4().to_string();
@@ -158,7 +158,7 @@ pub async fn refresh(
     tx.commit().await?;
 
     let (access_token, expires_in) =
-        jwt::create_access_token(auth_token.user_id, &state.jwt_secret)
+        jwt::create_access_token(auth_token.user_id, &state.auth.jwt_secret)
             .map_err(|e| AppError::Internal(format!("failed to create token: {e}")))?;
 
     Ok(response::Ok(RefreshResponse {

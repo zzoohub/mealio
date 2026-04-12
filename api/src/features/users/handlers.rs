@@ -74,8 +74,8 @@ pub async fn delete_me(
     let photo_urls = EntryPhoto::list_urls_by_user_id(&db, auth.user_id).await?;
 
     // 2. Best-effort R2 cleanup — delete photo objects in parallel
-    if !photo_urls.is_empty() && !state.r2_public_url.is_empty() {
-        let r2_public_prefix = crate::shared::storage::r2_public_prefix(&state.r2_public_url);
+    if !photo_urls.is_empty() && !state.storage.r2_public_url.is_empty() {
+        let r2_public_prefix = crate::shared::storage::r2_public_prefix(&state.storage.r2_public_url);
         let expected_key_prefix = format!("photos/{}/", auth.user_id);
         let mut join_set = tokio::task::JoinSet::new();
 
@@ -85,8 +85,8 @@ pub async fn delete_me(
                     tracing::warn!(url = %url, user_id = auth.user_id, "skipping R2 deletion: key not in user's directory");
                     continue;
                 }
-                let client = state.s3_client.clone();
-                let bucket = state.r2_bucket.clone();
+                let client = state.storage.s3_client.clone();
+                let bucket = state.storage.r2_bucket.clone();
                 let key = key.to_string();
                 let url = url.clone();
                 join_set.spawn(async move {
