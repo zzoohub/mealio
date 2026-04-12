@@ -133,7 +133,10 @@ impl DiaryEntry {
         params: &DiaryQueryParams,
     ) -> Result<(Vec<Self>, i64), sqlx::Error> {
         let page = params.page.unwrap_or(1).max(1);
-        let per_page = params.per_page.unwrap_or(20).clamp(1, 100);
+        let per_page = params
+            .per_page
+            .unwrap_or(crate::constants::DEFAULT_PAGE_SIZE)
+            .clamp(1, crate::constants::MAX_PAGE_SIZE);
         let offset = (page - 1) * per_page;
 
         // Sanitize timezone: only allow IANA-like identifiers (letters, digits, /, _, -, +)

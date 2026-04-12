@@ -1,6 +1,5 @@
 use std::path::Path;
 use std::sync::Arc;
-use std::time::Duration;
 
 use axum::extract::{Path as AxumPath, State};
 use axum::response::Html;
@@ -19,6 +18,7 @@ use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
+use mealio_api::constants;
 use mealio_api::features;
 use mealio_api::features::auth::JwksCache;
 use mealio_api::openapi::ApiDoc;
@@ -90,8 +90,8 @@ async fn main() {
     );
 
     let db = PgPoolOptions::new()
-        .max_connections(10)
-        .acquire_timeout(Duration::from_secs(3))
+        .max_connections(constants::DB_MAX_CONNECTIONS)
+        .acquire_timeout(constants::DB_ACQUIRE_TIMEOUT)
         .connect(&database_url)
         .await
         .expect("failed to connect to database");
@@ -105,16 +105,16 @@ async fn main() {
     let gemini_model = std::env::var("GEMINI_MODEL").unwrap_or_else(|_| "gemini-2.5-flash".to_string());
 
     let http_client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(60))
+        .timeout(constants::HTTP_CLIENT_TIMEOUT)
         .build()
         .expect("failed to build HTTP client");
 
-    let jwks_cache = JwksCache::new(Duration::from_secs(3600));
+    let jwks_cache = JwksCache::new(constants::JWKS_CACHE_TTL);
 
     // Recover stuck AI analyses (pending/processing > 5 min)
     {
         use mealio_api::features::ai_analyses::models::AiAnalysis;
-        match AiAnalysis::find_stuck(&db, 5).await {
+        match AiAnalysis::find_stuck(&db, constants::STUCK_ANALYSIS_THRESHOLD_MINUTES).await {
             Ok(stuck) => {
                 for a in &stuck {
                     if let Err(e) = AiAnalysis::mark_failed(&db, a.id, "Server restarted during analysis").await {
@@ -146,11 +146,10 @@ async fn main() {
 
     let cors = build_cors();
 
-    // Rate limiting: 10 req/min for auth, 60 req/min global
     let auth_governor = Arc::new(
         GovernorConfigBuilder::default()
-            .per_second(6) // 1 token every 6 seconds = 10 req/min
-            .burst_size(10)
+            .per_second(constants::RATE_LIMIT_AUTH_PER_SECOND)
+            .burst_size(constants::RATE_LIMIT_AUTH_BURST)
             .key_extractor(SmartIpKeyExtractor)
             .finish()
             .expect("failed to build auth rate limiter"),
@@ -158,8 +157,8 @@ async fn main() {
 
     let global_governor = Arc::new(
         GovernorConfigBuilder::default()
-            .per_second(1) // 1 token every second = 60 req/min
-            .burst_size(60)
+            .per_second(constants::RATE_LIMIT_GLOBAL_PER_SECOND)
+            .burst_size(constants::RATE_LIMIT_GLOBAL_BURST)
             .key_extractor(SmartIpKeyExtractor)
             .finish()
             .expect("failed to build global rate limiter"),
@@ -193,7 +192,7 @@ async fn main() {
         .nest("/api/v1", api)
         .layer(TimeoutLayer::with_status_code(
             axum::http::StatusCode::REQUEST_TIMEOUT,
-            Duration::from_secs(30),
+            constants::REQUEST_TIMEOUT,
         ))
         .layer(GovernorLayer { config: global_governor })
         .layer(TraceLayer::new_for_http())

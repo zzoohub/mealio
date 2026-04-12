@@ -131,9 +131,9 @@ pub async fn sync_ingredients(
     Path(entry_id): Path<i64>,
     Json(req): Json<SyncIngredientsRequest>,
 ) -> Result<response::Ok<Vec<EntryIngredientWithName>>, AppError> {
-    if req.ingredients.len() > 100 {
+    if req.ingredients.len() > crate::constants::MAX_INGREDIENTS_PER_SYNC {
         return Err(AppError::BadRequest(
-            "cannot sync more than 100 ingredients at once".into(),
+            format!("cannot sync more than {} ingredients at once", crate::constants::MAX_INGREDIENTS_PER_SYNC),
         ));
     }
     DiaryEntry::verify_ownership(&db, entry_id, auth.user_id).await?;
