@@ -74,11 +74,7 @@ pub async fn presign(
         .await
         .map_err(|e| AppError::Internal(format!("presign error: {e}")))?;
 
-    let public_url = if state.r2_public_url.is_empty() {
-        object_key.clone()
-    } else {
-        format!("{}/{}", state.r2_public_url.trim_end_matches('/'), object_key)
-    };
+    let public_url = crate::shared::storage::build_r2_public_url(&state.r2_public_url, &object_key);
 
     Ok(response::Ok(PresignResponse {
         upload_url: presigned.uri().to_string(),

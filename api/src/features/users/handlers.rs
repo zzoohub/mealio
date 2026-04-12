@@ -75,7 +75,7 @@ pub async fn delete_me(
 
     // 2. Best-effort R2 cleanup — delete photo objects in parallel
     if !photo_urls.is_empty() && !state.r2_public_url.is_empty() {
-        let r2_public_prefix = format!("{}/", state.r2_public_url.trim_end_matches('/'));
+        let r2_public_prefix = crate::shared::storage::r2_public_prefix(&state.r2_public_url);
         let expected_key_prefix = format!("photos/{}/", auth.user_id);
         let mut join_set = tokio::task::JoinSet::new();
 

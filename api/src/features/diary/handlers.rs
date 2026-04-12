@@ -11,7 +11,7 @@ use crate::features::ingredients::models::EntryIngredient;
 use crate::features::nutrition::models::UserNutrition;
 use crate::features::photos::models::EntryPhoto;
 
-/// Paginated diary entries response
+/// OpenAPI schema for paginated diary entries response
 #[derive(utoipa::ToSchema)]
 #[allow(dead_code)]
 pub struct PaginatedDiaryEntries {
@@ -136,10 +136,7 @@ pub async fn update_entry(
     Path(id): Path<i64>,
     Json(req): Json<UpdateEntryRequest>,
 ) -> Result<response::Ok<DiaryEntry>, AppError> {
-    // Verify ownership
-    DiaryEntry::find_by_id(&db, id, auth.user_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("diary entry not found".into()))?;
+    DiaryEntry::verify_ownership(&db, id, auth.user_id).await?;
 
     // Validate rating range
     if let Some(rating) = req.rating {
@@ -179,9 +176,7 @@ pub async fn delete_entry(
     Db(db): Db,
     Path(id): Path<i64>,
 ) -> Result<response::NoContent, AppError> {
-    DiaryEntry::find_by_id(&db, id, auth.user_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("diary entry not found".into()))?;
+    DiaryEntry::verify_ownership(&db, id, auth.user_id).await?;
 
     DiaryEntry::soft_delete(&db, id, auth.user_id).await?;
     Ok(response::NoContent)
@@ -203,9 +198,7 @@ pub async fn get_location(
     Db(db): Db,
     Path(id): Path<i64>,
 ) -> Result<response::Ok<EntryLocation>, AppError> {
-    DiaryEntry::find_by_id(&db, id, auth.user_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("diary entry not found".into()))?;
+    DiaryEntry::verify_ownership(&db, id, auth.user_id).await?;
 
     let location = EntryLocation::find_by_entry_id(&db, id)
         .await?
@@ -232,9 +225,7 @@ pub async fn upsert_location(
     Path(id): Path<i64>,
     Json(req): Json<UpsertLocationRequest>,
 ) -> Result<response::Ok<EntryLocation>, AppError> {
-    DiaryEntry::find_by_id(&db, id, auth.user_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("diary entry not found".into()))?;
+    DiaryEntry::verify_ownership(&db, id, auth.user_id).await?;
 
     let location = EntryLocation::upsert(
         &db,
@@ -265,9 +256,7 @@ pub async fn delete_location(
     Db(db): Db,
     Path(id): Path<i64>,
 ) -> Result<response::NoContent, AppError> {
-    DiaryEntry::find_by_id(&db, id, auth.user_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("diary entry not found".into()))?;
+    DiaryEntry::verify_ownership(&db, id, auth.user_id).await?;
 
     EntryLocation::delete_by_entry_id(&db, id).await?;
     Ok(response::NoContent)
