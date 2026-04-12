@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import type { Entry } from "@/entities/entry";
-import { MealType } from "@/entities/meal";
+import { MealType, getMealTypeIcon } from "@/entities/meal";
 import { useTheme } from "@/shared/ui/theme";
 import { tokens } from "@/shared/ui/tokens";
 import { formatTime } from "@/shared/lib/utils";
@@ -24,31 +24,6 @@ export interface EntryFeedItemProps {
   onPress?: (entry: Entry) => void;
   showDivider?: boolean;
 }
-
-// =============================================================================
-// UTILITIES
-// =============================================================================
-
-const getMealTypeIcon = (mealType: MealType): string => {
-  switch (mealType) {
-    case MealType.BREAKFAST:
-      return "sunny-outline";
-    case MealType.LUNCH:
-      return "sunny";
-    case MealType.DINNER:
-      return "moon-outline";
-    case MealType.SNACK:
-      return "nutrition-outline";
-    case MealType.DESSERT:
-      return "ice-cream-outline";
-    case MealType.DRINK:
-      return "cafe-outline";
-    case MealType.OTHER:
-      return "ellipsis-horizontal-circle-outline";
-    default:
-      return "restaurant-outline";
-  }
-};
 
 // =============================================================================
 // COMPONENT

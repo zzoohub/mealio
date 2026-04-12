@@ -23,7 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '@/shared/ui/tokens';
 import { createStyles, useStyles, useTheme } from '@/shared/ui/theme';
 import { BottomSheet } from '@/shared/ui/styled';
-import { MealType } from '@/entities/meal';
+import { MealType, getMealTypeIcon } from '@/entities/meal';
 import type { Location } from '@/entities/entry';
 import { useCommonI18n, useDiaryI18n, getCurrentLanguage } from '@/shared/lib/i18n';
 
@@ -57,30 +57,6 @@ const CONTEXT_BAR_HEIGHT = 36;
 // =============================================================================
 // UTILITIES
 // =============================================================================
-
-/**
- * Get the Ionicons icon name for a meal type
- */
-function getMealTypeIcon(mealType: string): string {
-  switch (mealType.toLowerCase()) {
-    case 'breakfast':
-      return 'sunny-outline';
-    case 'lunch':
-      return 'sunny';
-    case 'dinner':
-      return 'moon-outline';
-    case 'snack':
-      return 'nutrition-outline';
-    case 'dessert':
-      return 'ice-cream-outline';
-    case 'drink':
-      return 'cafe-outline';
-    case 'other':
-      return 'ellipsis-horizontal-circle-outline';
-    default:
-      return 'restaurant-outline';
-  }
-}
 
 
 /**

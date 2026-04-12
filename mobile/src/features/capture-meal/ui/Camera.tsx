@@ -23,6 +23,26 @@ import { PhotoStrip } from "./PhotoStrip";
 const ALLOWED_SCHEMES = ["file://", "ph://", "content://", "asset-library://"];
 
 // =============================================================================
+// HELPERS — parse untrusted route params
+// =============================================================================
+
+function parseInitialPhotos(raw: string | undefined): string[] | undefined {
+  if (!raw) return undefined;
+  const photos = raw
+    .split(",")
+    .filter(Boolean)
+    .filter((uri) => ALLOWED_SCHEMES.some((scheme) => uri.startsWith(scheme)));
+  return photos.length > 0 ? photos : undefined;
+}
+
+function parseTargetDate(raw: string | undefined): Date | undefined {
+  if (!raw) return undefined;
+  const date = new Date(raw);
+  if (isNaN(date.getTime()) || date > new Date()) return undefined;
+  return date;
+}
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -49,17 +69,8 @@ export default function Camera({ initialPhotos, targetDate }: CameraProps) {
   const isAuthenticated = useIsAuthenticated();
   const enqueue = useUploadQueueStore((s) => s.enqueue);
 
-  // Parse and validate props from route params (treated as untrusted input)
-  const parsedInitialPhotos = initialPhotos
-    ? initialPhotos
-        .split(",")
-        .filter(Boolean)
-        .filter((uri) => ALLOWED_SCHEMES.some((s) => uri.startsWith(s)))
-        .slice(0, 10)
-    : undefined;
-  const parsedDate = targetDate ? new Date(targetDate) : undefined;
-  const parsedTargetDate =
-    parsedDate && !isNaN(parsedDate.getTime()) && parsedDate <= new Date() ? parsedDate : undefined;
+  const parsedInitialPhotos = parseInitialPhotos(initialPhotos);
+  const parsedTargetDate = parseTargetDate(targetDate);
 
   const handleSaveEntry = useCallback(
     async (entry: Omit<Entry, "id" | "createdAt" | "updatedAt">, photoUris?: string[]) => {

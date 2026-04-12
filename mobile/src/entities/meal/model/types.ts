@@ -16,6 +16,26 @@ export enum MealType {
 }
 
 // =============================================================================
+// MEAL TYPE ICONS (Ionicons names)
+// =============================================================================
+
+export const MEAL_TYPE_ICONS: Record<string, string> = {
+  [MealType.BREAKFAST]: "sunny-outline",
+  [MealType.LUNCH]: "sunny",
+  [MealType.DINNER]: "moon-outline",
+  [MealType.SNACK]: "nutrition-outline",
+  [MealType.DESSERT]: "ice-cream-outline",
+  [MealType.DRINK]: "cafe-outline",
+  [MealType.OTHER]: "ellipsis-horizontal-circle-outline",
+};
+
+const DEFAULT_MEAL_TYPE_ICON = "restaurant-outline";
+
+export function getMealTypeIcon(mealType: string): string {
+  return MEAL_TYPE_ICONS[mealType.toLowerCase()] ?? DEFAULT_MEAL_TYPE_ICON;
+}
+
+// =============================================================================
 // NUTRITION & AI
 // =============================================================================
 

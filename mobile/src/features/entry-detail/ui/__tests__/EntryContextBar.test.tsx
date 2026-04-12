@@ -69,17 +69,29 @@ jest.mock('@/shared/ui/tokens', () => ({
   },
 }));
 
-jest.mock('@/entities/meal', () => ({
-  MealType: {
-    BREAKFAST: 'breakfast',
-    LUNCH: 'lunch',
-    DINNER: 'dinner',
-    SNACK: 'snack',
-    DESSERT: 'dessert',
-    DRINK: 'drink',
-    OTHER: 'other',
-  },
-}));
+jest.mock('@/entities/meal', () => {
+  const icons: Record<string, string> = {
+    breakfast: 'sunny-outline',
+    lunch: 'sunny',
+    dinner: 'moon-outline',
+    snack: 'nutrition-outline',
+    dessert: 'ice-cream-outline',
+    drink: 'cafe-outline',
+    other: 'ellipsis-horizontal-circle-outline',
+  };
+  return {
+    MealType: {
+      BREAKFAST: 'breakfast',
+      LUNCH: 'lunch',
+      DINNER: 'dinner',
+      SNACK: 'snack',
+      DESSERT: 'dessert',
+      DRINK: 'drink',
+      OTHER: 'other',
+    },
+    getMealTypeIcon: (type: string) => icons[type.toLowerCase()] ?? 'restaurant-outline',
+  };
+});
 
 jest.mock('@/shared/lib/i18n', () => ({
   useCommonI18n: jest.fn(),
