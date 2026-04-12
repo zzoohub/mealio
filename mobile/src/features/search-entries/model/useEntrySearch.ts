@@ -96,6 +96,46 @@ const SORT_TO_ORDER_BY: Record<string, "eaten_at_desc" | "eaten_at_asc" | "ratin
   "rating-desc": "rating_desc",
 };
 
+interface BuildApiParamsOptions {
+  page: number;
+  perPage: number;
+  tz: string;
+  query?: string;
+  startDate?: Date;
+  endDate?: Date;
+  params?: UseEntrySearchParams;
+}
+
+function buildApiParams(opts: BuildApiParamsOptions): Record<string, any> {
+  const apiParams: Record<string, any> = {
+    page: opts.page,
+    per_page: opts.perPage,
+    tz: opts.tz,
+  };
+  if (opts.query) apiParams.q = opts.query;
+  if (opts.startDate) apiParams.start_date = formatDateToString(opts.startDate);
+  if (opts.endDate) apiParams.end_date = formatDateToString(opts.endDate);
+  if (opts.params?.mealType) apiParams.meal_type = opts.params.mealType;
+  if (opts.params?.sortOption) apiParams.order_by = SORT_TO_ORDER_BY[opts.params.sortOption];
+  if (opts.params?.wouldEatAgain !== undefined) apiParams.would_eat_again = opts.params.wouldEatAgain;
+  return apiParams;
+}
+
+function buildGuestFilter(
+  query?: string,
+  startDate?: Date,
+  endDate?: Date,
+  params?: UseEntrySearchParams,
+): EntryFilter {
+  const filter: EntryFilter = {};
+  if (query) filter.searchQuery = query;
+  if (startDate) filter.startDate = startDate;
+  if (endDate) filter.endDate = endDate;
+  if (params?.mealType) filter.mealType = apiMealTypeToEnum(params.mealType);
+  if (params?.wouldEatAgain) filter.wouldEatAgain = params.wouldEatAgain;
+  return filter;
+}
+
 function apiEntryToEntry(apiEntry: ApiDiaryEntry): Entry {
   return {
     id: String(apiEntry.id),
@@ -254,19 +294,11 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
         setHasMore(true);
 
         if (isAuthenticated) {
-          // Authenticated: use API
-          const apiParams: Record<string, any> = {
-            page: 1,
-            per_page: ITEMS_PER_PAGE,
-            tz: deviceTz,
-          };
-          if (debouncedQuery) apiParams.q = debouncedQuery;
-          if (datePeriod.startDate) apiParams.start_date = formatDateToString(datePeriod.startDate);
-          if (datePeriod.endDate) apiParams.end_date = formatDateToString(datePeriod.endDate);
-          if (params?.mealType) apiParams.meal_type = params.mealType;
-          if (params?.sortOption) apiParams.order_by = SORT_TO_ORDER_BY[params.sortOption];
-          if (params?.wouldEatAgain !== undefined) apiParams.would_eat_again = params.wouldEatAgain;
-
+          const apiParams = buildApiParams({
+            page: 1, perPage: ITEMS_PER_PAGE, tz: deviceTz,
+            query: debouncedQuery, startDate: datePeriod.startDate ?? undefined,
+            endDate: datePeriod.endDate ?? undefined, params,
+          });
           const response = await entryApi.list(apiParams);
           if (stale) return;
           const mapped = response.data.map(apiEntryToEntry);
@@ -281,14 +313,10 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
             });
           }
         } else {
-          // Guest: use local storage
-          const filter: EntryFilter = {};
-          if (debouncedQuery) filter.searchQuery = debouncedQuery;
-          if (datePeriod.startDate) filter.startDate = datePeriod.startDate;
-          if (datePeriod.endDate) filter.endDate = datePeriod.endDate;
-          if (params?.mealType) filter.mealType = apiMealTypeToEnum(params.mealType);
-          if (params?.wouldEatAgain) filter.wouldEatAgain = params.wouldEatAgain;
-
+          const filter = buildGuestFilter(
+            debouncedQuery, datePeriod.startDate ?? undefined,
+            datePeriod.endDate ?? undefined, params,
+          );
           const loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
           if (stale) return;
           const paginatedEntries = loadedEntries.slice(0, ITEMS_PER_PAGE);
@@ -377,20 +405,12 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
       setIsLoadingMore(true);
 
       if (isAuthenticated) {
-        // Authenticated: fetch next page from API
         const nextPage = page + 1;
-        const apiParams: Record<string, any> = {
-          page: nextPage,
-          per_page: ITEMS_PER_PAGE,
-          tz: deviceTz,
-        };
-        if (debouncedQuery) apiParams.q = debouncedQuery;
-        if (datePeriod.startDate) apiParams.start_date = formatDateToString(datePeriod.startDate);
-        if (datePeriod.endDate) apiParams.end_date = formatDateToString(datePeriod.endDate);
-        if (params?.mealType) apiParams.meal_type = params.mealType;
-        if (params?.sortOption) apiParams.order_by = SORT_TO_ORDER_BY[params.sortOption];
-        if (params?.wouldEatAgain !== undefined) apiParams.would_eat_again = params.wouldEatAgain;
-
+        const apiParams = buildApiParams({
+          page: nextPage, perPage: ITEMS_PER_PAGE, tz: deviceTz,
+          query: debouncedQuery, startDate: datePeriod.startDate ?? undefined,
+          endDate: datePeriod.endDate ?? undefined, params,
+        });
         const response = await entryApi.list(apiParams);
         if (loadVersionRef.current !== version) return;
         const mapped = response.data.map(apiEntryToEntry);
@@ -401,14 +421,10 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
         }
         setHasMore(response.meta.page < response.meta.total_pages);
       } else {
-        // Guest: paginate from local storage
-        const filter: EntryFilter = {};
-        if (debouncedQuery) filter.searchQuery = debouncedQuery;
-        if (datePeriod.startDate) filter.startDate = datePeriod.startDate;
-        if (datePeriod.endDate) filter.endDate = datePeriod.endDate;
-        if (params?.mealType) filter.mealType = apiMealTypeToEnum(params.mealType);
-        if (params?.wouldEatAgain) filter.wouldEatAgain = params.wouldEatAgain;
-
+        const filter = buildGuestFilter(
+          debouncedQuery, datePeriod.startDate ?? undefined,
+          datePeriod.endDate ?? undefined, params,
+        );
         const loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
         if (loadVersionRef.current !== version) return;
         const startIndex = page * ITEMS_PER_PAGE;
