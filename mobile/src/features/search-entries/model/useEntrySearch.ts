@@ -10,7 +10,7 @@ import { getCurrentLanguage, useDiaryI18n } from "@/shared/lib/i18n";
 import i18n from "@/shared/lib/i18n/config";
 import { captureError } from "@/shared/lib/sentry";
 import { track } from "@/shared/lib/analytics";
-import { MealType } from "@/entities/meal";
+import { apiMealTypeToEnum } from "@/shared/api";
 import type { ApiDiaryEntry, ApiMealType } from "@/shared/api";
 
 // =============================================================================
@@ -90,16 +90,6 @@ interface DatePeriod {
 // HELPERS
 // =============================================================================
 
-const mealTypeMap: Record<string, MealType> = {
-  breakfast: MealType.BREAKFAST,
-  lunch: MealType.LUNCH,
-  dinner: MealType.DINNER,
-  snack: MealType.SNACK,
-  dessert: MealType.DESSERT,
-  drink: MealType.DRINK,
-  other: MealType.OTHER,
-};
-
 const SORT_TO_ORDER_BY: Record<string, "eaten_at_desc" | "eaten_at_asc" | "rating_desc"> = {
   "date-desc": "eaten_at_desc",
   "date-asc": "eaten_at_asc",
@@ -115,7 +105,7 @@ function apiEntryToEntry(apiEntry: ApiDiaryEntry): Entry {
     meal: {
       photoUri: apiEntry.primary_photo_url ?? "",
       photoUris: apiEntry.photo_urls?.length ? apiEntry.photo_urls : undefined,
-      mealType: mealTypeMap[apiEntry.meal_type] ?? MealType.OTHER,
+      mealType: apiMealTypeToEnum(apiEntry.meal_type),
     },
     rating: apiEntry.rating ?? undefined,
     wouldEatAgain: apiEntry.would_eat_again ?? undefined,
@@ -296,7 +286,7 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
           if (debouncedQuery) filter.searchQuery = debouncedQuery;
           if (datePeriod.startDate) filter.startDate = datePeriod.startDate;
           if (datePeriod.endDate) filter.endDate = datePeriod.endDate;
-          if (params?.mealType) filter.mealType = mealTypeMap[params.mealType] ?? undefined;
+          if (params?.mealType) filter.mealType = apiMealTypeToEnum(params.mealType);
           if (params?.wouldEatAgain) filter.wouldEatAgain = params.wouldEatAgain;
 
           const loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);
@@ -416,7 +406,7 @@ export function useEntrySearch(params?: UseEntrySearchParams): UseEntrySearchRet
         if (debouncedQuery) filter.searchQuery = debouncedQuery;
         if (datePeriod.startDate) filter.startDate = datePeriod.startDate;
         if (datePeriod.endDate) filter.endDate = datePeriod.endDate;
-        if (params?.mealType) filter.mealType = mealTypeMap[params.mealType] ?? undefined;
+        if (params?.mealType) filter.mealType = apiMealTypeToEnum(params.mealType);
         if (params?.wouldEatAgain) filter.wouldEatAgain = params.wouldEatAgain;
 
         const loadedEntries = await entryStorageUtils.getEntriesFiltered(filter);

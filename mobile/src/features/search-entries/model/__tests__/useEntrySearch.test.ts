@@ -1,5 +1,8 @@
 // Mock native modules and barrels
 jest.mock("react-native", () => ({}));
+jest.mock("@/shared/api", () => ({
+  apiMealTypeToEnum: (type: string) => type,
+}));
 jest.mock("@/shared/lib/auth", () => ({
   useIsAuthenticated: jest.fn(),
 }));

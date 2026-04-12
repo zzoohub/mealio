@@ -12,12 +12,12 @@ import {
 import {
   mapEntryToCreateRequest,
   mapEntryToUpdateRequest,
+  apiMealTypeToEnum,
 } from "@/shared/api";
 import { uploadPhoto } from "@/shared/api/uploadApi";
 import { photoApi } from "../api/photoApi";
 import { queryKeys } from "@/shared/config";
 import type { ApiDiaryQueryParams, ApiDiaryEntry, ApiMealType } from "@/shared/api";
-import { MealType } from "@/entities/meal";
 
 // =============================================================================
 // TYPES
@@ -46,16 +46,6 @@ interface UseEntryDataOptions {
 // =============================================================================
 
 function apiEntryToEntry(apiEntry: ApiDiaryEntry): Entry {
-  const mealTypeMap: Record<string, MealType> = {
-    breakfast: MealType.BREAKFAST,
-    lunch: MealType.LUNCH,
-    dinner: MealType.DINNER,
-    snack: MealType.SNACK,
-    dessert: MealType.DESSERT,
-    drink: MealType.DRINK,
-    other: MealType.OTHER,
-  };
-
   return {
     id: String(apiEntry.id),
     userId: String(apiEntry.user_id),
@@ -63,7 +53,7 @@ function apiEntryToEntry(apiEntry: ApiDiaryEntry): Entry {
     notes: apiEntry.notes ?? "",
     meal: {
       photoUri: apiEntry.primary_photo_url ?? "",
-      mealType: mealTypeMap[apiEntry.meal_type] ?? MealType.OTHER,
+      mealType: apiMealTypeToEnum(apiEntry.meal_type),
     },
     createdAt: new Date(apiEntry.created_at),
     updatedAt: new Date(apiEntry.updated_at),

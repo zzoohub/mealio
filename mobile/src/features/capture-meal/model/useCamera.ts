@@ -11,12 +11,13 @@ import { captureError } from "@/shared/lib/sentry";
 import { track } from "@/shared/lib/analytics";
 import { useOverlayHelpers } from "@/app/providers/overlay";
 import { useDeviceLocation } from "@/shared/lib/location";
+import { CAMERA_SETTINGS } from "@/shared/config";
 
 // =============================================================================
 // CONSTANTS
 // =============================================================================
 
-const MAX_PHOTOS = 10;
+const MAX_PHOTOS = CAMERA_SETTINGS.MAX_PHOTOS_PER_POST;
 
 // =============================================================================
 // TYPES (Interface-First Design)

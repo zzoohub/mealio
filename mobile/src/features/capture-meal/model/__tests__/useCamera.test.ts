@@ -284,11 +284,11 @@ describe("useCamera hook", () => {
       );
 
       expect(result.current.canCapture).toBe(true);
-      expect(result.current.remainingPhotos).toBe(8); // 10 - 2
+      expect(result.current.remainingPhotos).toBe(3); // 5 - 2
     });
 
     it("prevents capture when initialPhotos reaches MAX_PHOTOS", () => {
-      const initialPhotos = Array.from({ length: 10 }, (_, i) => `photo${i}.jpg`);
+      const initialPhotos = Array.from({ length: 5 }, (_, i) => `photo${i}.jpg`);
 
       const { result } = renderHook(() =>
         useCamera({
@@ -690,7 +690,7 @@ describe("useCamera hook", () => {
     });
 
     it("updates canCapture after removing photo", () => {
-      const initialPhotos = Array.from({ length: 10 }, (_, i) => `photo${i}.jpg`);
+      const initialPhotos = Array.from({ length: 5 }, (_, i) => `photo${i}.jpg`);
 
       const { result } = renderHook(() =>
         useCamera({
@@ -731,7 +731,7 @@ describe("useCamera hook", () => {
 
       expect(ImagePicker.launchImageLibraryAsync).toHaveBeenCalledWith(
         expect.objectContaining({
-          selectionLimit: 8, // 10 - 2
+          selectionLimit: 3, // 5 - 2
         })
       );
     });
@@ -758,7 +758,7 @@ describe("useCamera hook", () => {
     });
 
     it("does not allow picking when at MAX_PHOTOS", async () => {
-      const initialPhotos = Array.from({ length: 10 }, (_, i) => `photo${i}.jpg`);
+      const initialPhotos = Array.from({ length: 5 }, (_, i) => `photo${i}.jpg`);
 
       const { result } = renderHook(() =>
         useCamera({
@@ -1095,7 +1095,7 @@ describe("useCamera hook", () => {
 
     it("does not interfere with other guard conditions", async () => {
       // Test that isAtGuestLimit is checked BEFORE canCapture
-      const initialPhotos = Array.from({ length: 10 }, (_, i) => `photo${i}.jpg`);
+      const initialPhotos = Array.from({ length: 5 }, (_, i) => `photo${i}.jpg`);
 
       const { result } = renderHook(() =>
         useCamera({
