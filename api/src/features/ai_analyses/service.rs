@@ -13,6 +13,16 @@ use crate::features::photos::models::EntryPhoto;
 const MAX_PHOTO_BYTES: u64 = 20 * 1024 * 1024; // 20 MB
 const MAX_PHOTOS_PER_ANALYSIS: usize = 5;
 
+/// Convert f64 to BigDecimal, treating NaN/infinity as None.
+fn to_bigdecimal(value: f64) -> Option<BigDecimal> {
+    if value.is_finite() {
+        BigDecimal::from_str(&format!("{:.2}", value)).ok()
+    } else {
+        tracing::warn!(value = %value, "non-finite nutrition value from AI, treating as null");
+        None
+    }
+}
+
 // =============================================================================
 // GEMINI TYPES
 // =============================================================================
@@ -235,14 +245,14 @@ async fn run_analysis_inner(
     );
 
     // 7. Convert to BigDecimal and mark completed
-    let calories = result.calories.map(|v| BigDecimal::from_str(&format!("{:.2}", v)).unwrap_or_default());
-    let protein = result.protein.map(|v| BigDecimal::from_str(&format!("{:.2}", v)).unwrap_or_default());
-    let fat = result.fat.map(|v| BigDecimal::from_str(&format!("{:.2}", v)).unwrap_or_default());
-    let carbs = result.carbs.map(|v| BigDecimal::from_str(&format!("{:.2}", v)).unwrap_or_default());
-    let fiber = result.fiber.map(|v| BigDecimal::from_str(&format!("{:.2}", v)).unwrap_or_default());
-    let sugar = result.sugar.map(|v| BigDecimal::from_str(&format!("{:.2}", v)).unwrap_or_default());
-    let sodium = result.sodium.map(|v| BigDecimal::from_str(&format!("{:.2}", v)).unwrap_or_default());
-    let confidence = result.confidence.map(|v| BigDecimal::from_str(&format!("{:.2}", v)).unwrap_or_default());
+    let calories = result.calories.and_then(to_bigdecimal);
+    let protein = result.protein.and_then(to_bigdecimal);
+    let fat = result.fat.and_then(to_bigdecimal);
+    let carbs = result.carbs.and_then(to_bigdecimal);
+    let fiber = result.fiber.and_then(to_bigdecimal);
+    let sugar = result.sugar.and_then(to_bigdecimal);
+    let sodium = result.sodium.and_then(to_bigdecimal);
+    let confidence = result.confidence.and_then(to_bigdecimal);
 
     let rows = AiAnalysis::mark_completed(
         db,

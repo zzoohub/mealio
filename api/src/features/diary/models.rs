@@ -139,9 +139,13 @@ impl DiaryEntry {
             .clamp(1, crate::constants::MAX_PAGE_SIZE);
         let offset = (page - 1) * per_page;
 
-        // Sanitize timezone: only allow IANA-like identifiers (letters, digits, /, _, -, +)
+        // Sanitize timezone: allow IANA identifiers (e.g. "America/New_York", "Asia/Seoul")
+        // Must start with a letter, contain only valid chars, and have at least one slash.
         let tz = params.tz.as_deref().filter(|s| {
-            s.len() <= 64 && s.bytes().all(|b| b.is_ascii_alphanumeric() || b"/_-+".contains(&b))
+            s.len() <= 64
+                && s.bytes().all(|b| b.is_ascii_alphanumeric() || b"/_-+".contains(&b))
+                && s.as_bytes().first().is_some_and(|b| b.is_ascii_alphabetic())
+                && s.contains('/')
         });
 
         let count: (i64,) = sqlx::query_as(
